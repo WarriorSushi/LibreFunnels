@@ -14,12 +14,20 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Admin_Menu {
 	/**
+	 * Menu hook suffix.
+	 *
+	 * @var string
+	 */
+	private $hook_suffix = '';
+
+	/**
 	 * Registers WordPress admin hooks.
 	 *
 	 * @return void
 	 */
 	public function register() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 	}
 
 	/**
@@ -28,7 +36,7 @@ final class Admin_Menu {
 	 * @return void
 	 */
 	public function add_menu() {
-		add_menu_page(
+		$this->hook_suffix = add_menu_page(
 			__( 'LibreFunnels', 'librefunnels' ),
 			__( 'LibreFunnels', 'librefunnels' ),
 			'manage_woocommerce',
@@ -36,6 +44,25 @@ final class Admin_Menu {
 			array( $this, 'render_page' ),
 			'dashicons-randomize',
 			56
+		);
+	}
+
+	/**
+	 * Enqueues admin assets on LibreFunnels screens.
+	 *
+	 * @param string $hook_suffix Current admin hook suffix.
+	 * @return void
+	 */
+	public function enqueue_assets( $hook_suffix ) {
+		if ( $this->hook_suffix !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'librefunnels-admin',
+			LIBREFUNNELS_URL . 'assets/css/admin.css',
+			array(),
+			LIBREFUNNELS_VERSION
 		);
 	}
 
@@ -49,19 +76,109 @@ final class Admin_Menu {
 			wp_die( esc_html__( 'You do not have permission to access LibreFunnels.', 'librefunnels' ) );
 		}
 
+		$funnel_count = $this->get_post_type_count( LIBREFUNNELS_FUNNEL_POST_TYPE );
+		$step_count   = $this->get_post_type_count( LIBREFUNNELS_STEP_POST_TYPE );
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'LibreFunnels', 'librefunnels' ); ?></h1>
-			<p>
-				<?php esc_html_e( 'Free WooCommerce funnels, checkout flows, order bumps, upsells, downsells, and smart routing.', 'librefunnels' ); ?>
-			</p>
+		<div class="wrap librefunnels-admin">
+			<section class="librefunnels-admin__hero">
+				<div class="librefunnels-admin__hero-copy">
+					<p class="librefunnels-admin__eyebrow"><?php esc_html_e( 'LibreFunnels for WooCommerce', 'librefunnels' ); ?></p>
+					<h1><?php esc_html_e( 'Build funnels with clarity, not clutter.', 'librefunnels' ); ?></h1>
+					<p class="librefunnels-admin__lead">
+						<?php esc_html_e( 'A free funnel workspace for checkout flows, order bumps, offers, routing, and conversion experiments.', 'librefunnels' ); ?>
+					</p>
+				</div>
 
-			<div class="notice notice-info inline">
-				<p>
-					<?php esc_html_e( 'Phase 0 is active. The visual canvas, funnel data model, and checkout routing will be introduced in later foundation slices.', 'librefunnels' ); ?>
-				</p>
-			</div>
+				<div class="librefunnels-admin__hero-panel" aria-label="<?php echo esc_attr__( 'Workspace summary', 'librefunnels' ); ?>">
+					<div>
+						<span class="librefunnels-admin__metric"><?php echo esc_html( (string) $funnel_count ); ?></span>
+						<span class="librefunnels-admin__metric-label"><?php esc_html_e( 'Funnels', 'librefunnels' ); ?></span>
+					</div>
+					<div>
+						<span class="librefunnels-admin__metric"><?php echo esc_html( (string) $step_count ); ?></span>
+						<span class="librefunnels-admin__metric-label"><?php esc_html_e( 'Steps', 'librefunnels' ); ?></span>
+					</div>
+				</div>
+			</section>
+
+			<section class="librefunnels-admin__grid">
+				<div class="librefunnels-admin__panel librefunnels-admin__panel--wide">
+					<div class="librefunnels-admin__panel-header">
+						<h2><?php esc_html_e( 'Builder Readiness', 'librefunnels' ); ?></h2>
+						<span><?php esc_html_e( 'Foundation active', 'librefunnels' ); ?></span>
+					</div>
+
+					<div class="librefunnels-admin__status-grid">
+						<?php foreach ( $this->get_status_items() as $item ) : ?>
+							<div class="librefunnels-admin__status">
+								<span class="dashicons <?php echo esc_attr( $item['icon'] ); ?>" aria-hidden="true"></span>
+								<div>
+									<strong><?php echo esc_html( $item['label'] ); ?></strong>
+									<p><?php echo esc_html( $item['description'] ); ?></p>
+								</div>
+							</div>
+						<?php endforeach; ?>
+					</div>
+				</div>
+
+				<div class="librefunnels-admin__panel">
+					<div class="librefunnels-admin__panel-header">
+						<h2><?php esc_html_e( 'Next Build Area', 'librefunnels' ); ?></h2>
+					</div>
+					<ol class="librefunnels-admin__next">
+						<li><?php esc_html_e( 'Canvas editing for funnels and steps', 'librefunnels' ); ?></li>
+						<li><?php esc_html_e( 'Inline validation for broken routes', 'librefunnels' ); ?></li>
+						<li><?php esc_html_e( 'Offer and rule controls for store owners', 'librefunnels' ); ?></li>
+					</ol>
+				</div>
+			</section>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Gets a post type count.
+	 *
+	 * @param string $post_type Post type.
+	 * @return int
+	 */
+	private function get_post_type_count( $post_type ) {
+		$count = wp_count_posts( $post_type );
+
+		if ( ! $count ) {
+			return 0;
+		}
+
+		return absint( $count->publish ) + absint( $count->draft ) + absint( $count->private );
+	}
+
+	/**
+	 * Gets readiness items for the workspace.
+	 *
+	 * @return array<int,array<string,string>>
+	 */
+	private function get_status_items() {
+		return array(
+			array(
+				'icon'        => 'dashicons-randomize',
+				'label'       => __( 'Routing core', 'librefunnels' ),
+				'description' => __( 'Start, next, accept, reject, fallback, and conditional routes.', 'librefunnels' ),
+			),
+			array(
+				'icon'        => 'dashicons-cart',
+				'label'       => __( 'Checkout core', 'librefunnels' ),
+				'description' => __( 'Assigned products, coupons, fields, and checkout takeover foundation.', 'librefunnels' ),
+			),
+			array(
+				'icon'        => 'dashicons-tag',
+				'label'       => __( 'Offers', 'librefunnels' ),
+				'description' => __( 'Order bumps and pre-checkout offers with WooCommerce cart handling.', 'librefunnels' ),
+			),
+			array(
+				'icon'        => 'dashicons-filter',
+				'label'       => __( 'Rules', 'librefunnels' ),
+				'description' => __( 'Cart and customer facts for conditional funnel decisions.', 'librefunnels' ),
+			),
+		);
 	}
 }

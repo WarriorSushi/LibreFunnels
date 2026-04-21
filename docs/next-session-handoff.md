@@ -49,6 +49,7 @@ Implemented so far:
 - Pure rule evaluator with `all`, `any`, cart product, cart subtotal, customer login, and always rules.
 - WooCommerce fact collector for cart product IDs, variation IDs, subtotal, item count, and logged-in state.
 - Conditional graph route resolution using edge rule objects and existing fallback behavior.
+- Polished, scoped admin workspace shell for LibreFunnels status and next build areas.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -70,7 +71,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 2. Add cross-sell/pre-checkout offer variants and placement rules.
 3. Add offer analytics events for impressions, accepts, rejects, and revenue attribution.
 4. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-5. Add a polished canvas/admin representation for conditional edge rules.
+5. Replace the admin workspace body with the first React canvas builder surface.
 6. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
 7. Add database import service with nonces/capabilities once the admin flow exists.
 8. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.

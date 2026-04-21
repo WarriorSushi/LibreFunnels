@@ -45,6 +45,7 @@
 - WooCommerce cart/customer fact collector
 - Conditional graph route resolution with edge rules
 - Conditional offers
+- Polished admin workspace shell
 - Visual canvas builder
 - Smart routing
 - Validation UI

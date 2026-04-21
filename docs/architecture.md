@@ -184,3 +184,5 @@ Graph edge rule shape is intentionally the same structured rule tree used by the
 Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.
 Edges represent accept/reject/conditional paths.
+
+The current admin page is a server-rendered workspace shell with scoped assets. It is intentionally not the final builder, but it sets the visual direction: store-owner-first, calm SaaS, status clarity, and no generic WordPress notice-only screen. The React canvas can replace the inner workspace later without changing the menu entry or capability model.

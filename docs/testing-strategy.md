@@ -54,6 +54,7 @@
 
 ## E2E Tests
 - Funnel creation
+- Admin workspace loading
 - Canvas editing
 - Checkout flow
 - Multiple order bumps
