@@ -148,6 +148,8 @@ Order bumps render inside the WooCommerce checkout form through the `woocommerce
 
 Configured order bump discounts are applied during WooCommerce cart total calculation by adjusting the marked bump cart item's product price. This keeps tax, totals, shipping, and checkout behavior inside WooCommerce's normal cart pipeline instead of writing order totals directly.
 
+When WooCommerce creates order line items, LibreFunnels copies order bump attribution from marked cart items onto the line item through WooCommerce's order item object API. This stores bump ID, source step ID, discount type, discount amount, and original price without direct order postmeta access.
+
 Analytics events are a separate Phase 3/6 slice. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
 ## Admin Rendering

@@ -31,6 +31,7 @@
 - Order bump checkout rendering and selected-bump cart sync
 - Multiple bumps metadata and selection support
 - Order bump fixed and percentage discount calculation
+- Order bump line item attribution metadata
 - Pre-checkout offers
 - Cross-sells
 - Upsells
