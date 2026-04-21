@@ -7,6 +7,8 @@
 
 namespace LibreFunnels\Rendering;
 
+use LibreFunnels\Checkout\Cart_Preparer;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -21,12 +23,21 @@ final class Step_Renderer {
 	private $template_loader;
 
 	/**
+	 * Cart preparer.
+	 *
+	 * @var Cart_Preparer
+	 */
+	private $cart_preparer;
+
+	/**
 	 * Creates the renderer.
 	 *
 	 * @param Template_Loader|null $template_loader Optional template loader.
+	 * @param Cart_Preparer|null   $cart_preparer   Optional cart preparer.
 	 */
-	public function __construct( Template_Loader $template_loader = null ) {
+	public function __construct( Template_Loader $template_loader = null, Cart_Preparer $cart_preparer = null ) {
 		$this->template_loader = $template_loader ? $template_loader : new Template_Loader();
+		$this->cart_preparer   = $cart_preparer ? $cart_preparer : new Cart_Preparer();
 	}
 
 	/**
@@ -45,6 +56,10 @@ final class Step_Renderer {
 
 		$step_type = sanitize_key( get_post_meta( $step_id, LIBREFUNNELS_STEP_TYPE_META, true ) );
 
+		if ( 'checkout' === $step_type ) {
+			return $this->render_checkout_step( $step );
+		}
+
 		if ( 'thank_you' !== $step_type ) {
 			return $this->render_error( __( 'This LibreFunnels step type is not renderable yet.', 'librefunnels' ), 'step-type-not-renderable' );
 		}
@@ -60,6 +75,29 @@ final class Step_Renderer {
 				'step_type' => $step_type,
 				'title'     => get_the_title( $step ),
 				'content'   => $content,
+			)
+		);
+	}
+
+	/**
+	 * Renders a checkout step.
+	 *
+	 * @param \WP_Post $step Step post.
+	 * @return string
+	 */
+	private function render_checkout_step( $step ) {
+		$prepared = $this->cart_preparer->prepare_for_step( $step->ID );
+
+		if ( is_wp_error( $prepared ) ) {
+			return $this->render_error( $prepared->get_error_message(), $prepared->get_error_code() );
+		}
+
+		return $this->template_loader->render(
+			'steps/checkout.php',
+			array(
+				'step'    => $step,
+				'step_id' => absint( $step->ID ),
+				'title'   => get_the_title( $step ),
 			)
 		);
 	}

@@ -33,6 +33,7 @@ Initial registered metadata:
 - Step type: `_librefunnels_step_type`
 - Step order: `_librefunnels_step_order`
 - Step template slug: `_librefunnels_template_slug`
+- Checkout products: `_librefunnels_checkout_products`
 
 Initial step types:
 - `landing`
@@ -100,9 +101,11 @@ Initial dynamic block support:
 The first block implementation is server-rendered and shares the shortcode rendering path. Polished editor controls are deferred to the visual admin/UI phase so they can be designed with Impeccable instead of becoming a generic block sidebar.
 
 Initial renderable step type:
+- `checkout`
 - `thank_you`
 
 Frontend templates are theme-overridable from:
+- `librefunnels/steps/checkout.php`
 - `librefunnels/steps/thank-you.php`
 
 Plugin fallback templates live under:
@@ -121,6 +124,11 @@ Initial package shape:
 - `steps`
 
 The exporter reads the funnel CPT, graph meta, start step meta, and owned step CPT records. The package validator normalizes decoded JSON before any future import writes happen. Actual database import is deferred until the admin flow has capability checks, nonces, confirmation UI, and integration tests.
+
+## Checkout Core
+The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products through `_librefunnels_checkout_products`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, then renders WooCommerce checkout markup through the normal checkout shortcode.
+
+The initial cart preparation does not empty the existing cart. Cart replacement, checkout takeover, field customization, coupons, quantity controls, and global checkout routing are separate Phase 2 slices.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.

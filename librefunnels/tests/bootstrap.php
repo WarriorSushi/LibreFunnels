@@ -41,6 +41,10 @@ if ( ! defined( 'LIBREFUNNELS_STEP_TEMPLATE_META' ) ) {
 	define( 'LIBREFUNNELS_STEP_TEMPLATE_META', '_librefunnels_template_slug' );
 }
 
+if ( ! defined( 'LIBREFUNNELS_CHECKOUT_PRODUCTS_META' ) ) {
+	define( 'LIBREFUNNELS_CHECKOUT_PRODUCTS_META', '_librefunnels_checkout_products' );
+}
+
 if ( ! defined( 'LIBREFUNNELS_PATH' ) ) {
 	define( 'LIBREFUNNELS_PATH', dirname( __DIR__ ) . '/' );
 }

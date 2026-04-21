@@ -101,14 +101,15 @@ final class Package_Validator {
 			}
 
 			$normalized[] = array(
-				'originalId' => isset( $step['originalId'] ) ? absint( $step['originalId'] ) : 0,
-				'title'      => isset( $step['title'] ) ? sanitize_text_field( (string) $step['title'] ) : '',
-				'content'    => isset( $step['content'] ) ? wp_kses_post( (string) $step['content'] ) : '',
-				'excerpt'    => isset( $step['excerpt'] ) ? wp_kses_post( (string) $step['excerpt'] ) : '',
-				'status'     => isset( $step['status'] ) ? sanitize_key( (string) $step['status'] ) : 'draft',
-				'type'       => isset( $step['type'] ) ? Registered_Meta::sanitize_step_type( $step['type'] ) : 'landing',
-				'order'      => isset( $step['order'] ) ? absint( $step['order'] ) : 0,
-				'template'   => isset( $step['template'] ) ? sanitize_key( (string) $step['template'] ) : '',
+				'originalId'       => isset( $step['originalId'] ) ? absint( $step['originalId'] ) : 0,
+				'title'            => isset( $step['title'] ) ? sanitize_text_field( (string) $step['title'] ) : '',
+				'content'          => isset( $step['content'] ) ? wp_kses_post( (string) $step['content'] ) : '',
+				'excerpt'          => isset( $step['excerpt'] ) ? wp_kses_post( (string) $step['excerpt'] ) : '',
+				'status'           => isset( $step['status'] ) ? sanitize_key( (string) $step['status'] ) : 'draft',
+				'type'             => isset( $step['type'] ) ? Registered_Meta::sanitize_step_type( $step['type'] ) : 'landing',
+				'order'            => isset( $step['order'] ) ? absint( $step['order'] ) : 0,
+				'template'         => isset( $step['template'] ) ? sanitize_key( (string) $step['template'] ) : '',
+				'checkoutProducts' => Registered_Meta::sanitize_checkout_products( isset( $step['checkoutProducts'] ) ? $step['checkoutProducts'] : array() ),
 			);
 		}
 

@@ -27,6 +27,8 @@ final class Package_Validator_Test extends TestCase {
 		$this->assertSame( 'Checkout Flow', $package['funnel']['title'] );
 		$this->assertSame( 10, $package['funnel']['startStepId'] );
 		$this->assertSame( 'thank_you', $package['steps'][0]['type'] );
+		$this->assertSame( 123, $package['steps'][0]['checkoutProducts'][0]['product_id'] );
+		$this->assertSame( 2, $package['steps'][0]['checkoutProducts'][0]['quantity'] );
 	}
 
 	/**
@@ -96,6 +98,13 @@ final class Package_Validator_Test extends TestCase {
 					'type'       => 'thank_you',
 					'order'      => 1,
 					'template'   => 'clean',
+					'checkoutProducts' => array(
+						array(
+							'product_id'   => 123,
+							'variation_id' => 0,
+							'quantity'     => 2,
+						),
+					),
 				),
 			),
 		);

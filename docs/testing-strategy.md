@@ -13,6 +13,7 @@
 - A/B assignment
 - Analytics attribution
 - Import/export package normalization
+- Checkout product assignment sanitization
 
 ## Integration Tests
 - Shortcode rendering
@@ -21,6 +22,7 @@
 - Funnel export from CPT/meta records
 - Funnel import with nonces and capabilities
 - WooCommerce checkout
+- Checkout step product cart preparation
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

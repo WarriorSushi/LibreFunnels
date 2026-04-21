@@ -127,14 +127,15 @@ final class Funnel_Exporter {
 
 		foreach ( $steps as $step ) {
 			$exported[] = array(
-				'originalId' => absint( $step->ID ),
-				'title'      => $step->post_title,
-				'content'    => $step->post_content,
-				'excerpt'    => $step->post_excerpt,
-				'status'     => $step->post_status,
-				'type'       => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TYPE_META, true ),
-				'order'      => get_post_meta( $step->ID, LIBREFUNNELS_STEP_ORDER_META, true ),
-				'template'   => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TEMPLATE_META, true ),
+				'originalId'       => absint( $step->ID ),
+				'title'            => $step->post_title,
+				'content'          => $step->post_content,
+				'excerpt'          => $step->post_excerpt,
+				'status'           => $step->post_status,
+				'type'             => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TYPE_META, true ),
+				'order'            => get_post_meta( $step->ID, LIBREFUNNELS_STEP_ORDER_META, true ),
+				'template'         => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TEMPLATE_META, true ),
+				'checkoutProducts' => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, true ),
 			);
 		}
 

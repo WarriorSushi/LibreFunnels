@@ -31,6 +31,8 @@ Implemented so far:
 - Versioned JSON funnel exporter.
 - Import package validator/normalizer.
 - Dynamic server-rendered block registration for funnel and step blocks.
+- Checkout step product assignment metadata.
+- Checkout step cart preparation and WooCommerce checkout rendering.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -52,10 +54,11 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 2. Run `composer install` in `librefunnels/`.
 3. Run `composer lint` and `composer test` once dependencies are installed.
 4. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
-5. Add database import service with nonces/capabilities once the admin flow exists.
-6. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, and CPT/meta export once a WP test runtime is available.
-7. Start the admin UI shell only after routing/rendering behavior has passing tests.
-8. Design polished block editor controls during the Impeccable-backed admin UI phase.
+5. Continue Phase 2 with coupon support and field customization metadata.
+6. Add database import service with nonces/capabilities once the admin flow exists.
+7. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, and checkout cart preparation once a WP test runtime is available.
+8. Start the admin UI shell only after routing/rendering behavior has passing tests.
+9. Design polished block editor controls during the Impeccable-backed admin UI phase.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

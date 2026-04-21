@@ -143,6 +143,39 @@ final class Registered_Meta {
 				'show_in_rest'      => true,
 			)
 		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_CHECKOUT_PRODUCTS_META,
+			array(
+				'type'              => 'array',
+				'label'             => __( 'Checkout products', 'librefunnels' ),
+				'description'       => __( 'Products assigned to a funnel checkout step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => array(),
+				'sanitize_callback' => array( self::class, 'sanitize_checkout_products' ),
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => array(
+					'schema' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'product_id'   => array(
+									'type' => 'integer',
+								),
+								'variation_id' => array(
+									'type' => 'integer',
+								),
+								'quantity'     => array(
+									'type' => 'integer',
+								),
+							),
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -224,6 +257,48 @@ final class Registered_Meta {
 			'nodes'   => $nodes,
 			'edges'   => $edges,
 		);
+	}
+
+	/**
+	 * Sanitizes checkout product assignments.
+	 *
+	 * @param mixed $value Raw assignment list.
+	 * @return array<int,array<string,int>>
+	 */
+	public static function sanitize_checkout_products( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$products = array();
+
+		foreach ( $value as $item ) {
+			if ( is_object( $item ) ) {
+				$item = (array) $item;
+			}
+
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$product_id = isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0;
+
+			if ( 0 === $product_id ) {
+				continue;
+			}
+
+			$products[] = array(
+				'product_id'   => $product_id,
+				'variation_id' => isset( $item['variation_id'] ) ? absint( $item['variation_id'] ) : 0,
+				'quantity'     => isset( $item['quantity'] ) ? max( 1, absint( $item['quantity'] ) ) : 1,
+			);
+		}
+
+		return $products;
 	}
 
 	/**

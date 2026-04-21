@@ -19,8 +19,8 @@
 - Import/export foundation: versioned JSON export and import package validation
 
 ## Phase 2: Checkout Core
-- Funnel checkout page
-- Product assignment
+- Funnel checkout page: checkout step rendering through WooCommerce checkout
+- Product assignment: checkout step product metadata and cart preparation
 - Field customization
 - Coupon support
 - Quantity/product option support
