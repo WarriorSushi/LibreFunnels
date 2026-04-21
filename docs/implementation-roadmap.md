@@ -42,6 +42,7 @@
 
 ## Phase 4: Rules and Canvas
 - Pure rule evaluator for conditional routing facts
+- WooCommerce cart/customer fact collector
 - Conditional offers
 - Visual canvas builder
 - Smart routing

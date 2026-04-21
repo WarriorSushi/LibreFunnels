@@ -16,6 +16,7 @@
   - Cart product facts
   - Cart subtotal thresholds
   - Customer logged-in facts
+  - WooCommerce fact collection
 - A/B assignment
 - Analytics attribution
 - Import/export package normalization
