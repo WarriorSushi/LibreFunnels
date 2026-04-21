@@ -14,18 +14,18 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$title   = isset( $args['title'] ) ? (string) $args['title'] : '';
-$content = isset( $args['content'] ) ? (string) $args['content'] : '';
+$librefunnels_title   = isset( $args['title'] ) ? (string) $args['title'] : '';
+$librefunnels_content = isset( $args['content'] ) ? (string) $args['content'] : '';
 ?>
 <section class="librefunnels-step librefunnels-step--thank-you">
 	<div class="librefunnels-step__inner">
-		<?php if ( '' !== $title ) : ?>
-			<h1 class="librefunnels-step__title"><?php echo esc_html( $title ); ?></h1>
+		<?php if ( '' !== $librefunnels_title ) : ?>
+			<h1 class="librefunnels-step__title"><?php echo esc_html( $librefunnels_title ); ?></h1>
 		<?php endif; ?>
 
-		<?php if ( '' !== $content ) : ?>
+		<?php if ( '' !== $librefunnels_content ) : ?>
 			<div class="librefunnels-step__content">
-				<?php echo wp_kses_post( $content ); ?>
+				<?php echo wp_kses_post( $librefunnels_content ); ?>
 			</div>
 		<?php else : ?>
 			<p class="librefunnels-step__empty">

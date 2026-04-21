@@ -198,7 +198,7 @@ final class Graph_Validator {
 		$route          = $this->sanitize_key( $route );
 
 		foreach ( $this->get_graph_items( $graph, 'edges' ) as $edge ) {
-			$source = isset( $edge['source'] ) ? $this->sanitize_key( $edge['source'] ) : '';
+			$source     = isset( $edge['source'] ) ? $this->sanitize_key( $edge['source'] ) : '';
 			$edge_route = isset( $edge['route'] ) ? $this->sanitize_key( $edge['route'] ) : '';
 
 			if ( $source_node_id === $source && $route === $edge_route ) {

@@ -111,8 +111,8 @@ final class Funnel_Exporter {
 				'posts_per_page' => -1,
 				'orderby'        => 'meta_value_num',
 				'order'          => 'ASC',
-				'meta_key'       => LIBREFUNNELS_STEP_ORDER_META,
-				'meta_query'     => array(
+				'meta_key'       => LIBREFUNNELS_STEP_ORDER_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Export intentionally orders by the step order meta.
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Export intentionally queries steps by parent funnel meta.
 					array(
 						'key'     => LIBREFUNNELS_STEP_FUNNEL_ID_META,
 						'value'   => absint( $funnel_id ),

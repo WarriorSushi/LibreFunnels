@@ -41,6 +41,10 @@ if ( ! defined( 'LIBREFUNNELS_STEP_TEMPLATE_META' ) ) {
 	define( 'LIBREFUNNELS_STEP_TEMPLATE_META', '_librefunnels_template_slug' );
 }
 
+if ( ! defined( 'LIBREFUNNELS_PATH' ) ) {
+	define( 'LIBREFUNNELS_PATH', dirname( __DIR__ ) . '/' );
+}
+
 if ( ! function_exists( '__' ) ) {
 	/**
 	 * Translation fallback for isolated unit tests.
@@ -179,6 +183,6 @@ $autoload = dirname( __DIR__ ) . '/vendor/autoload.php';
 
 if ( file_exists( $autoload ) ) {
 	require_once $autoload;
-} else {
-	require_once dirname( __DIR__ ) . '/includes/autoload.php';
 }
+
+require_once dirname( __DIR__ ) . '/includes/autoload.php';

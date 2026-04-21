@@ -157,6 +157,8 @@ final class Registered_Meta {
 	 * @return bool
 	 */
 	public static function user_can_manage_funnels( $allowed, $meta_key, $object_id, $user_id, $cap = '', $caps = array() ) {
+		unset( $allowed, $meta_key, $object_id, $cap, $caps );
+
 		return user_can( $user_id, 'manage_woocommerce' );
 	}
 

@@ -49,6 +49,7 @@ final class Step_Renderer {
 			return $this->render_error( __( 'This LibreFunnels step type is not renderable yet.', 'librefunnels' ), 'step-type-not-renderable' );
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally render step content through WordPress' core content filters.
 		$content = apply_filters( 'the_content', $step->post_content );
 
 		return $this->template_loader->render(

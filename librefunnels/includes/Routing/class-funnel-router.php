@@ -45,7 +45,7 @@ final class Funnel_Router {
 			return Routing_Result::failure( 'funnel_not_found', __( 'The requested funnel does not exist.', 'librefunnels' ) );
 		}
 
-		$start_step_id  = absint( get_post_meta( $funnel_id, LIBREFUNNELS_FUNNEL_START_STEP_META, true ) );
+		$start_step_id   = absint( get_post_meta( $funnel_id, LIBREFUNNELS_FUNNEL_START_STEP_META, true ) );
 		$step_funnel_ids = $this->get_step_funnel_ids( array(), array( $start_step_id ) );
 
 		return $this->validator->validate_start_step( $funnel_id, $start_step_id, $step_funnel_ids );
