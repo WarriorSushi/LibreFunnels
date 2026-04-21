@@ -198,6 +198,49 @@ final class Registered_Meta {
 				),
 			)
 		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_CHECKOUT_FIELDS_META,
+			array(
+				'type'              => 'array',
+				'label'             => __( 'Checkout fields', 'librefunnels' ),
+				'description'       => __( 'Field customization rules for a funnel checkout step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => array(),
+				'sanitize_callback' => array( self::class, 'sanitize_checkout_fields' ),
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => array(
+					'schema' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'section'     => array(
+									'type' => 'string',
+									'enum' => array( 'billing', 'shipping', 'order', 'account' ),
+								),
+								'key'         => array(
+									'type' => 'string',
+								),
+								'label'       => array(
+									'type' => 'string',
+								),
+								'placeholder' => array(
+									'type' => 'string',
+								),
+								'required'    => array(
+									'type' => 'boolean',
+								),
+								'hidden'      => array(
+									'type' => 'boolean',
+								),
+							),
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -353,6 +396,61 @@ final class Registered_Meta {
 		}
 
 		return array_values( array_unique( $codes ) );
+	}
+
+	/**
+	 * Sanitizes checkout field customization rules.
+	 *
+	 * @param mixed $value Raw field rules.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function sanitize_checkout_fields( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$rules = array();
+
+		foreach ( $value as $rule ) {
+			if ( is_object( $rule ) ) {
+				$rule = (array) $rule;
+			}
+
+			if ( ! is_array( $rule ) ) {
+				continue;
+			}
+
+			$section = isset( $rule['section'] ) ? sanitize_key( (string) $rule['section'] ) : '';
+			$key     = isset( $rule['key'] ) ? sanitize_key( (string) $rule['key'] ) : '';
+
+			if ( ! in_array( $section, self::get_allowed_checkout_field_sections(), true ) || '' === $key ) {
+				continue;
+			}
+
+			$rules[] = array(
+				'section'     => $section,
+				'key'         => $key,
+				'label'       => isset( $rule['label'] ) ? sanitize_text_field( (string) $rule['label'] ) : '',
+				'placeholder' => isset( $rule['placeholder'] ) ? sanitize_text_field( (string) $rule['placeholder'] ) : '',
+				'required'    => isset( $rule['required'] ) ? (bool) $rule['required'] : false,
+				'hidden'      => isset( $rule['hidden'] ) ? (bool) $rule['hidden'] : false,
+			);
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * Returns allowed checkout field sections.
+	 *
+	 * @return string[]
+	 */
+	private static function get_allowed_checkout_field_sections() {
+		return array( 'billing', 'shipping', 'order', 'account' );
 	}
 
 	/**

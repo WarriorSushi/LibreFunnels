@@ -34,6 +34,7 @@ Implemented so far:
 - Checkout step product assignment metadata.
 - Checkout step cart preparation and WooCommerce checkout rendering.
 - Checkout step coupon metadata and cart application.
+- Scoped checkout field customization metadata and filter.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -55,7 +56,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 2. Run `composer install` in `librefunnels/`.
 3. Run `composer lint` and `composer test` once dependencies are installed.
 4. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
-5. Continue Phase 2 with field customization metadata.
+5. Continue Phase 2 with quantity/product option controls.
 6. Add database import service with nonces/capabilities once the admin flow exists.
 7. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, and checkout cart preparation once a WP test runtime is available.
 8. Start the admin UI shell only after routing/rendering behavior has passing tests.

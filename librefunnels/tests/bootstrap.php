@@ -49,6 +49,10 @@ if ( ! defined( 'LIBREFUNNELS_CHECKOUT_COUPONS_META' ) ) {
 	define( 'LIBREFUNNELS_CHECKOUT_COUPONS_META', '_librefunnels_checkout_coupons' );
 }
 
+if ( ! defined( 'LIBREFUNNELS_CHECKOUT_FIELDS_META' ) ) {
+	define( 'LIBREFUNNELS_CHECKOUT_FIELDS_META', '_librefunnels_checkout_fields' );
+}
+
 if ( ! defined( 'LIBREFUNNELS_PATH' ) ) {
 	define( 'LIBREFUNNELS_PATH', dirname( __DIR__ ) . '/' );
 }

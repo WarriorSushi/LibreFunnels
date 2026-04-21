@@ -30,6 +30,8 @@ final class Package_Validator_Test extends TestCase {
 		$this->assertSame( 123, $package['steps'][0]['checkoutProducts'][0]['product_id'] );
 		$this->assertSame( 2, $package['steps'][0]['checkoutProducts'][0]['quantity'] );
 		$this->assertSame( array( 'SAVE10' ), $package['steps'][0]['checkoutCoupons'] );
+		$this->assertSame( 'billing', $package['steps'][0]['checkoutFields'][0]['section'] );
+		$this->assertFalse( $package['steps'][0]['checkoutFields'][0]['required'] );
 	}
 
 	/**
@@ -107,6 +109,16 @@ final class Package_Validator_Test extends TestCase {
 						),
 					),
 					'checkoutCoupons'  => array( 'SAVE10', 'SAVE10', '' ),
+					'checkoutFields'   => array(
+						array(
+							'section'     => 'billing',
+							'key'         => 'billing_phone',
+							'label'       => 'Phone number',
+							'placeholder' => 'Best phone',
+							'required'    => false,
+							'hidden'      => false,
+						),
+					),
 				),
 			),
 		);

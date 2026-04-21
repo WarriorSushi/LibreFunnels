@@ -15,6 +15,7 @@
 - Import/export package normalization
 - Checkout product assignment sanitization
 - Checkout coupon sanitization
+- Checkout field rule sanitization
 
 ## Integration Tests
 - Shortcode rendering
@@ -25,6 +26,7 @@
 - WooCommerce checkout
 - Checkout step product cart preparation
 - Checkout step coupon application
+- Scoped checkout field customization
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

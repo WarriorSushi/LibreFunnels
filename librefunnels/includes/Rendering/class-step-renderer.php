@@ -7,6 +7,7 @@
 
 namespace LibreFunnels\Rendering;
 
+use LibreFunnels\Checkout\Checkout_Field_Customizer;
 use LibreFunnels\Checkout\Cart_Preparer;
 
 defined( 'ABSPATH' ) || exit;
@@ -92,14 +93,20 @@ final class Step_Renderer {
 			return $this->render_error( $prepared->get_error_message(), $prepared->get_error_code() );
 		}
 
-		return $this->template_loader->render(
-			'steps/checkout.php',
-			array(
-				'step'    => $step,
-				'step_id' => absint( $step->ID ),
-				'title'   => get_the_title( $step ),
-			)
-		);
+		Checkout_Field_Customizer::set_active_step_id( $step->ID );
+
+		try {
+			return $this->template_loader->render(
+				'steps/checkout.php',
+				array(
+					'step'    => $step,
+					'step_id' => absint( $step->ID ),
+					'title'   => get_the_title( $step ),
+				)
+			);
+		} finally {
+			Checkout_Field_Customizer::clear_active_step_id();
+		}
 	}
 
 	/**

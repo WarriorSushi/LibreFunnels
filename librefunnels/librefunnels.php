@@ -38,6 +38,7 @@ define( 'LIBREFUNNELS_STEP_ORDER_META', '_librefunnels_step_order' );
 define( 'LIBREFUNNELS_STEP_TEMPLATE_META', '_librefunnels_template_slug' );
 define( 'LIBREFUNNELS_CHECKOUT_PRODUCTS_META', '_librefunnels_checkout_products' );
 define( 'LIBREFUNNELS_CHECKOUT_COUPONS_META', '_librefunnels_checkout_coupons' );
+define( 'LIBREFUNNELS_CHECKOUT_FIELDS_META', '_librefunnels_checkout_fields' );
 
 require_once LIBREFUNNELS_PATH . 'includes/autoload.php';
 
