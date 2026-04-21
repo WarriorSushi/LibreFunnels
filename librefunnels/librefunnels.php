@@ -36,9 +36,11 @@ define( 'LIBREFUNNELS_STEP_FUNNEL_ID_META', '_librefunnels_funnel_id' );
 define( 'LIBREFUNNELS_STEP_TYPE_META', '_librefunnels_step_type' );
 define( 'LIBREFUNNELS_STEP_ORDER_META', '_librefunnels_step_order' );
 define( 'LIBREFUNNELS_STEP_TEMPLATE_META', '_librefunnels_template_slug' );
+define( 'LIBREFUNNELS_STEP_PAGE_ID_META', '_librefunnels_step_page_id' );
 define( 'LIBREFUNNELS_CHECKOUT_PRODUCTS_META', '_librefunnels_checkout_products' );
 define( 'LIBREFUNNELS_CHECKOUT_COUPONS_META', '_librefunnels_checkout_coupons' );
 define( 'LIBREFUNNELS_CHECKOUT_FIELDS_META', '_librefunnels_checkout_fields' );
+define( 'LIBREFUNNELS_GLOBAL_CHECKOUT_FUNNEL_ID_OPTION', 'librefunnels_global_checkout_funnel_id' );
 
 require_once LIBREFUNNELS_PATH . 'includes/autoload.php';
 

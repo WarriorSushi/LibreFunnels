@@ -146,6 +146,21 @@ final class Registered_Meta {
 
 		register_post_meta(
 			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_STEP_PAGE_ID_META,
+			array(
+				'type'              => 'integer',
+				'label'             => __( 'Step page ID', 'librefunnels' ),
+				'description'       => __( 'WordPress page that renders this funnel step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => 0,
+				'sanitize_callback' => 'absint',
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => true,
+			)
+		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
 			LIBREFUNNELS_CHECKOUT_PRODUCTS_META,
 			array(
 				'type'              => 'array',

@@ -10,6 +10,7 @@ namespace LibreFunnels;
 use LibreFunnels\Admin\Admin_Menu;
 use LibreFunnels\Blocks\Block_Registry;
 use LibreFunnels\Checkout\Checkout_Field_Customizer;
+use LibreFunnels\Checkout\Global_Checkout;
 use LibreFunnels\Domain\Funnel_Post_Type;
 use LibreFunnels\Domain\Registered_Meta;
 use LibreFunnels\Domain\Step_Post_Type;
@@ -112,6 +113,7 @@ final class Plugin {
 		( new Shortcodes() )->register();
 		( new Block_Registry() )->register();
 		( new Checkout_Field_Customizer() )->register();
+		( new Global_Checkout() )->register();
 
 		if ( is_admin() ) {
 			( new Admin_Menu() )->register();

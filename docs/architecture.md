@@ -33,6 +33,7 @@ Initial registered metadata:
 - Step type: `_librefunnels_step_type`
 - Step order: `_librefunnels_step_order`
 - Step template slug: `_librefunnels_template_slug`
+- Step page ID: `_librefunnels_step_page_id`
 - Checkout products: `_librefunnels_checkout_products`
 - Checkout coupons: `_librefunnels_checkout_coupons`
 - Checkout field rules: `_librefunnels_checkout_fields`
@@ -131,6 +132,13 @@ The exporter reads the funnel CPT, graph meta, start step meta, and owned step C
 The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products, variation IDs, variation attributes, and quantities through `_librefunnels_checkout_products`; coupons through `_librefunnels_checkout_coupons`; and scoped field rules through `_librefunnels_checkout_fields`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, applies configured coupons, scopes checkout field customizations to the current render pass, then renders WooCommerce checkout markup through the normal checkout shortcode.
 
 The initial cart preparation does not empty the existing cart. Cart replacement, checkout takeover, quantity controls, and global checkout routing are separate Phase 2 slices.
+
+Global checkout takeover foundation:
+- Option: `librefunnels_global_checkout_funnel_id`
+- The option is disabled when empty or `0`.
+- When enabled, LibreFunnels resolves the funnel start step and redirects the default WooCommerce checkout page to the step's `_librefunnels_step_page_id`.
+- Protected WooCommerce endpoints such as order pay and order received are never redirected.
+- The current implementation is a backend foundation. A polished admin toggle/selector must be added before this is presented to store owners.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.

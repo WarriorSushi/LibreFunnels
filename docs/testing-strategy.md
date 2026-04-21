@@ -27,6 +27,8 @@
 - Checkout step product cart preparation
 - Checkout step coupon application
 - Scoped checkout field customization
+- Global checkout redirect opt-in behavior
+- Protected WooCommerce checkout endpoints are not redirected
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

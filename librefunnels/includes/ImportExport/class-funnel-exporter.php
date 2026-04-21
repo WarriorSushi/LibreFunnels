@@ -135,6 +135,7 @@ final class Funnel_Exporter {
 				'type'             => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TYPE_META, true ),
 				'order'            => get_post_meta( $step->ID, LIBREFUNNELS_STEP_ORDER_META, true ),
 				'template'         => get_post_meta( $step->ID, LIBREFUNNELS_STEP_TEMPLATE_META, true ),
+				'pageId'           => get_post_meta( $step->ID, LIBREFUNNELS_STEP_PAGE_ID_META, true ),
 				'checkoutProducts' => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, true ),
 				'checkoutCoupons'  => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_COUPONS_META, true ),
 				'checkoutFields'   => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_FIELDS_META, true ),

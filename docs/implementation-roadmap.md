@@ -24,7 +24,7 @@
 - Coupon support: checkout step coupon metadata and cart application
 - Field customization: scoped checkout field labels, placeholders, required flags, and hiding
 - Quantity/product option support: quantity, variation ID, and variation attributes in checkout product assignments
-- Checkout takeover/global checkout
+- Checkout takeover/global checkout: disabled-by-default redirect foundation using configured funnel and step page ID
 
 ## Phase 3: Offers
 - Order bumps
