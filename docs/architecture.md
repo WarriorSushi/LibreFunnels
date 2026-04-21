@@ -146,7 +146,9 @@ The first offer implementation stores order bump definitions on checkout steps t
 
 Order bumps render inside the WooCommerce checkout form through the `woocommerce_review_order_before_payment` hook while a LibreFunnels checkout step is active. Selected bump IDs are protected by a step-scoped nonce and synced during checkout AJAX refreshes and final checkout submission. Accepted bumps are added to the WooCommerce cart with marker cart item data so they can be removed when unselected and attributed later.
 
-Discount application and analytics events are separate Phase 3 slices. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
+Configured order bump discounts are applied during WooCommerce cart total calculation by adjusting the marked bump cart item's product price. This keeps tax, totals, shipping, and checkout behavior inside WooCommerce's normal cart pipeline instead of writing order totals directly.
+
+Analytics events are a separate Phase 3/6 slice. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.

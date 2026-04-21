@@ -43,7 +43,7 @@ Normal checkout and order-bump flows use WooCommerce gateways. Post-purchase off
 
 = Are order bumps supported? =
 
-The current foundation can store order bump definitions, render eligible bumps during checkout, and add selected bump products to the WooCommerce cart. Discount handling and analytics attribution are still being built.
+The current foundation can store order bump definitions, render eligible bumps during checkout, add selected bump products to the WooCommerce cart, and apply configured fixed or percentage bump discounts during WooCommerce totals calculation. Analytics attribution is still being built.
 
 = Which shortcodes are available first? =
 

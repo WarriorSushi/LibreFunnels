@@ -32,6 +32,7 @@
 - Protected WooCommerce checkout endpoints are not redirected
 - Order bump rendering inside checkout
 - Selected order bump cart sync and removal
+- Order bump discounted cart item pricing
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

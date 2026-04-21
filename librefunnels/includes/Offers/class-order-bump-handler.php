@@ -28,14 +28,23 @@ final class Order_Bump_Handler {
 	private $eligibility;
 
 	/**
+	 * Discount calculator.
+	 *
+	 * @var Discount_Calculator
+	 */
+	private $discount_calculator;
+
+	/**
 	 * Creates the handler.
 	 *
-	 * @param Order_Bump_Repository|null $repository  Optional repository.
-	 * @param Offer_Eligibility|null     $eligibility Optional eligibility checker.
+	 * @param Order_Bump_Repository|null $repository          Optional repository.
+	 * @param Offer_Eligibility|null     $eligibility         Optional eligibility checker.
+	 * @param Discount_Calculator|null   $discount_calculator Optional discount calculator.
 	 */
-	public function __construct( Order_Bump_Repository $repository = null, Offer_Eligibility $eligibility = null ) {
-		$this->repository  = $repository ? $repository : new Order_Bump_Repository();
-		$this->eligibility = $eligibility ? $eligibility : new Offer_Eligibility();
+	public function __construct( Order_Bump_Repository $repository = null, Offer_Eligibility $eligibility = null, Discount_Calculator $discount_calculator = null ) {
+		$this->repository          = $repository ? $repository : new Order_Bump_Repository();
+		$this->eligibility         = $eligibility ? $eligibility : new Offer_Eligibility();
+		$this->discount_calculator = $discount_calculator ? $discount_calculator : new Discount_Calculator();
 	}
 
 	/**
@@ -46,6 +55,7 @@ final class Order_Bump_Handler {
 	public function register() {
 		add_action( 'woocommerce_checkout_update_order_review', array( $this, 'sync_from_order_review' ), 5 );
 		add_action( 'woocommerce_checkout_process', array( $this, 'sync_from_checkout_post' ), 5 );
+		add_action( 'woocommerce_before_calculate_totals', array( $this, 'apply_bump_discounts' ), 20 );
 	}
 
 	/**
@@ -146,6 +156,7 @@ final class Order_Bump_Handler {
 		$variation_id = absint( $bump['variation_id'] );
 		$quantity     = max( 1, absint( $bump['quantity'] ) );
 		$variation    = isset( $bump['variation'] ) && is_array( $bump['variation'] ) ? $bump['variation'] : array();
+		$product      = wc_get_product( $variation_id ? $variation_id : $product_id );
 
 		$cart_item_key = $woocommerce->cart->add_to_cart(
 			$product_id,
@@ -158,6 +169,7 @@ final class Order_Bump_Handler {
 				'librefunnels_order_bump_step_id' => absint( $step_id ),
 				'librefunnels_discount_type'      => $bump['discount_type'],
 				'librefunnels_discount_amount'    => $bump['discount_amount'],
+				'librefunnels_original_price'     => $product && method_exists( $product, 'get_price' ) ? (float) $product->get_price( 'edit' ) : 0.0,
 			)
 		);
 
@@ -166,6 +178,39 @@ final class Order_Bump_Handler {
 				__( 'LibreFunnels could not add the selected order bump to the cart.', 'librefunnels' ),
 				$add_notices
 			);
+		}
+	}
+
+	/**
+	 * Applies order bump discounts during WooCommerce total calculation.
+	 *
+	 * @param \WC_Cart $cart WooCommerce cart.
+	 * @return void
+	 */
+	public function apply_bump_discounts( $cart ) {
+		if ( is_admin() && ! wp_doing_ajax() ) {
+			return;
+		}
+
+		if ( ! $cart || ! method_exists( $cart, 'get_cart' ) ) {
+			return;
+		}
+
+		foreach ( $cart->get_cart() as $cart_item ) {
+			if ( empty( $cart_item['librefunnels_order_bump'] ) || empty( $cart_item['data'] ) || ! is_object( $cart_item['data'] ) ) {
+				continue;
+			}
+
+			if ( ! method_exists( $cart_item['data'], 'set_price' ) ) {
+				continue;
+			}
+
+			$original_price = isset( $cart_item['librefunnels_original_price'] ) ? (float) $cart_item['librefunnels_original_price'] : $this->get_product_price( $cart_item['data'] );
+			$discount_type  = isset( $cart_item['librefunnels_discount_type'] ) ? sanitize_key( (string) $cart_item['librefunnels_discount_type'] ) : 'none';
+			$discount       = isset( $cart_item['librefunnels_discount_amount'] ) ? (float) $cart_item['librefunnels_discount_amount'] : 0.0;
+			$new_price      = $this->discount_calculator->calculate_price( $original_price, $discount_type, $discount );
+
+			$cart_item['data']->set_price( $this->format_price_for_woocommerce( $new_price ) );
 		}
 	}
 
@@ -282,5 +327,35 @@ final class Order_Bump_Handler {
 		if ( $add_notices && function_exists( 'wc_add_notice' ) ) {
 			wc_add_notice( $message, 'error' );
 		}
+	}
+
+	/**
+	 * Gets an editable product price.
+	 *
+	 * @param object $product Product object.
+	 * @return float
+	 */
+	private function get_product_price( $product ) {
+		if ( method_exists( $product, 'get_price' ) ) {
+			return (float) $product->get_price( 'edit' );
+		}
+
+		return 0.0;
+	}
+
+	/**
+	 * Formats a price for WC_Product::set_price().
+	 *
+	 * @param float $price Price.
+	 * @return float|string
+	 */
+	private function format_price_for_woocommerce( $price ) {
+		$price = max( 0.0, (float) $price );
+
+		if ( function_exists( 'wc_format_decimal' ) ) {
+			return wc_format_decimal( $price );
+		}
+
+		return $price;
 	}
 }
