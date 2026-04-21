@@ -197,7 +197,9 @@ final class Order_Bump_Handler {
 		}
 
 		foreach ( $cart->get_cart() as $cart_item ) {
-			if ( empty( $cart_item['librefunnels_order_bump'] ) || empty( $cart_item['data'] ) || ! is_object( $cart_item['data'] ) ) {
+			$is_discountable_offer = ! empty( $cart_item['librefunnels_order_bump'] ) || ! empty( $cart_item['librefunnels_pre_checkout_offer'] );
+
+			if ( ! $is_discountable_offer || empty( $cart_item['data'] ) || ! is_object( $cart_item['data'] ) ) {
 				continue;
 			}
 

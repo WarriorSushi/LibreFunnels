@@ -44,6 +44,7 @@ Implemented so far:
 - Selected order bump cart synchronization during checkout AJAX refresh and final checkout submission.
 - Order bump fixed/percentage discount calculation and cart item price adjustment during WooCommerce totals calculation.
 - Order bump attribution copied onto WooCommerce order line item metadata through WooCommerce item objects.
+- Pre-checkout offer step metadata, import/export normalization, frontend template, accept/reject POST handler, route redirects, cart add, discount support, and line item attribution.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -61,9 +62,9 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add pre-checkout offer step rendering and accept/reject route handling.
+1. Add offer-state/session handling so accept/reject routes can be replay-safe.
 2. Add safe upsell/downsell accept-and-confirm flow foundation for arbitrary gateways.
-3. Add offer-state/session handling so accept/reject routes can be replay-safe.
+3. Add cross-sell/pre-checkout offer variants and placement rules.
 4. Add offer analytics events for impressions, accepts, rejects, and revenue attribution.
 5. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
 6. Add database import service with nonces/capabilities once the admin flow exists.

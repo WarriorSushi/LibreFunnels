@@ -38,6 +38,7 @@ Initial registered metadata:
 - Checkout coupons: `_librefunnels_checkout_coupons`
 - Checkout field rules: `_librefunnels_checkout_fields`
 - Order bumps: `_librefunnels_order_bumps`
+- Step offer: `_librefunnels_step_offer`
 
 Initial step types:
 - `landing`
@@ -148,7 +149,9 @@ Order bumps render inside the WooCommerce checkout form through the `woocommerce
 
 Configured order bump discounts are applied during WooCommerce cart total calculation by adjusting the marked bump cart item's product price. This keeps tax, totals, shipping, and checkout behavior inside WooCommerce's normal cart pipeline instead of writing order totals directly.
 
-When WooCommerce creates order line items, LibreFunnels copies order bump attribution from marked cart items onto the line item through WooCommerce's order item object API. This stores bump ID, source step ID, discount type, discount amount, and original price without direct order postmeta access.
+Pre-checkout offer steps store their primary product offer in `_librefunnels_step_offer`. The default offer step template renders a product-led accept/reject page, protects actions with a step-scoped nonce, adds accepted pre-checkout offers to the WooCommerce cart, and then resolves the funnel's `accept` or `reject` route through the routing core. The target step must have `_librefunnels_step_page_id` assigned so the handler can redirect to the correct public page.
+
+When WooCommerce creates order line items, LibreFunnels copies order bump and pre-checkout offer attribution from marked cart items onto the line item through WooCommerce's order item object API. This stores offer/bump ID, source step ID, discount type, discount amount, and original price without direct order postmeta access.
 
 Analytics events are a separate Phase 3/6 slice. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 

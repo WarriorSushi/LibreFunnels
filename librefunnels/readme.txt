@@ -45,6 +45,10 @@ Normal checkout and order-bump flows use WooCommerce gateways. Post-purchase off
 
 The current foundation can store order bump definitions, render eligible bumps during checkout, add selected bump products to the WooCommerce cart, and apply configured fixed or percentage bump discounts during WooCommerce totals calculation. Analytics attribution is still being built.
 
+= Are pre-checkout offers supported? =
+
+The current foundation can render a pre-checkout product offer step, add accepted offers to the WooCommerce cart, and route accept/reject actions through the funnel graph.
+
 = Which shortcodes are available first? =
 
 The initial foundation includes `[librefunnels_funnel id="123"]` for rendering a funnel's configured start step and `[librefunnels_step id="456"]` for rendering a specific step. Checkout and thank-you steps are renderable in the current foundation.
@@ -55,7 +59,7 @@ The initial foundation registers dynamic server-rendered funnel and step blocks.
 
 = Can themes override LibreFunnels templates? =
 
-Yes. Default checkout, thank-you, and order-bump templates can be overridden by placing matching files under `librefunnels/` in the active theme or child theme.
+Yes. Default checkout, thank-you, offer, and order-bump templates can be overridden by placing matching files under `librefunnels/` in the active theme or child theme.
 
 == Changelog ==
 

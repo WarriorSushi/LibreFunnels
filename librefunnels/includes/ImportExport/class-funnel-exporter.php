@@ -140,6 +140,7 @@ final class Funnel_Exporter {
 				'checkoutCoupons'  => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_COUPONS_META, true ),
 				'checkoutFields'   => get_post_meta( $step->ID, LIBREFUNNELS_CHECKOUT_FIELDS_META, true ),
 				'orderBumps'       => get_post_meta( $step->ID, LIBREFUNNELS_ORDER_BUMPS_META, true ),
+				'offer'            => get_post_meta( $step->ID, LIBREFUNNELS_STEP_OFFER_META, true ),
 			);
 		}
 

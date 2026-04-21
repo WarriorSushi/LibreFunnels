@@ -15,6 +15,7 @@ use LibreFunnels\Domain\Funnel_Post_Type;
 use LibreFunnels\Domain\Registered_Meta;
 use LibreFunnels\Domain\Step_Post_Type;
 use LibreFunnels\Frontend\Shortcodes;
+use LibreFunnels\Offers\Offer_Action_Handler;
 use LibreFunnels\Offers\Order_Bump_Display;
 use LibreFunnels\Offers\Order_Bump_Handler;
 use LibreFunnels\Offers\Order_Bump_Order_Metadata;
@@ -120,6 +121,7 @@ final class Plugin {
 		( new Order_Bump_Display() )->register();
 		( new Order_Bump_Handler() )->register();
 		( new Order_Bump_Order_Metadata() )->register();
+		( new Offer_Action_Handler() )->register();
 
 		if ( is_admin() ) {
 			( new Admin_Menu() )->register();

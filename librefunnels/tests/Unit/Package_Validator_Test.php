@@ -39,6 +39,9 @@ final class Package_Validator_Test extends TestCase {
 		$this->assertSame( 'percentage', $package['steps'][0]['orderBumps'][0]['discount_type'] );
 		$this->assertSame( 15.5, $package['steps'][0]['orderBumps'][0]['discount_amount'] );
 		$this->assertTrue( $package['steps'][0]['orderBumps'][0]['enabled'] );
+		$this->assertSame( 'pre-checkout-upgrade', $package['steps'][0]['offer']['id'] );
+		$this->assertSame( 789, $package['steps'][0]['offer']['product_id'] );
+		$this->assertSame( 'fixed', $package['steps'][0]['offer']['discount_type'] );
 	}
 
 	/**
@@ -143,6 +146,18 @@ final class Package_Validator_Test extends TestCase {
 							'discount_amount' => 15.5,
 							'enabled'         => true,
 						),
+					),
+					'offer'            => array(
+						'id'              => 'pre-checkout-upgrade',
+						'product_id'      => 789,
+						'variation_id'    => 0,
+						'quantity'        => 1,
+						'variation'       => array(),
+						'title'           => 'Add the starter kit',
+						'description'     => '<p>Everything needed before checkout.</p>',
+						'discount_type'   => 'fixed',
+						'discount_amount' => 10,
+						'enabled'         => true,
 					),
 				),
 			),

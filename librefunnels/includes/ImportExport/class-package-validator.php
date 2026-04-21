@@ -114,6 +114,7 @@ final class Package_Validator {
 				'checkoutCoupons'  => Registered_Meta::sanitize_coupon_codes( isset( $step['checkoutCoupons'] ) ? $step['checkoutCoupons'] : array() ),
 				'checkoutFields'   => Registered_Meta::sanitize_checkout_fields( isset( $step['checkoutFields'] ) ? $step['checkoutFields'] : array() ),
 				'orderBumps'       => Registered_Meta::sanitize_order_bumps( isset( $step['orderBumps'] ) ? $step['orderBumps'] : array() ),
+				'offer'            => Registered_Meta::sanitize_step_offer( isset( $step['offer'] ) ? $step['offer'] : array() ),
 			);
 		}
 

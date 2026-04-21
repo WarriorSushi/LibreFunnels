@@ -34,6 +34,9 @@
 - Selected order bump cart sync and removal
 - Order bump discounted cart item pricing
 - Order bump order line item attribution
+- Pre-checkout offer package normalization
+- Pre-checkout offer accept/reject routing integration
+- Pre-checkout offer cart item attribution
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation
@@ -46,7 +49,7 @@
 - Canvas editing
 - Checkout flow
 - Multiple order bumps
-- Pre-checkout offer
+- Pre-checkout offer accept/reject flow
 - Upsell accept/reject
 - Downsell accept/reject
 - Unknown gateway fallback

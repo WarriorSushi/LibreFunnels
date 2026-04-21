@@ -34,16 +34,38 @@ final class Order_Bump_Order_Metadata {
 	public function add_line_item_metadata( $item, $cart_item_key, $values, $order ) {
 		unset( $cart_item_key, $order );
 
-		if ( empty( $values['librefunnels_order_bump'] ) || ! is_object( $item ) || ! method_exists( $item, 'add_meta_data' ) ) {
+		if ( ! is_object( $item ) || ! method_exists( $item, 'add_meta_data' ) ) {
 			return;
 		}
 
-		$item->add_meta_data( '_librefunnels_order_bump', 'yes', true );
-		$item->add_meta_data( '_librefunnels_order_bump_id', $this->get_string_value( $values, 'librefunnels_order_bump_id' ), true );
-		$item->add_meta_data( '_librefunnels_order_bump_step_id', $this->get_int_value( $values, 'librefunnels_order_bump_step_id' ), true );
-		$item->add_meta_data( '_librefunnels_order_bump_discount_type', $this->get_string_value( $values, 'librefunnels_discount_type' ), true );
-		$item->add_meta_data( '_librefunnels_order_bump_discount_amount', $this->get_float_value( $values, 'librefunnels_discount_amount' ), true );
-		$item->add_meta_data( '_librefunnels_order_bump_original_price', $this->get_float_value( $values, 'librefunnels_original_price' ), true );
+		if ( ! empty( $values['librefunnels_order_bump'] ) ) {
+			$item->add_meta_data( '_librefunnels_order_bump', 'yes', true );
+			$item->add_meta_data( '_librefunnels_order_bump_id', $this->get_string_value( $values, 'librefunnels_order_bump_id' ), true );
+			$item->add_meta_data( '_librefunnels_order_bump_step_id', $this->get_int_value( $values, 'librefunnels_order_bump_step_id' ), true );
+			$this->add_discount_metadata( $item, '_librefunnels_order_bump', $values );
+			return;
+		}
+
+		if ( ! empty( $values['librefunnels_pre_checkout_offer'] ) ) {
+			$item->add_meta_data( '_librefunnels_pre_checkout_offer', 'yes', true );
+			$item->add_meta_data( '_librefunnels_offer_id', $this->get_string_value( $values, 'librefunnels_offer_id' ), true );
+			$item->add_meta_data( '_librefunnels_offer_step_id', $this->get_int_value( $values, 'librefunnels_offer_step_id' ), true );
+			$this->add_discount_metadata( $item, '_librefunnels_offer', $values );
+		}
+	}
+
+	/**
+	 * Adds common discount metadata to an order line item.
+	 *
+	 * @param object              $item   Order line item.
+	 * @param string              $prefix Metadata prefix.
+	 * @param array<string,mixed> $values Cart item values.
+	 * @return void
+	 */
+	private function add_discount_metadata( $item, $prefix, array $values ) {
+		$item->add_meta_data( $prefix . '_discount_type', $this->get_string_value( $values, 'librefunnels_discount_type' ), true );
+		$item->add_meta_data( $prefix . '_discount_amount', $this->get_float_value( $values, 'librefunnels_discount_amount' ), true );
+		$item->add_meta_data( $prefix . '_original_price', $this->get_float_value( $values, 'librefunnels_original_price' ), true );
 	}
 
 	/**

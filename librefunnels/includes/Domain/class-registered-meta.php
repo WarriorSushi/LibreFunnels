@@ -320,6 +320,23 @@ final class Registered_Meta {
 				),
 			)
 		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_STEP_OFFER_META,
+			array(
+				'type'              => 'object',
+				'label'             => __( 'Step offer', 'librefunnels' ),
+				'description'       => __( 'Primary product offer shown by an offer step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => self::get_empty_offer(),
+				'sanitize_callback' => array( self::class, 'sanitize_step_offer' ),
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => array(
+					'schema' => $this->get_offer_schema(),
+				),
+			)
+		);
 	}
 
 	/**
@@ -610,6 +627,30 @@ final class Registered_Meta {
 	}
 
 	/**
+	 * Sanitizes a primary step offer definition.
+	 *
+	 * @param mixed $value Raw offer data.
+	 * @return array<string,mixed>
+	 */
+	public static function sanitize_step_offer( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return self::get_empty_offer();
+		}
+
+		$offers = self::sanitize_order_bumps( array( $value ) );
+
+		if ( empty( $offers ) ) {
+			return self::get_empty_offer();
+		}
+
+		return $offers[0];
+	}
+
+	/**
 	 * Sanitizes an offer discount type.
 	 *
 	 * @param mixed $value Raw discount type.
@@ -657,6 +698,26 @@ final class Registered_Meta {
 		}
 
 		return $amount;
+	}
+
+	/**
+	 * Returns an empty offer shape.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function get_empty_offer() {
+		return array(
+			'id'              => '',
+			'product_id'      => 0,
+			'variation_id'    => 0,
+			'quantity'        => 1,
+			'variation'       => array(),
+			'title'           => '',
+			'description'     => '',
+			'discount_type'   => 'none',
+			'discount_amount' => 0.0,
+			'enabled'         => true,
+		);
 	}
 
 	/**
@@ -793,6 +854,54 @@ final class Registered_Meta {
 							),
 						),
 					),
+				),
+			),
+			'additionalProperties' => false,
+		);
+	}
+
+	/**
+	 * Returns REST schema for offer-shaped metadata.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function get_offer_schema() {
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'id'              => array(
+					'type' => 'string',
+				),
+				'product_id'      => array(
+					'type' => 'integer',
+				),
+				'variation_id'    => array(
+					'type' => 'integer',
+				),
+				'quantity'        => array(
+					'type' => 'integer',
+				),
+				'variation'       => array(
+					'type'                 => 'object',
+					'additionalProperties' => array(
+						'type' => 'string',
+					),
+				),
+				'title'           => array(
+					'type' => 'string',
+				),
+				'description'     => array(
+					'type' => 'string',
+				),
+				'discount_type'   => array(
+					'type' => 'string',
+					'enum' => self::get_allowed_discount_types(),
+				),
+				'discount_amount' => array(
+					'type' => 'number',
+				),
+				'enabled'         => array(
+					'type' => 'boolean',
 				),
 			),
 			'additionalProperties' => false,

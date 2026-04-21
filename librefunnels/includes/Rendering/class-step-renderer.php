@@ -9,7 +9,9 @@ namespace LibreFunnels\Rendering;
 
 use LibreFunnels\Checkout\Checkout_Field_Customizer;
 use LibreFunnels\Checkout\Cart_Preparer;
+use LibreFunnels\Offers\Offer_Eligibility;
 use LibreFunnels\Offers\Order_Bump_Display;
+use LibreFunnels\Offers\Step_Offer_Repository;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,14 +34,32 @@ final class Step_Renderer {
 	private $cart_preparer;
 
 	/**
+	 * Step offer repository.
+	 *
+	 * @var Step_Offer_Repository
+	 */
+	private $offer_repository;
+
+	/**
+	 * Offer eligibility checker.
+	 *
+	 * @var Offer_Eligibility
+	 */
+	private $offer_eligibility;
+
+	/**
 	 * Creates the renderer.
 	 *
-	 * @param Template_Loader|null $template_loader Optional template loader.
-	 * @param Cart_Preparer|null   $cart_preparer   Optional cart preparer.
+	 * @param Template_Loader|null       $template_loader    Optional template loader.
+	 * @param Cart_Preparer|null         $cart_preparer      Optional cart preparer.
+	 * @param Step_Offer_Repository|null $offer_repository  Optional offer repository.
+	 * @param Offer_Eligibility|null     $offer_eligibility  Optional offer eligibility checker.
 	 */
-	public function __construct( Template_Loader $template_loader = null, Cart_Preparer $cart_preparer = null ) {
-		$this->template_loader = $template_loader ? $template_loader : new Template_Loader();
-		$this->cart_preparer   = $cart_preparer ? $cart_preparer : new Cart_Preparer();
+	public function __construct( Template_Loader $template_loader = null, Cart_Preparer $cart_preparer = null, Step_Offer_Repository $offer_repository = null, Offer_Eligibility $offer_eligibility = null ) {
+		$this->template_loader   = $template_loader ? $template_loader : new Template_Loader();
+		$this->cart_preparer     = $cart_preparer ? $cart_preparer : new Cart_Preparer();
+		$this->offer_repository  = $offer_repository ? $offer_repository : new Step_Offer_Repository();
+		$this->offer_eligibility = $offer_eligibility ? $offer_eligibility : new Offer_Eligibility();
 	}
 
 	/**
@@ -60,6 +80,10 @@ final class Step_Renderer {
 
 		if ( 'checkout' === $step_type ) {
 			return $this->render_checkout_step( $step );
+		}
+
+		if ( 'pre_checkout_offer' === $step_type ) {
+			return $this->render_offer_step( $step, $step_type );
 		}
 
 		if ( 'thank_you' !== $step_type ) {
@@ -110,6 +134,62 @@ final class Step_Renderer {
 			Checkout_Field_Customizer::clear_active_step_id();
 			Order_Bump_Display::clear_active_step_id();
 		}
+	}
+
+	/**
+	 * Renders a pre-checkout offer step.
+	 *
+	 * @param \WP_Post $step      Step post.
+	 * @param string   $step_type Step type.
+	 * @return string
+	 */
+	private function render_offer_step( $step, $step_type ) {
+		$offer = $this->offer_repository->get_offer_for_step( $step->ID );
+
+		if ( empty( $offer['enabled'] ) ) {
+			return $this->render_error( __( 'This LibreFunnels offer is disabled.', 'librefunnels' ), 'offer-disabled' );
+		}
+
+		$result = $this->offer_eligibility->is_product_offer_purchasable( $offer );
+
+		if ( ! $result->is_success() ) {
+			return $this->render_error( $result->get_message(), $result->get_code() );
+		}
+
+		$product = wc_get_product( $result->get_step_id() );
+
+		if ( ! $product ) {
+			return $this->render_error( __( 'This LibreFunnels offer product could not be found.', 'librefunnels' ), 'offer-product-not-found' );
+		}
+
+		$this->enqueue_frontend_assets();
+
+		return $this->template_loader->render(
+			'steps/offer.php',
+			array(
+				'step'       => $step,
+				'step_id'    => absint( $step->ID ),
+				'step_type'  => $step_type,
+				'title'      => get_the_title( $step ),
+				'offer'      => $offer,
+				'product'    => $product,
+				'price_html' => method_exists( $product, 'get_price_html' ) ? $product->get_price_html() : '',
+			)
+		);
+	}
+
+	/**
+	 * Enqueues shared frontend assets.
+	 *
+	 * @return void
+	 */
+	private function enqueue_frontend_assets() {
+		wp_enqueue_style(
+			'librefunnels-frontend',
+			LIBREFUNNELS_URL . 'assets/css/frontend.css',
+			array(),
+			LIBREFUNNELS_VERSION
+		);
 	}
 
 	/**

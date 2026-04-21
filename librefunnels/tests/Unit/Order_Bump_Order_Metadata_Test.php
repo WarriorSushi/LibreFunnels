@@ -52,6 +52,34 @@ final class Order_Bump_Order_Metadata_Test extends TestCase {
 
 		$this->assertSame( array(), $item->meta );
 	}
+
+	/**
+	 * @return void
+	 */
+	public function test_pre_checkout_offer_cart_item_adds_line_item_metadata(): void {
+		$item = new Fake_Order_Item();
+
+		( new Order_Bump_Order_Metadata() )->add_line_item_metadata(
+			$item,
+			'cart-key',
+			array(
+				'librefunnels_pre_checkout_offer' => true,
+				'librefunnels_offer_id'           => 'starter-kit',
+				'librefunnels_offer_step_id'      => 456,
+				'librefunnels_discount_type'      => 'fixed',
+				'librefunnels_discount_amount'    => 20,
+				'librefunnels_original_price'     => 80,
+			),
+			null
+		);
+
+		$this->assertSame( 'yes', $item->meta['_librefunnels_pre_checkout_offer'] );
+		$this->assertSame( 'starter-kit', $item->meta['_librefunnels_offer_id'] );
+		$this->assertSame( 456, $item->meta['_librefunnels_offer_step_id'] );
+		$this->assertSame( 'fixed', $item->meta['_librefunnels_offer_discount_type'] );
+		$this->assertSame( 20.0, $item->meta['_librefunnels_offer_discount_amount'] );
+		$this->assertSame( 80.0, $item->meta['_librefunnels_offer_original_price'] );
+	}
 }
 
 /**
