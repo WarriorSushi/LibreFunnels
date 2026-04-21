@@ -23,7 +23,7 @@
 - Product assignment: checkout step product metadata and cart preparation
 - Coupon support: checkout step coupon metadata and cart application
 - Field customization: scoped checkout field labels, placeholders, required flags, and hiding
-- Quantity/product option support
+- Quantity/product option support: quantity, variation ID, and variation attributes in checkout product assignments
 - Checkout takeover/global checkout
 
 ## Phase 3: Offers

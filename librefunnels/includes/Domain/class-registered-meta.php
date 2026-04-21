@@ -170,6 +170,12 @@ final class Registered_Meta {
 								'quantity'     => array(
 									'type' => 'integer',
 								),
+								'variation'    => array(
+									'type'                 => 'object',
+									'additionalProperties' => array(
+										'type' => 'string',
+									),
+								),
 							),
 						),
 					),
@@ -360,10 +366,41 @@ final class Registered_Meta {
 				'product_id'   => $product_id,
 				'variation_id' => isset( $item['variation_id'] ) ? absint( $item['variation_id'] ) : 0,
 				'quantity'     => isset( $item['quantity'] ) ? max( 1, absint( $item['quantity'] ) ) : 1,
+				'variation'    => self::sanitize_variation_attributes( isset( $item['variation'] ) ? $item['variation'] : array() ),
 			);
 		}
 
 		return $products;
+	}
+
+	/**
+	 * Sanitizes product variation attributes.
+	 *
+	 * @param mixed $value Raw variation attributes.
+	 * @return array<string,string>
+	 */
+	private static function sanitize_variation_attributes( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$variation = array();
+
+		foreach ( $value as $attribute => $attribute_value ) {
+			$attribute = sanitize_key( (string) $attribute );
+
+			if ( '' === $attribute ) {
+				continue;
+			}
+
+			$variation[ $attribute ] = sanitize_text_field( (string) $attribute_value );
+		}
+
+		return $variation;
 	}
 
 	/**

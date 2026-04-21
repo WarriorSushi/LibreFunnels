@@ -53,6 +53,7 @@ final class Cart_Preparer {
 			$product_id   = absint( $assignment['product_id'] );
 			$variation_id = absint( $assignment['variation_id'] );
 			$quantity     = max( 1, absint( $assignment['quantity'] ) );
+			$variation    = isset( $assignment['variation'] ) && is_array( $assignment['variation'] ) ? $assignment['variation'] : array();
 			$product      = wc_get_product( $variation_id ? $variation_id : $product_id );
 
 			if ( ! $product || ! $product->is_purchasable() ) {
@@ -63,7 +64,7 @@ final class Cart_Preparer {
 				continue;
 			}
 
-			$cart_item_key = $woocommerce->cart->add_to_cart( $product_id, $quantity, $variation_id );
+			$cart_item_key = $woocommerce->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation );
 
 			if ( ! $cart_item_key ) {
 				return new \WP_Error( 'add_to_cart_failed', __( 'LibreFunnels could not add an assigned product to the cart.', 'librefunnels' ) );

@@ -128,7 +128,7 @@ Initial package shape:
 The exporter reads the funnel CPT, graph meta, start step meta, and owned step CPT records. The package validator normalizes decoded JSON before any future import writes happen. Actual database import is deferred until the admin flow has capability checks, nonces, confirmation UI, and integration tests.
 
 ## Checkout Core
-The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products through `_librefunnels_checkout_products`, coupons through `_librefunnels_checkout_coupons`, and scoped field rules through `_librefunnels_checkout_fields`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, applies configured coupons, scopes checkout field customizations to the current render pass, then renders WooCommerce checkout markup through the normal checkout shortcode.
+The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products, variation IDs, variation attributes, and quantities through `_librefunnels_checkout_products`; coupons through `_librefunnels_checkout_coupons`; and scoped field rules through `_librefunnels_checkout_fields`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, applies configured coupons, scopes checkout field customizations to the current render pass, then renders WooCommerce checkout markup through the normal checkout shortcode.
 
 The initial cart preparation does not empty the existing cart. Cart replacement, checkout takeover, quantity controls, and global checkout routing are separate Phase 2 slices.
 
