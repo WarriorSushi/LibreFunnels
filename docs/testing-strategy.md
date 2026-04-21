@@ -17,6 +17,7 @@
   - Cart subtotal thresholds
   - Customer logged-in facts
   - WooCommerce fact collection
+- Conditional graph route rule matching and fallback
 - A/B assignment
 - Analytics attribution
 - Import/export package normalization

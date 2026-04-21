@@ -121,6 +121,74 @@ final class Graph_Validator_Test extends TestCase {
 	}
 
 	/**
+	 * @return void
+	 */
+	public function test_conditional_route_resolves_first_matching_rule_edge(): void {
+		$graph           = $this->graph();
+		$graph['edges'][] = array(
+			'id'     => 'edge-landing-thank-you-conditional',
+			'source' => 'landing-node',
+			'target' => 'thank-you-node',
+			'route'  => 'conditional',
+			'rule'   => array(
+				'type'   => 'cart_subtotal_gte',
+				'amount' => 100,
+			),
+		);
+
+		$result = $this->validator->resolve_next_step(
+			99,
+			$graph,
+			10,
+			'conditional',
+			$this->step_funnel_ids(),
+			array(
+				'cart_subtotal' => 150,
+			)
+		);
+
+		$this->assertTrue( $result->is_success() );
+		$this->assertSame( 30, $result->get_step_id() );
+	}
+
+	/**
+	 * @return void
+	 */
+	public function test_conditional_route_uses_fallback_when_no_rule_matches(): void {
+		$graph           = $this->graph();
+		$graph['edges'][] = array(
+			'id'     => 'edge-landing-thank-you-conditional',
+			'source' => 'landing-node',
+			'target' => 'thank-you-node',
+			'route'  => 'conditional',
+			'rule'   => array(
+				'type'   => 'cart_subtotal_gte',
+				'amount' => 100,
+			),
+		);
+		$graph['edges'][] = array(
+			'id'     => 'edge-landing-checkout-fallback',
+			'source' => 'landing-node',
+			'target' => 'checkout-node',
+			'route'  => 'fallback',
+		);
+
+		$result = $this->validator->resolve_next_step(
+			99,
+			$graph,
+			10,
+			'conditional',
+			$this->step_funnel_ids(),
+			array(
+				'cart_subtotal' => 50,
+			)
+		);
+
+		$this->assertTrue( $result->is_success() );
+		$this->assertSame( 20, $result->get_step_id() );
+	}
+
+	/**
 	 * Gets a valid graph fixture.
 	 *
 	 * @return array<string,mixed>

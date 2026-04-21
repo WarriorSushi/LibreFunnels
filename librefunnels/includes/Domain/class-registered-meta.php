@@ -776,7 +776,63 @@ final class Registered_Meta {
 			'source' => isset( $edge['source'] ) ? sanitize_key( (string) $edge['source'] ) : '',
 			'target' => isset( $edge['target'] ) ? sanitize_key( (string) $edge['target'] ) : '',
 			'route'  => $route,
+			'rule'   => self::sanitize_rule( isset( $edge['rule'] ) ? $edge['rule'] : array() ),
 		);
+	}
+
+	/**
+	 * Sanitizes a rule tree.
+	 *
+	 * @param mixed $value Raw rule value.
+	 * @return array<string,mixed>
+	 */
+	public static function sanitize_rule( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$type = isset( $value['type'] ) ? sanitize_key( (string) $value['type'] ) : '';
+
+		if ( '' === $type ) {
+			return array();
+		}
+
+		if ( in_array( $type, array( 'all', 'any' ), true ) ) {
+			$rules = array();
+
+			if ( isset( $value['rules'] ) && is_array( $value['rules'] ) ) {
+				foreach ( $value['rules'] as $rule ) {
+					$rule = self::sanitize_rule( $rule );
+
+					if ( ! empty( $rule ) ) {
+						$rules[] = $rule;
+					}
+				}
+			}
+
+			return array(
+				'type'  => $type,
+				'rules' => $rules,
+			);
+		}
+
+		$rule = array(
+			'type' => $type,
+		);
+
+		if ( isset( $value['product_id'] ) ) {
+			$rule['product_id'] = absint( $value['product_id'] );
+		}
+
+		if ( isset( $value['amount'] ) ) {
+			$rule['amount'] = (float) $value['amount'];
+		}
+
+		return $rule;
 	}
 
 	/**
@@ -852,6 +908,7 @@ final class Registered_Meta {
 								'type' => 'string',
 								'enum' => Graph_Validator::get_allowed_routes(),
 							),
+							'rule'   => $this->get_rule_schema(),
 						),
 					),
 				),
@@ -902,6 +959,35 @@ final class Registered_Meta {
 				),
 				'enabled'         => array(
 					'type' => 'boolean',
+				),
+			),
+			'additionalProperties' => false,
+		);
+	}
+
+	/**
+	 * Returns REST schema for rule trees.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function get_rule_schema() {
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'type'       => array(
+					'type' => 'string',
+				),
+				'rules'      => array(
+					'type'  => 'array',
+					'items' => array(
+						'type' => 'object',
+					),
+				),
+				'product_id' => array(
+					'type' => 'integer',
+				),
+				'amount'     => array(
+					'type' => 'number',
 				),
 			),
 			'additionalProperties' => false,

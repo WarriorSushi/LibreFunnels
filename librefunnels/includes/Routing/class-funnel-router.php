@@ -60,6 +60,19 @@ final class Funnel_Router {
 	 * @return Routing_Result
 	 */
 	public function get_next_step( $funnel_id, $current_step_id, $route ) {
+		return $this->get_next_step_with_facts( $funnel_id, $current_step_id, $route, array() );
+	}
+
+	/**
+	 * Resolves the next step for a route using supplied facts.
+	 *
+	 * @param int    $funnel_id       Funnel ID.
+	 * @param int    $current_step_id Current step ID.
+	 * @param string $route           Route label.
+	 * @param array  $facts           Facts for conditional routes.
+	 * @return Routing_Result
+	 */
+	public function get_next_step_with_facts( $funnel_id, $current_step_id, $route, array $facts = array() ) {
 		$funnel_id       = absint( $funnel_id );
 		$current_step_id = absint( $current_step_id );
 		$funnel          = $this->get_funnel_post( $funnel_id );
@@ -71,7 +84,7 @@ final class Funnel_Router {
 		$graph           = $this->get_funnel_graph( $funnel_id );
 		$step_funnel_ids = $this->get_step_funnel_ids( $graph, array( $current_step_id ) );
 
-		return $this->validator->resolve_next_step( $funnel_id, $graph, $current_step_id, $route, $step_funnel_ids );
+		return $this->validator->resolve_next_step( $funnel_id, $graph, $current_step_id, $route, $step_funnel_ids, $facts );
 	}
 
 	/**

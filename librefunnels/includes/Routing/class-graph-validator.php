@@ -7,12 +7,30 @@
 
 namespace LibreFunnels\Routing;
 
+use LibreFunnels\Rules\Rule_Evaluator;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Validates graph shape and resolves graph routes without mutating data.
  */
 final class Graph_Validator {
+	/**
+	 * Rule evaluator.
+	 *
+	 * @var Rule_Evaluator
+	 */
+	private $rule_evaluator;
+
+	/**
+	 * Creates the validator.
+	 *
+	 * @param Rule_Evaluator|null $rule_evaluator Optional rule evaluator.
+	 */
+	public function __construct( Rule_Evaluator $rule_evaluator = null ) {
+		$this->rule_evaluator = $rule_evaluator ? $rule_evaluator : new Rule_Evaluator();
+	}
+
 	/**
 	 * Returns supported route labels.
 	 *
@@ -61,9 +79,10 @@ final class Graph_Validator {
 	 * @param int    $current_step_id Current step ID.
 	 * @param string $route           Requested route.
 	 * @param array  $step_funnel_ids Map of step ID to owning funnel ID.
+	 * @param array  $facts           Optional facts for conditional routes.
 	 * @return Routing_Result
 	 */
-	public function resolve_next_step( $funnel_id, array $graph, $current_step_id, $route, array $step_funnel_ids ) {
+	public function resolve_next_step( $funnel_id, array $graph, $current_step_id, $route, array $step_funnel_ids, array $facts = array() ) {
 		$funnel_id       = $this->absint( $funnel_id );
 		$current_step_id = $this->absint( $current_step_id );
 		$route           = $this->sanitize_key( $route );
@@ -92,7 +111,7 @@ final class Graph_Validator {
 		}
 
 		$source_node_id = $node_id_by_step[ $current_step_id ];
-		$edge           = $this->find_edge( $graph, $source_node_id, $route );
+		$edge           = 'conditional' === $route ? $this->find_conditional_edge( $graph, $source_node_id, $facts ) : $this->find_edge( $graph, $source_node_id, $route );
 
 		if ( null === $edge && 'fallback' !== $route ) {
 			$edge = $this->find_edge( $graph, $source_node_id, 'fallback' );
@@ -202,6 +221,37 @@ final class Graph_Validator {
 			$edge_route = isset( $edge['route'] ) ? $this->sanitize_key( $edge['route'] ) : '';
 
 			if ( $source_node_id === $source && $route === $edge_route ) {
+				return $edge;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Finds the first matching conditional edge for supplied facts.
+	 *
+	 * @param array  $graph          Funnel graph.
+	 * @param string $source_node_id Source node ID.
+	 * @param array  $facts          Facts.
+	 * @return array<string,mixed>|null
+	 */
+	private function find_conditional_edge( array $graph, $source_node_id, array $facts ) {
+		$source_node_id = $this->sanitize_key( $source_node_id );
+
+		foreach ( $this->get_graph_items( $graph, 'edges' ) as $edge ) {
+			$source = isset( $edge['source'] ) ? $this->sanitize_key( $edge['source'] ) : '';
+			$route  = isset( $edge['route'] ) ? $this->sanitize_key( $edge['route'] ) : '';
+
+			if ( $source_node_id !== $source || 'conditional' !== $route ) {
+				continue;
+			}
+
+			if ( ! isset( $edge['rule'] ) || ! is_array( $edge['rule'] ) ) {
+				continue;
+			}
+
+			if ( $this->rule_evaluator->evaluate( $edge['rule'], $facts )->is_match() ) {
 				return $edge;
 			}
 		}

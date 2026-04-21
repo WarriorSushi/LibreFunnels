@@ -77,6 +77,8 @@ Validation rules:
 - Unknown routes fail instead of guessing.
 - Missing requested routes may use a `fallback` edge from the same source node.
 
+Conditional edges can include a `rule` object. When resolving the `conditional` route, the router evaluates conditional edges from the current source node against supplied facts and selects the first matching rule edge. If no conditional rule matches, the router may use the source node's `fallback` edge. Rule evaluation remains side-effect free.
+
 Use custom tables for high-volume event data:
 - Funnel events
 - A/B assignments
@@ -175,6 +177,8 @@ Initial facts:
 - `cart_subtotal`
 - `cart_item_count`
 - `customer_logged_in`
+
+Graph edge rule shape is intentionally the same structured rule tree used by the rule evaluator. Import/export and REST meta sanitization preserve supported rule fields while dropping invalid rule data.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.
