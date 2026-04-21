@@ -157,6 +157,23 @@ When WooCommerce creates order line items, LibreFunnels copies order bump and pr
 
 Analytics events are a separate Phase 3/6 slice. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
+## Rule Core
+The first rule engine is pure PHP and evaluates structured rule trees against supplied facts. It does not read from WooCommerce directly yet; adapters should build fact arrays from WooCommerce cart/customer state later. This keeps conditional routing testable and prevents hidden cart/order mutation inside rule evaluation.
+
+Initial rule types:
+- `always`
+- `all`
+- `any`
+- `cart_contains_product`
+- `cart_subtotal_gte`
+- `cart_subtotal_lte`
+- `customer_logged_in`
+
+Initial facts:
+- `cart_product_ids`
+- `cart_subtotal`
+- `customer_logged_in`
+
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.

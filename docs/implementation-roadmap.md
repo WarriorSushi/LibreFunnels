@@ -41,7 +41,7 @@
 - Accept/reject routing
 
 ## Phase 4: Rules and Canvas
-- Rule engine
+- Pure rule evaluator for conditional routing facts
 - Conditional offers
 - Visual canvas builder
 - Smart routing

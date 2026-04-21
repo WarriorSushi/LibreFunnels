@@ -11,6 +11,11 @@
 - Offer eligibility
 - Order bump metadata normalization
 - Discount calculations
+- Rule evaluation
+  - All/any groups
+  - Cart product facts
+  - Cart subtotal thresholds
+  - Customer logged-in facts
 - A/B assignment
 - Analytics attribution
 - Import/export package normalization
