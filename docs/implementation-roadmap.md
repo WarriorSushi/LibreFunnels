@@ -16,7 +16,7 @@
 - Shortcode rendering: `[librefunnels_funnel]` and `[librefunnels_step]`
 - Thank-you step: default plugin template with theme override support
 - Block rendering
-- Import/export foundation
+- Import/export foundation: versioned JSON export and import package validation
 
 ## Phase 2: Checkout Core
 - Funnel checkout page

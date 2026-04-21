@@ -104,6 +104,18 @@ Plugin fallback templates live under:
 
 Shortcode callbacks must return strings, never echo directly. Invalid shortcode state should stay silent for customers and show safe diagnostic messages only to users who can manage WooCommerce.
 
+## Import and Export
+LibreFunnels uses a versioned JSON package format for funnel portability.
+
+Initial package shape:
+- `format`: `librefunnels.funnel`
+- `version`: `1`
+- `generatedBy`
+- `funnel`
+- `steps`
+
+The exporter reads the funnel CPT, graph meta, start step meta, and owned step CPT records. The package validator normalizes decoded JSON before any future import writes happen. Actual database import is deferred until the admin flow has capability checks, nonces, confirmation UI, and integration tests.
+
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.

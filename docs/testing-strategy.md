@@ -12,10 +12,13 @@
 - Discount calculations
 - A/B assignment
 - Analytics attribution
+- Import/export package normalization
 
 ## Integration Tests
 - Shortcode rendering
 - Theme template override loading
+- Funnel export from CPT/meta records
+- Funnel import with nonces and capabilities
 - WooCommerce checkout
 - HPOS on/off
 - Order bump order creation
