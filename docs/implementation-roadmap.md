@@ -33,6 +33,7 @@
 - Order bump fixed and percentage discount calculation
 - Order bump line item attribution metadata
 - Pre-checkout offer metadata, rendering, accept/reject routing, and cart sync
+- Customer-scoped offer accept/reject session state
 - Cross-sells
 - Upsells
 - Downsells

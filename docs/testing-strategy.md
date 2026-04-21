@@ -37,6 +37,7 @@
 - Pre-checkout offer package normalization
 - Pre-checkout offer accept/reject routing integration
 - Pre-checkout offer cart item attribution
+- Offer accept/reject session state
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

@@ -37,16 +37,25 @@ final class Offer_Action_Handler {
 	private $router;
 
 	/**
+	 * Offer state store.
+	 *
+	 * @var Offer_State
+	 */
+	private $offer_state;
+
+	/**
 	 * Creates the handler.
 	 *
 	 * @param Step_Offer_Repository|null $repository  Optional repository.
 	 * @param Offer_Eligibility|null     $eligibility Optional eligibility checker.
 	 * @param Funnel_Router|null         $router      Optional router.
+	 * @param Offer_State|null           $offer_state Optional offer state store.
 	 */
-	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null ) {
+	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null, Offer_State $offer_state = null ) {
 		$this->repository  = $repository ? $repository : new Step_Offer_Repository();
 		$this->eligibility = $eligibility ? $eligibility : new Offer_Eligibility();
 		$this->router      = $router ? $router : new Funnel_Router();
+		$this->offer_state = $offer_state ? $offer_state : new Offer_State();
 	}
 
 	/**
@@ -97,26 +106,29 @@ final class Offer_Action_Handler {
 			return;
 		}
 
-		if ( 'accept' === $action && ! $this->add_offer_to_cart( $step_id ) ) {
+		$offer = $this->repository->get_offer_for_step( $step_id );
+
+		if ( 'accept' === $action && ! $this->add_offer_to_cart( $step_id, $offer ) ) {
 			return;
 		}
 
+		$this->offer_state->record_action( $step_id, isset( $offer['id'] ) ? $offer['id'] : '', $action );
 		$this->redirect_to_route( $funnel_id, $step_id, $action );
 	}
 
 	/**
 	 * Adds an accepted offer product to the cart.
 	 *
-	 * @param int $step_id Step ID.
+	 * @param int                 $step_id Step ID.
+	 * @param array<string,mixed> $offer   Offer data.
 	 * @return bool
 	 */
-	private function add_offer_to_cart( $step_id ) {
+	private function add_offer_to_cart( $step_id, array $offer ) {
 		if ( ! function_exists( 'WC' ) || ! function_exists( 'wc_get_product' ) ) {
 			$this->add_notice( __( 'WooCommerce cart services are not available.', 'librefunnels' ) );
 			return false;
 		}
 
-		$offer  = $this->repository->get_offer_for_step( $step_id );
 		$result = $this->eligibility->is_product_offer_purchasable( $offer );
 
 		if ( ! $result->is_success() ) {
