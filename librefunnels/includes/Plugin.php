@@ -11,6 +11,7 @@ use LibreFunnels\Admin\Admin_Menu;
 use LibreFunnels\Domain\Funnel_Post_Type;
 use LibreFunnels\Domain\Registered_Meta;
 use LibreFunnels\Domain\Step_Post_Type;
+use LibreFunnels\Frontend\Shortcodes;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -106,6 +107,7 @@ final class Plugin {
 		( new Funnel_Post_Type() )->register();
 		( new Step_Post_Type() )->register();
 		( new Registered_Meta() )->register();
+		( new Shortcodes() )->register();
 
 		if ( is_admin() ) {
 			( new Admin_Menu() )->register();

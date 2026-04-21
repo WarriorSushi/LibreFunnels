@@ -13,8 +13,9 @@
 - Step model: private REST-enabled `librefunnels_step` CPT
 - Registered funnel/step metadata schema
 - Basic routing: start-step and next-step resolver with graph validation
-- Shortcode/block rendering
-- Thank-you step
+- Shortcode rendering: `[librefunnels_funnel]` and `[librefunnels_step]`
+- Thank-you step: default plugin template with theme override support
+- Block rendering
 - Import/export foundation
 
 ## Phase 2: Checkout Core

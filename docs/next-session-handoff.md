@@ -26,6 +26,8 @@ Implemented so far:
 - Routing core classes for start-step and next-step resolution.
 - Pure graph validator tests for route behavior.
 - Impeccable design context file for store-owner-first refined SaaS UI.
+- Shortcode registry for `[librefunnels_funnel]` and `[librefunnels_step]`.
+- Default thank-you step renderer and theme-overridable template.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -47,9 +49,10 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 2. Run `composer install` in `librefunnels/`.
 3. Run `composer lint` and `composer test` once dependencies are installed.
 4. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
-5. Continue Phase 1 with shortcode rendering for a basic thank-you step using the routing service.
-6. Add import/export foundation for funnel graph data.
-7. Start the admin UI shell only after routing/rendering behavior has passing tests.
+5. Add import/export foundation for funnel graph data.
+6. Add block rendering after shortcode behavior is stable.
+7. Add integration tests for shortcode rendering and template override loading once a WP test runtime is available.
+8. Start the admin UI shell only after routing/rendering behavior has passing tests.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

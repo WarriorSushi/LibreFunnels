@@ -14,6 +14,8 @@
 - Analytics attribution
 
 ## Integration Tests
+- Shortcode rendering
+- Theme template override loading
 - WooCommerce checkout
 - HPOS on/off
 - Order bump order creation

@@ -41,6 +41,14 @@ Yes. The product direction is free feature parity without paid locks or trialwar
 
 Normal checkout and order-bump flows use WooCommerce gateways. Post-purchase offers will use true one-click charges only where a gateway safely supports reusable or tokenized charges. Other gateways use an accept-and-confirm flow.
 
+= Which shortcodes are available first? =
+
+The initial foundation includes `[librefunnels_funnel id="123"]` for rendering a funnel's configured start step and `[librefunnels_step id="456"]` for rendering a specific step. At this stage, only thank-you steps are renderable.
+
+= Can themes override LibreFunnels templates? =
+
+Yes. The default thank-you template can be overridden by placing a matching file at `librefunnels/steps/thank-you.php` in the active theme or child theme.
+
 == Changelog ==
 
 = 0.1.0 =

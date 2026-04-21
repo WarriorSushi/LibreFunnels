@@ -89,6 +89,21 @@ Provide both:
 - Blocks for Gutenberg/block themes
 - Shortcodes for Elementor, Divi, Beaver, Bricks, classic editor, and custom builders
 
+Initial shortcode support:
+- `[librefunnels_funnel id="123"]` renders a funnel's configured start step through the router.
+- `[librefunnels_step id="456"]` renders a specific funnel step.
+
+Initial renderable step type:
+- `thank_you`
+
+Frontend templates are theme-overridable from:
+- `librefunnels/steps/thank-you.php`
+
+Plugin fallback templates live under:
+- `librefunnels/templates/`
+
+Shortcode callbacks must return strings, never echo directly. Invalid shortcode state should stay silent for customers and show safe diagnostic messages only to users who can manage WooCommerce.
+
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.
