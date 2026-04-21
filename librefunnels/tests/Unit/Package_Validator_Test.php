@@ -29,6 +29,7 @@ final class Package_Validator_Test extends TestCase {
 		$this->assertSame( 'thank_you', $package['steps'][0]['type'] );
 		$this->assertSame( 123, $package['steps'][0]['checkoutProducts'][0]['product_id'] );
 		$this->assertSame( 2, $package['steps'][0]['checkoutProducts'][0]['quantity'] );
+		$this->assertSame( array( 'SAVE10' ), $package['steps'][0]['checkoutCoupons'] );
 	}
 
 	/**
@@ -105,6 +106,7 @@ final class Package_Validator_Test extends TestCase {
 							'quantity'     => 2,
 						),
 					),
+					'checkoutCoupons'  => array( 'SAVE10', 'SAVE10', '' ),
 				),
 			),
 		);

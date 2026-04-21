@@ -110,6 +110,7 @@ final class Package_Validator {
 				'order'            => isset( $step['order'] ) ? absint( $step['order'] ) : 0,
 				'template'         => isset( $step['template'] ) ? sanitize_key( (string) $step['template'] ) : '',
 				'checkoutProducts' => Registered_Meta::sanitize_checkout_products( isset( $step['checkoutProducts'] ) ? $step['checkoutProducts'] : array() ),
+				'checkoutCoupons'  => Registered_Meta::sanitize_coupon_codes( isset( $step['checkoutCoupons'] ) ? $step['checkoutCoupons'] : array() ),
 			);
 		}
 

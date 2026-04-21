@@ -14,6 +14,7 @@
 - Analytics attribution
 - Import/export package normalization
 - Checkout product assignment sanitization
+- Checkout coupon sanitization
 
 ## Integration Tests
 - Shortcode rendering
@@ -23,6 +24,7 @@
 - Funnel import with nonces and capabilities
 - WooCommerce checkout
 - Checkout step product cart preparation
+- Checkout step coupon application
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation

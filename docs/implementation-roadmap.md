@@ -21,8 +21,8 @@
 ## Phase 2: Checkout Core
 - Funnel checkout page: checkout step rendering through WooCommerce checkout
 - Product assignment: checkout step product metadata and cart preparation
+- Coupon support: checkout step coupon metadata and cart application
 - Field customization
-- Coupon support
 - Quantity/product option support
 - Checkout takeover/global checkout
 

@@ -34,6 +34,7 @@ Initial registered metadata:
 - Step order: `_librefunnels_step_order`
 - Step template slug: `_librefunnels_template_slug`
 - Checkout products: `_librefunnels_checkout_products`
+- Checkout coupons: `_librefunnels_checkout_coupons`
 
 Initial step types:
 - `landing`
@@ -126,9 +127,9 @@ Initial package shape:
 The exporter reads the funnel CPT, graph meta, start step meta, and owned step CPT records. The package validator normalizes decoded JSON before any future import writes happen. Actual database import is deferred until the admin flow has capability checks, nonces, confirmation UI, and integration tests.
 
 ## Checkout Core
-The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products through `_librefunnels_checkout_products`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, then renders WooCommerce checkout markup through the normal checkout shortcode.
+The first checkout implementation renders checkout steps without taking over the global WooCommerce checkout. Checkout steps can assign products through `_librefunnels_checkout_products` and coupons through `_librefunnels_checkout_coupons`. When a checkout step renders, LibreFunnels ensures assigned products are present in the current WooCommerce cart, applies configured coupons, then renders WooCommerce checkout markup through the normal checkout shortcode.
 
-The initial cart preparation does not empty the existing cart. Cart replacement, checkout takeover, field customization, coupons, quantity controls, and global checkout routing are separate Phase 2 slices.
+The initial cart preparation does not empty the existing cart. Cart replacement, checkout takeover, field customization, quantity controls, and global checkout routing are separate Phase 2 slices.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.

@@ -70,6 +70,37 @@ final class Cart_Preparer {
 			}
 		}
 
+		$coupon_result = $this->apply_step_coupons( $step_id );
+
+		if ( is_wp_error( $coupon_result ) ) {
+			return $coupon_result;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Applies checkout coupons configured for a step.
+	 *
+	 * @param int $step_id Step ID.
+	 * @return true|\WP_Error
+	 */
+	private function apply_step_coupons( $step_id ) {
+		$woocommerce = WC();
+		$coupons     = \LibreFunnels\Domain\Registered_Meta::sanitize_coupon_codes(
+			get_post_meta( absint( $step_id ), LIBREFUNNELS_CHECKOUT_COUPONS_META, true )
+		);
+
+		foreach ( $coupons as $coupon_code ) {
+			if ( method_exists( $woocommerce->cart, 'has_discount' ) && $woocommerce->cart->has_discount( $coupon_code ) ) {
+				continue;
+			}
+
+			if ( ! $woocommerce->cart->apply_coupon( $coupon_code ) ) {
+				return new \WP_Error( 'coupon_apply_failed', __( 'LibreFunnels could not apply a checkout coupon.', 'librefunnels' ) );
+			}
+		}
+
 		return true;
 	}
 

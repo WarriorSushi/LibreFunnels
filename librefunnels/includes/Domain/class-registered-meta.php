@@ -176,6 +176,28 @@ final class Registered_Meta {
 				),
 			)
 		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_CHECKOUT_COUPONS_META,
+			array(
+				'type'              => 'array',
+				'label'             => __( 'Checkout coupons', 'librefunnels' ),
+				'description'       => __( 'Coupon codes applied when rendering a funnel checkout step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => array(),
+				'sanitize_callback' => array( self::class, 'sanitize_coupon_codes' ),
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => array(
+					'schema' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type' => 'string',
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -299,6 +321,52 @@ final class Registered_Meta {
 		}
 
 		return $products;
+	}
+
+	/**
+	 * Sanitizes coupon codes.
+	 *
+	 * @param mixed $value Raw coupon list.
+	 * @return string[]
+	 */
+	public static function sanitize_coupon_codes( $value ) {
+		if ( is_string( $value ) ) {
+			$value = array( $value );
+		}
+
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$codes = array();
+
+		foreach ( $value as $code ) {
+			$code = self::format_coupon_code( $code );
+
+			if ( '' !== $code ) {
+				$codes[] = $code;
+			}
+		}
+
+		return array_values( array_unique( $codes ) );
+	}
+
+	/**
+	 * Formats a coupon code using WooCommerce when available.
+	 *
+	 * @param mixed $code Raw coupon code.
+	 * @return string
+	 */
+	private static function format_coupon_code( $code ) {
+		if ( function_exists( 'wc_format_coupon_code' ) ) {
+			return wc_format_coupon_code( (string) $code );
+		}
+
+		return sanitize_text_field( (string) $code );
 	}
 
 	/**
