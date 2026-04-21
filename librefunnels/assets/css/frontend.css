@@ -1,0 +1,169 @@
+.librefunnels-order-bumps {
+	--librefunnels-surface: oklch(0.985 0.006 174);
+	--librefunnels-surface-strong: oklch(0.955 0.012 174);
+	--librefunnels-text: oklch(0.21 0.018 174);
+	--librefunnels-muted: oklch(0.45 0.018 174);
+	--librefunnels-border: oklch(0.82 0.018 174);
+	--librefunnels-accent: oklch(0.47 0.105 174);
+	--librefunnels-accent-deep: oklch(0.34 0.09 174);
+	--librefunnels-space-xs: 0.25rem;
+	--librefunnels-space-sm: 0.5rem;
+	--librefunnels-space-md: 0.75rem;
+	--librefunnels-space-lg: 1rem;
+	--librefunnels-space-xl: 1.5rem;
+	display: grid;
+	gap: var(--librefunnels-space-lg);
+	margin: var(--librefunnels-space-xl) 0;
+	color: var(--librefunnels-text);
+}
+
+.librefunnels-order-bumps__header {
+	display: grid;
+	gap: var(--librefunnels-space-xs);
+}
+
+.librefunnels-order-bumps__eyebrow {
+	margin: 0;
+	color: var(--librefunnels-accent-deep);
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: uppercase;
+}
+
+.librefunnels-order-bumps__title {
+	margin: 0;
+	color: var(--librefunnels-text);
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.librefunnels-order-bumps__list {
+	display: grid;
+	gap: var(--librefunnels-space-md);
+}
+
+.librefunnels-order-bump {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: var(--librefunnels-space-md);
+	align-items: start;
+	padding: var(--librefunnels-space-lg);
+	border: 1px solid var(--librefunnels-border);
+	border-radius: 8px;
+	background: var(--librefunnels-surface);
+	cursor: pointer;
+	transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.librefunnels-order-bump:hover,
+.librefunnels-order-bump:focus-within {
+	border-color: var(--librefunnels-accent);
+	background: var(--librefunnels-surface-strong);
+	transform: translateY(-1px);
+}
+
+.librefunnels-order-bump__control {
+	display: grid;
+	place-items: center;
+	width: 1.25rem;
+	height: 1.25rem;
+	margin-top: 0.125rem;
+}
+
+.librefunnels-order-bump__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.librefunnels-order-bump__check {
+	display: block;
+	width: 1.125rem;
+	height: 1.125rem;
+	border: 1px solid var(--librefunnels-border);
+	border-radius: 4px;
+	background: oklch(1 0.003 174);
+	box-shadow: inset 0 0 0 3px oklch(1 0.003 174);
+	transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.librefunnels-order-bump__input:checked + .librefunnels-order-bump__check {
+	border-color: var(--librefunnels-accent-deep);
+	background: var(--librefunnels-accent);
+}
+
+.librefunnels-order-bump__input:focus-visible + .librefunnels-order-bump__check {
+	outline: 2px solid var(--librefunnels-accent);
+	outline-offset: 3px;
+}
+
+.librefunnels-order-bump__body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: var(--librefunnels-space-md);
+	align-items: start;
+}
+
+.librefunnels-order-bump__main {
+	display: grid;
+	gap: var(--librefunnels-space-xs);
+	min-width: 0;
+}
+
+.librefunnels-order-bump__title {
+	color: var(--librefunnels-text);
+	font-size: 0.95rem;
+	line-height: 1.35;
+}
+
+.librefunnels-order-bump__description {
+	color: var(--librefunnels-muted);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.librefunnels-order-bump__description p {
+	margin: 0;
+}
+
+.librefunnels-order-bump__meta {
+	display: grid;
+	gap: var(--librefunnels-space-xs);
+	justify-items: end;
+	white-space: nowrap;
+}
+
+.librefunnels-order-bump__discount {
+	display: inline-flex;
+	align-items: center;
+	min-height: 1.5rem;
+	padding: 0 var(--librefunnels-space-sm);
+	border: 1px solid color-mix(in oklch, var(--librefunnels-accent) 45%, transparent);
+	border-radius: 999px;
+	background: color-mix(in oklch, var(--librefunnels-accent) 12%, transparent);
+	color: var(--librefunnels-accent-deep);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.librefunnels-order-bump__price {
+	color: var(--librefunnels-text);
+	font-weight: 700;
+}
+
+@media (max-width: 640px) {
+	.librefunnels-order-bump__body {
+		grid-template-columns: 1fr;
+	}
+
+	.librefunnels-order-bump__meta {
+		justify-items: start;
+		white-space: normal;
+	}
+}

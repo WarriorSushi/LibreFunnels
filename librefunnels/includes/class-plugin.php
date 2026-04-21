@@ -15,6 +15,8 @@ use LibreFunnels\Domain\Funnel_Post_Type;
 use LibreFunnels\Domain\Registered_Meta;
 use LibreFunnels\Domain\Step_Post_Type;
 use LibreFunnels\Frontend\Shortcodes;
+use LibreFunnels\Offers\Order_Bump_Display;
+use LibreFunnels\Offers\Order_Bump_Handler;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -114,6 +116,8 @@ final class Plugin {
 		( new Block_Registry() )->register();
 		( new Checkout_Field_Customizer() )->register();
 		( new Global_Checkout() )->register();
+		( new Order_Bump_Display() )->register();
+		( new Order_Bump_Handler() )->register();
 
 		if ( is_admin() ) {
 			( new Admin_Menu() )->register();

@@ -9,6 +9,7 @@ namespace LibreFunnels\Rendering;
 
 use LibreFunnels\Checkout\Checkout_Field_Customizer;
 use LibreFunnels\Checkout\Cart_Preparer;
+use LibreFunnels\Offers\Order_Bump_Display;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -94,6 +95,7 @@ final class Step_Renderer {
 		}
 
 		Checkout_Field_Customizer::set_active_step_id( $step->ID );
+		Order_Bump_Display::set_active_step_id( $step->ID );
 
 		try {
 			return $this->template_loader->render(
@@ -106,6 +108,7 @@ final class Step_Renderer {
 			);
 		} finally {
 			Checkout_Field_Customizer::clear_active_step_id();
+			Order_Bump_Display::clear_active_step_id();
 		}
 	}
 

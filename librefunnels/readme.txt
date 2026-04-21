@@ -41,6 +41,10 @@ Yes. The product direction is free feature parity without paid locks or trialwar
 
 Normal checkout and order-bump flows use WooCommerce gateways. Post-purchase offers will use true one-click charges only where a gateway safely supports reusable or tokenized charges. Other gateways use an accept-and-confirm flow.
 
+= Are order bumps supported? =
+
+The current foundation can store order bump definitions, render eligible bumps during checkout, and add selected bump products to the WooCommerce cart. Discount handling and analytics attribution are still being built.
+
 = Which shortcodes are available first? =
 
 The initial foundation includes `[librefunnels_funnel id="123"]` for rendering a funnel's configured start step and `[librefunnels_step id="456"]` for rendering a specific step. Checkout and thank-you steps are renderable in the current foundation.
@@ -51,7 +55,7 @@ The initial foundation registers dynamic server-rendered funnel and step blocks.
 
 = Can themes override LibreFunnels templates? =
 
-Yes. Default checkout and thank-you templates can be overridden by placing matching files under `librefunnels/steps/` in the active theme or child theme.
+Yes. Default checkout, thank-you, and order-bump templates can be overridden by placing matching files under `librefunnels/` in the active theme or child theme.
 
 == Changelog ==
 

@@ -586,8 +586,14 @@ final class Registered_Meta {
 				continue;
 			}
 
+			$bump_id = isset( $bump['id'] ) ? sanitize_key( (string) $bump['id'] ) : '';
+
+			if ( '' === $bump_id ) {
+				$bump_id = sanitize_key( 'bump-' . $product_id . '-' . count( $bumps ) );
+			}
+
 			$bumps[] = array(
-				'id'              => isset( $bump['id'] ) ? sanitize_key( (string) $bump['id'] ) : '',
+				'id'              => $bump_id,
 				'product_id'      => $product_id,
 				'variation_id'    => isset( $bump['variation_id'] ) ? absint( $bump['variation_id'] ) : 0,
 				'quantity'        => isset( $bump['quantity'] ) ? max( 1, absint( $bump['quantity'] ) ) : 1,

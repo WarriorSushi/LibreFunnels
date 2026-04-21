@@ -28,7 +28,8 @@
 
 ## Phase 3: Offers
 - Order bump metadata and eligibility foundation
-- Multiple bumps metadata support
+- Order bump checkout rendering and selected-bump cart sync
+- Multiple bumps metadata and selection support
 - Pre-checkout offers
 - Cross-sells
 - Upsells

@@ -142,9 +142,11 @@ Global checkout takeover foundation:
 - The current implementation is a backend foundation. A polished admin toggle/selector must be added before this is presented to store owners.
 
 ## Offer Core
-The first offer implementation stores order bump definitions on checkout steps through `_librefunnels_order_bumps`. Each bump can reference a product, variation, quantity, variation attributes, title, description, enabled state, and an optional discount shape (`none`, `percentage`, or `fixed`). The offer layer currently validates whether a configured offer references a real purchasable WooCommerce product before any cart or order mutation.
+The first offer implementation stores order bump definitions on checkout steps through `_librefunnels_order_bumps`. Each bump can reference a product, variation, quantity, variation attributes, title, description, enabled state, and an optional discount shape (`none`, `percentage`, or `fixed`). The offer layer validates whether a configured offer references a real purchasable WooCommerce product before any cart or order mutation.
 
-Order bump rendering, discount application, multiple-bump selection, cart mutation, and analytics events are separate Phase 3 slices. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
+Order bumps render inside the WooCommerce checkout form through the `woocommerce_review_order_before_payment` hook while a LibreFunnels checkout step is active. Selected bump IDs are protected by a step-scoped nonce and synced during checkout AJAX refreshes and final checkout submission. Accepted bumps are added to the WooCommerce cart with marker cart item data so they can be removed when unselected and attributed later.
+
+Discount application and analytics events are separate Phase 3 slices. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.
