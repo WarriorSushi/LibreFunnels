@@ -57,6 +57,10 @@ if ( ! defined( 'LIBREFUNNELS_CHECKOUT_FIELDS_META' ) ) {
 	define( 'LIBREFUNNELS_CHECKOUT_FIELDS_META', '_librefunnels_checkout_fields' );
 }
 
+if ( ! defined( 'LIBREFUNNELS_ORDER_BUMPS_META' ) ) {
+	define( 'LIBREFUNNELS_ORDER_BUMPS_META', '_librefunnels_order_bumps' );
+}
+
 if ( ! defined( 'LIBREFUNNELS_PATH' ) ) {
 	define( 'LIBREFUNNELS_PATH', dirname( __DIR__ ) . '/' );
 }
@@ -192,6 +196,22 @@ if ( ! function_exists( 'absint' ) ) {
 	 */
 	function absint( $value ) {
 		return abs( (int) $value );
+	}
+}
+
+if ( ! function_exists( 'wc_get_product' ) ) {
+	/**
+	 * wc_get_product fallback for isolated unit tests.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return mixed
+	 */
+	function wc_get_product( $product_id ) {
+		if ( ! isset( $GLOBALS['librefunnels_test_products'] ) || ! is_array( $GLOBALS['librefunnels_test_products'] ) ) {
+			return false;
+		}
+
+		return isset( $GLOBALS['librefunnels_test_products'][ absint( $product_id ) ] ) ? $GLOBALS['librefunnels_test_products'][ absint( $product_id ) ] : false;
 	}
 }
 

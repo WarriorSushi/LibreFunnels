@@ -113,6 +113,7 @@ final class Package_Validator {
 				'checkoutProducts' => Registered_Meta::sanitize_checkout_products( isset( $step['checkoutProducts'] ) ? $step['checkoutProducts'] : array() ),
 				'checkoutCoupons'  => Registered_Meta::sanitize_coupon_codes( isset( $step['checkoutCoupons'] ) ? $step['checkoutCoupons'] : array() ),
 				'checkoutFields'   => Registered_Meta::sanitize_checkout_fields( isset( $step['checkoutFields'] ) ? $step['checkoutFields'] : array() ),
+				'orderBumps'       => Registered_Meta::sanitize_order_bumps( isset( $step['orderBumps'] ) ? $step['orderBumps'] : array() ),
 			);
 		}
 

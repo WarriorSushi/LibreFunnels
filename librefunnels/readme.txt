@@ -43,7 +43,7 @@ Normal checkout and order-bump flows use WooCommerce gateways. Post-purchase off
 
 = Which shortcodes are available first? =
 
-The initial foundation includes `[librefunnels_funnel id="123"]` for rendering a funnel's configured start step and `[librefunnels_step id="456"]` for rendering a specific step. At this stage, only thank-you steps are renderable.
+The initial foundation includes `[librefunnels_funnel id="123"]` for rendering a funnel's configured start step and `[librefunnels_step id="456"]` for rendering a specific step. Checkout and thank-you steps are renderable in the current foundation.
 
 = Are blocks available? =
 
@@ -51,7 +51,7 @@ The initial foundation registers dynamic server-rendered funnel and step blocks.
 
 = Can themes override LibreFunnels templates? =
 
-Yes. The default thank-you template can be overridden by placing a matching file at `librefunnels/steps/thank-you.php` in the active theme or child theme.
+Yes. Default checkout and thank-you templates can be overridden by placing matching files under `librefunnels/steps/` in the active theme or child theme.
 
 == Changelog ==
 

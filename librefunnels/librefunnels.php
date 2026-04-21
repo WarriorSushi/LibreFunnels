@@ -40,6 +40,7 @@ define( 'LIBREFUNNELS_STEP_PAGE_ID_META', '_librefunnels_step_page_id' );
 define( 'LIBREFUNNELS_CHECKOUT_PRODUCTS_META', '_librefunnels_checkout_products' );
 define( 'LIBREFUNNELS_CHECKOUT_COUPONS_META', '_librefunnels_checkout_coupons' );
 define( 'LIBREFUNNELS_CHECKOUT_FIELDS_META', '_librefunnels_checkout_fields' );
+define( 'LIBREFUNNELS_ORDER_BUMPS_META', '_librefunnels_order_bumps' );
 define( 'LIBREFUNNELS_GLOBAL_CHECKOUT_FUNNEL_ID_OPTION', 'librefunnels_global_checkout_funnel_id' );
 
 require_once LIBREFUNNELS_PATH . 'includes/autoload.php';

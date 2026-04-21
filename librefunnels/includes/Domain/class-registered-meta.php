@@ -262,6 +262,64 @@ final class Registered_Meta {
 				),
 			)
 		);
+
+		register_post_meta(
+			LIBREFUNNELS_STEP_POST_TYPE,
+			LIBREFUNNELS_ORDER_BUMPS_META,
+			array(
+				'type'              => 'array',
+				'label'             => __( 'Order bumps', 'librefunnels' ),
+				'description'       => __( 'Inline offers shown with a funnel checkout step.', 'librefunnels' ),
+				'single'            => true,
+				'default'           => array(),
+				'sanitize_callback' => array( self::class, 'sanitize_order_bumps' ),
+				'auth_callback'     => array( self::class, 'user_can_manage_funnels' ),
+				'show_in_rest'      => array(
+					'schema' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'id'              => array(
+									'type' => 'string',
+								),
+								'product_id'      => array(
+									'type' => 'integer',
+								),
+								'variation_id'    => array(
+									'type' => 'integer',
+								),
+								'quantity'        => array(
+									'type' => 'integer',
+								),
+								'variation'       => array(
+									'type'                 => 'object',
+									'additionalProperties' => array(
+										'type' => 'string',
+									),
+								),
+								'title'           => array(
+									'type' => 'string',
+								),
+								'description'     => array(
+									'type' => 'string',
+								),
+								'discount_type'   => array(
+									'type' => 'string',
+									'enum' => self::get_allowed_discount_types(),
+								),
+								'discount_amount' => array(
+									'type' => 'number',
+								),
+								'enabled'         => array(
+									'type' => 'boolean',
+								),
+							),
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -497,12 +555,102 @@ final class Registered_Meta {
 	}
 
 	/**
+	 * Sanitizes order bump offer definitions.
+	 *
+	 * @param mixed $value Raw order bump list.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function sanitize_order_bumps( $value ) {
+		if ( is_object( $value ) ) {
+			$value = (array) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$bumps = array();
+
+		foreach ( $value as $bump ) {
+			if ( is_object( $bump ) ) {
+				$bump = (array) $bump;
+			}
+
+			if ( ! is_array( $bump ) ) {
+				continue;
+			}
+
+			$product_id = isset( $bump['product_id'] ) ? absint( $bump['product_id'] ) : 0;
+
+			if ( 0 === $product_id ) {
+				continue;
+			}
+
+			$bumps[] = array(
+				'id'              => isset( $bump['id'] ) ? sanitize_key( (string) $bump['id'] ) : '',
+				'product_id'      => $product_id,
+				'variation_id'    => isset( $bump['variation_id'] ) ? absint( $bump['variation_id'] ) : 0,
+				'quantity'        => isset( $bump['quantity'] ) ? max( 1, absint( $bump['quantity'] ) ) : 1,
+				'variation'       => self::sanitize_variation_attributes( isset( $bump['variation'] ) ? $bump['variation'] : array() ),
+				'title'           => isset( $bump['title'] ) ? sanitize_text_field( (string) $bump['title'] ) : '',
+				'description'     => isset( $bump['description'] ) ? wp_kses_post( (string) $bump['description'] ) : '',
+				'discount_type'   => self::sanitize_discount_type( isset( $bump['discount_type'] ) ? $bump['discount_type'] : 'none' ),
+				'discount_amount' => isset( $bump['discount_amount'] ) ? self::sanitize_discount_amount( $bump['discount_amount'] ) : 0.0,
+				'enabled'         => isset( $bump['enabled'] ) ? (bool) $bump['enabled'] : true,
+			);
+		}
+
+		return $bumps;
+	}
+
+	/**
+	 * Sanitizes an offer discount type.
+	 *
+	 * @param mixed $value Raw discount type.
+	 * @return string
+	 */
+	public static function sanitize_discount_type( $value ) {
+		$value = sanitize_key( (string) $value );
+
+		if ( in_array( $value, self::get_allowed_discount_types(), true ) ) {
+			return $value;
+		}
+
+		return 'none';
+	}
+
+	/**
 	 * Returns allowed checkout field sections.
 	 *
 	 * @return string[]
 	 */
 	private static function get_allowed_checkout_field_sections() {
 		return array( 'billing', 'shipping', 'order', 'account' );
+	}
+
+	/**
+	 * Returns allowed offer discount types.
+	 *
+	 * @return string[]
+	 */
+	private static function get_allowed_discount_types() {
+		return array( 'none', 'percentage', 'fixed' );
+	}
+
+	/**
+	 * Sanitizes a discount amount.
+	 *
+	 * @param mixed $value Raw discount amount.
+	 * @return float
+	 */
+	private static function sanitize_discount_amount( $value ) {
+		$amount = (float) $value;
+
+		if ( 0 > $amount ) {
+			return 0.0;
+		}
+
+		return $amount;
 	}
 
 	/**

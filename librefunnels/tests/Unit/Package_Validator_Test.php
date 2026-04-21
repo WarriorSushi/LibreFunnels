@@ -34,6 +34,11 @@ final class Package_Validator_Test extends TestCase {
 		$this->assertSame( array( 'SAVE10' ), $package['steps'][0]['checkoutCoupons'] );
 		$this->assertSame( 'billing', $package['steps'][0]['checkoutFields'][0]['section'] );
 		$this->assertFalse( $package['steps'][0]['checkoutFields'][0]['required'] );
+		$this->assertSame( 'priority-upgrade', $package['steps'][0]['orderBumps'][0]['id'] );
+		$this->assertSame( 456, $package['steps'][0]['orderBumps'][0]['product_id'] );
+		$this->assertSame( 'percentage', $package['steps'][0]['orderBumps'][0]['discount_type'] );
+		$this->assertSame( 15.5, $package['steps'][0]['orderBumps'][0]['discount_amount'] );
+		$this->assertTrue( $package['steps'][0]['orderBumps'][0]['enabled'] );
 	}
 
 	/**
@@ -123,6 +128,20 @@ final class Package_Validator_Test extends TestCase {
 							'placeholder' => 'Best phone',
 							'required'    => false,
 							'hidden'      => false,
+						),
+					),
+					'orderBumps'       => array(
+						array(
+							'id'              => 'priority-upgrade',
+							'product_id'      => 456,
+							'variation_id'    => 0,
+							'quantity'        => 1,
+							'variation'       => array(),
+							'title'           => 'Add priority setup',
+							'description'     => '<strong>Setup help</strong> within one business day.',
+							'discount_type'   => 'percentage',
+							'discount_amount' => 15.5,
+							'enabled'         => true,
 						),
 					),
 				),

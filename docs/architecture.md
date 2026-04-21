@@ -37,6 +37,7 @@ Initial registered metadata:
 - Checkout products: `_librefunnels_checkout_products`
 - Checkout coupons: `_librefunnels_checkout_coupons`
 - Checkout field rules: `_librefunnels_checkout_fields`
+- Order bumps: `_librefunnels_order_bumps`
 
 Initial step types:
 - `landing`
@@ -139,6 +140,11 @@ Global checkout takeover foundation:
 - When enabled, LibreFunnels resolves the funnel start step and redirects the default WooCommerce checkout page to the step's `_librefunnels_step_page_id`.
 - Protected WooCommerce endpoints such as order pay and order received are never redirected.
 - The current implementation is a backend foundation. A polished admin toggle/selector must be added before this is presented to store owners.
+
+## Offer Core
+The first offer implementation stores order bump definitions on checkout steps through `_librefunnels_order_bumps`. Each bump can reference a product, variation, quantity, variation attributes, title, description, enabled state, and an optional discount shape (`none`, `percentage`, or `fixed`). The offer layer currently validates whether a configured offer references a real purchasable WooCommerce product before any cart or order mutation.
+
+Order bump rendering, discount application, multiple-bump selection, cart mutation, and analytics events are separate Phase 3 slices. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
 ## Admin Rendering
 Use a React admin app loaded only on plugin admin pages.

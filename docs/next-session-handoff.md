@@ -37,6 +37,9 @@ Implemented so far:
 - Checkout step coupon metadata and cart application.
 - Scoped checkout field customization metadata and filter.
 - Disabled-by-default global checkout redirect foundation.
+- Order bump metadata foundation on checkout steps.
+- Order bump import/export normalization.
+- Product-offer eligibility checks using WooCommerce product APIs without cart or order mutation.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -54,15 +57,14 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Install PHP/Composer locally or make them available on PATH.
-2. Run `composer install` in `librefunnels/`.
-3. Run `composer lint` and `composer test` once dependencies are installed.
+1. Continue Phase 3 by rendering order bumps on checkout steps with clear accept/decline state and no confusing UI flourish.
+2. Add safe order bump cart application for accepted offers, including variation support and duplicate prevention.
+3. Add discount calculation/application strategy for bump offers without bypassing WooCommerce coupon/tax/cart behavior.
 4. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
-5. Continue Phase 3 with order bump metadata and eligibility foundation.
-6. Add database import service with nonces/capabilities once the admin flow exists.
-7. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, and checkout cart preparation once a WP test runtime is available.
-8. Start the admin UI shell only after routing/rendering behavior has passing tests.
-9. Design polished block editor controls during the Impeccable-backed admin UI phase.
+5. Add database import service with nonces/capabilities once the admin flow exists.
+6. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, and checkout cart preparation once a WP test runtime is available.
+7. Start the admin UI shell only after routing/rendering behavior has passing tests.
+8. Design polished block editor controls during the Impeccable-backed admin UI phase.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

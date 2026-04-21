@@ -9,6 +9,7 @@
   - Accept/reject/fallback route resolution
   - Unknown route failures
 - Offer eligibility
+- Order bump metadata normalization
 - Discount calculations
 - A/B assignment
 - Analytics attribution

@@ -27,8 +27,8 @@
 - Checkout takeover/global checkout: disabled-by-default redirect foundation using configured funnel and step page ID
 
 ## Phase 3: Offers
-- Order bumps
-- Multiple bumps
+- Order bump metadata and eligibility foundation
+- Multiple bumps metadata support
 - Pre-checkout offers
 - Cross-sells
 - Upsells
