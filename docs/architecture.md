@@ -93,6 +93,12 @@ Initial shortcode support:
 - `[librefunnels_funnel id="123"]` renders a funnel's configured start step through the router.
 - `[librefunnels_step id="456"]` renders a specific funnel step.
 
+Initial dynamic block support:
+- `librefunnels/funnel` renders a funnel's configured start step through the router.
+- `librefunnels/step` renders a specific funnel step.
+
+The first block implementation is server-rendered and shares the shortcode rendering path. Polished editor controls are deferred to the visual admin/UI phase so they can be designed with Impeccable instead of becoming a generic block sidebar.
+
 Initial renderable step type:
 - `thank_you`
 

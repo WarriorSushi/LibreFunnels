@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "librefunnels/step",
+	"version": "0.1.0",
+	"title": "LibreFunnels Step",
+	"category": "widgets",
+	"icon": "networking",
+	"description": "Render a specific LibreFunnels funnel step.",
+	"keywords": [ "funnel", "step", "woocommerce" ],
+	"textdomain": "librefunnels",
+	"attributes": {
+		"stepId": {
+			"type": "number",
+			"default": 0
+		}
+	},
+	"supports": {
+		"align": [ "wide", "full" ],
+		"html": false
+	}
+}

@@ -15,7 +15,7 @@
 - Basic routing: start-step and next-step resolver with graph validation
 - Shortcode rendering: `[librefunnels_funnel]` and `[librefunnels_step]`
 - Thank-you step: default plugin template with theme override support
-- Block rendering
+- Block rendering: dynamic server-rendered funnel and step blocks
 - Import/export foundation: versioned JSON export and import package validation
 
 ## Phase 2: Checkout Core

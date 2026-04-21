@@ -16,6 +16,7 @@
 
 ## Integration Tests
 - Shortcode rendering
+- Dynamic block rendering
 - Theme template override loading
 - Funnel export from CPT/meta records
 - Funnel import with nonces and capabilities

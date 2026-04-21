@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "librefunnels/funnel",
+	"version": "0.1.0",
+	"title": "LibreFunnels Funnel",
+	"category": "widgets",
+	"icon": "randomize",
+	"description": "Render a LibreFunnels funnel from its configured start step.",
+	"keywords": [ "funnel", "checkout", "woocommerce" ],
+	"textdomain": "librefunnels",
+	"attributes": {
+		"funnelId": {
+			"type": "number",
+			"default": 0
+		}
+	},
+	"supports": {
+		"align": [ "wide", "full" ],
+		"html": false
+	}
+}
