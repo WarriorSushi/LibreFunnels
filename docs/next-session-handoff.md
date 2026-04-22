@@ -61,6 +61,8 @@ Implemented so far:
 - Draggable node positioning with persisted graph coordinates.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
+- Beginner setup guidance in the canvas header with the next useful task.
+- Assigned pages now expose direct edit/view actions so store owners can create a funnel page and continue in their preferred page builder.
 - Store-owner-friendly conditional rule builder for supported rule types.
 - Product pickers in checkout, order bump, offer, and product-rule inspector controls.
 - Initial commerce inspector panels for checkout product assignment, one order bump, and primary offer configuration.

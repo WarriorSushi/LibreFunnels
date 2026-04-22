@@ -114,6 +114,79 @@ function getEdgeWarnings( edge, nodes ) {
 	return warnings;
 }
 
+function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
+	if ( ! selectedFunnel ) {
+		return {
+			status: 'start',
+			label: __( 'Start here', 'librefunnels' ),
+			message: __( 'Create a funnel, then LibreFunnels will guide you through steps, pages, products, and routes.', 'librefunnels' ),
+		};
+	}
+
+	const nodes = graph.nodes || [];
+	const startStepId = Number( selectedFunnel.startStepId || 0 );
+	const nodeStepIds = nodes.map( ( node ) => Number( node.stepId || 0 ) );
+	const missingPageStep = funnelSteps.find( ( step ) => nodeStepIds.includes( Number( step.id ) ) && Number( step.pageId || 0 ) < 1 );
+	const checkoutStep = funnelSteps.find( ( step ) => 'checkout' === step.type );
+
+	if ( nodes.length === 0 ) {
+		return {
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: __( 'Add a checkout step first. You can add offers and thank-you pages after the basic path exists.', 'librefunnels' ),
+		};
+	}
+
+	if ( startStepId < 1 ) {
+		return {
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: __( 'Choose which step shoppers enter first. Most funnels start at the checkout or landing step.', 'librefunnels' ),
+		};
+	}
+
+	if ( missingPageStep ) {
+		return {
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: sprintf(
+				__( 'Create or assign a page for %s, then edit that page with your page builder.', 'librefunnels' ),
+				getPostTitle( missingPageStep, __( 'this step', 'librefunnels' ) )
+			),
+		};
+	}
+
+	if ( checkoutStep && ! checkoutStep.checkoutProducts?.length ) {
+		return {
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: __( 'Choose the product this checkout should sell so LibreFunnels can prepare the cart.', 'librefunnels' ),
+		};
+	}
+
+	if ( nodes.length > 1 && graph.edges.length === 0 ) {
+		return {
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: __( 'Connect the route shoppers should follow from one step to the next.', 'librefunnels' ),
+		};
+	}
+
+	if ( warnings.length > 0 ) {
+		return {
+			status: 'warning',
+			label: __( 'Needs attention', 'librefunnels' ),
+			message: __( 'Fix the highlighted items in the inspector. Broken steps stay visible so you do not lose context.', 'librefunnels' ),
+		};
+	}
+
+	return {
+		status: 'ready',
+		label: __( 'Ready', 'librefunnels' ),
+		message: __( 'The basic path is configured. Preview the pages, then add offers, bumps, and conditions.', 'librefunnels' ),
+	};
+}
+
 function createRuleFromType( type, previous = {} ) {
 	if ( type === 'cart_contains_product' ) {
 		return {
@@ -454,7 +527,7 @@ function App() {
 	}
 
 	async function createPageForStep( step, title ) {
-		const payload = await runSave(
+		await runSave(
 			() =>
 				apiFetch( {
 					path: pagesPath,
@@ -466,12 +539,6 @@ function App() {
 				} ),
 			__( 'Page created and assigned', 'librefunnels' )
 		);
-
-		const page = payload?.page;
-
-		if ( page && ! pages.some( ( item ) => Number( item.id ) === Number( page.id ) ) ) {
-			setPages( ( current ) => [ page, ...current ] );
-		}
 	}
 
 	function setStartStep( stepId ) {
@@ -527,6 +594,9 @@ function App() {
 		} );
 	}
 
+	const validationSummary = getValidationSummary();
+	const setupGuide = getSetupGuide( selectedFunnel, graph, funnelSteps, validationSummary );
+
 	return (
 		<div className="wrap librefunnels-canvas-app">
 			<Sidebar
@@ -543,7 +613,8 @@ function App() {
 			<main className="lf-canvas-shell" aria-busy={ isLoading || isSaving }>
 				<Header
 					selectedFunnel={ selectedFunnel }
-					warnings={ getValidationSummary() }
+					warnings={ validationSummary }
+					setupGuide={ setupGuide }
 					isSaving={ isSaving }
 					notice={ notice }
 					onCreateStep={ createStep }
@@ -560,6 +631,9 @@ function App() {
 					selectedItem={ selectedItem }
 					onSelect={ setSelectedItem }
 					onStartDrag={ startNodeDrag }
+					onCreateFunnel={ createFunnel }
+					onCreateStep={ createStep }
+					isSaving={ isSaving }
 				/>
 			</main>
 
@@ -630,20 +704,31 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isSaving } ) 
 	);
 }
 
-function Header( { selectedFunnel, warnings, isSaving, notice, onCreateStep, onCreateEdge } ) {
+function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCreateStep, onCreateEdge } ) {
+	const healthText =
+		warnings.length > 0
+			? sprintf( __( '%d issue(s)', 'librefunnels' ), warnings.length )
+			: setupGuide?.status === 'ready'
+				? __( 'Ready', 'librefunnels' )
+				: __( 'In progress', 'librefunnels' );
+
 	return (
 		<header className="lf-canvas-header">
-			<div>
+			<div className="lf-canvas-header__title">
 				<p className="lf-label">{ __( 'Visual funnel map', 'librefunnels' ) }</p>
 				<h1>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'Create your first funnel', 'librefunnels' ) }</h1>
+				{ setupGuide && (
+					<p className="lf-next-step">
+						<strong>{ setupGuide.label }</strong>
+						<span>{ setupGuide.message }</span>
+					</p>
+				) }
 			</div>
 
 			<div className="lf-header-actions">
 				{ notice && <span className="lf-save-state">{ notice }</span> }
 				<span className={ `lf-health ${ warnings.length > 0 ? 'has-warnings' : 'is-clear' }` }>
-					{ warnings.length > 0
-						? sprintf( __( '%d issue(s)', 'librefunnels' ), warnings.length )
-						: __( 'Ready', 'librefunnels' ) }
+					{ healthText }
 				</span>
 				<div className="lf-add-step-menu">
 					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ ! selectedFunnel || isSaving }>
@@ -661,7 +746,7 @@ function Header( { selectedFunnel, warnings, isSaving, notice, onCreateStep, onC
 	);
 }
 
-function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag } ) {
+function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, isSaving } ) {
 	const nodes = graph.nodes.map( ( node, index ) => ( {
 		...node,
 		position: normalizeNodePosition( node, index ),
@@ -679,6 +764,9 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 			<div className="lf-canvas lf-canvas--empty">
 				<h2>{ __( 'Start with one focused checkout journey.', 'librefunnels' ) }</h2>
 				<p>{ __( 'Create a funnel, add steps, then connect the route shoppers should follow.', 'librefunnels' ) }</p>
+				<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+					{ __( 'Create funnel', 'librefunnels' ) }
+				</button>
 			</div>
 		);
 	}
@@ -687,7 +775,10 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 		return (
 			<div className="lf-canvas lf-canvas--empty">
 				<h2>{ __( 'This funnel is ready for its first step.', 'librefunnels' ) }</h2>
-				<p>{ __( 'Add a checkout, offer, or thank-you step. Broken routes stay visible while you build.', 'librefunnels' ) }</p>
+				<p>{ __( 'Start with checkout so LibreFunnels knows what shoppers buy. Then create the page and edit it in your preferred builder.', 'librefunnels' ) }</p>
+				<button className="lf-button lf-button--primary" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ isSaving }>
+					{ __( 'Add checkout step', 'librefunnels' ) }
+				</button>
 			</div>
 		);
 	}
@@ -1133,6 +1224,9 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 	const [ search, setSearch ] = useState( '' );
 	const [ newTitle, setNewTitle ] = useState( step?.title ? `${ step.title } page` : __( 'New funnel page', 'librefunnels' ) );
 	const searchTimer = useRef( null );
+	const selectedPage = pages.find( ( page ) => Number( page.id ) === Number( step.pageId || 0 ) );
+	const pageEditUrl = step.pageEditUrl || selectedPage?.editUrl || '';
+	const pageUrl = selectedPage?.url || '';
 
 	function handleSearch( value ) {
 		setSearch( value );
@@ -1145,7 +1239,23 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 			<div>
 				<span className="lf-field-heading">{ __( 'Assigned page', 'librefunnels' ) }</span>
 				<p>{ step.pageTitle || __( 'No page assigned yet.', 'librefunnels' ) }</p>
+				<p className="lf-helper-text">
+					{ __( 'LibreFunnels creates a normal WordPress page with the funnel block inside. Open it in the block editor, Elementor, Bricks, Divi, Beaver Builder, or the page builder your site uses.', 'librefunnels' ) }
+				</p>
 			</div>
+
+			{ pageEditUrl && (
+				<div className="lf-page-actions">
+					<a className="lf-button lf-button--primary" href={ pageEditUrl }>
+						{ __( 'Edit page design', 'librefunnels' ) }
+					</a>
+					{ pageUrl && (
+						<a className="lf-button" href={ pageUrl } target="_blank" rel="noreferrer">
+							{ __( 'View page', 'librefunnels' ) }
+						</a>
+					) }
+				</div>
+			) }
 
 			<label className="lf-field">
 				<span>{ __( 'Find page', 'librefunnels' ) }</span>

@@ -82,6 +82,8 @@
 	background: var(--lf-surface);
 	color: var(--lf-ink);
 	font-weight: 750;
+	text-decoration: none;
+	white-space: nowrap;
 	cursor: pointer;
 	transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
@@ -160,14 +162,19 @@
 }
 
 .lf-canvas-header {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: 1fr;
 	gap: 16px;
-	align-items: center;
-	justify-content: space-between;
+	align-items: start;
 	padding: 18px;
 	border-bottom: 1px solid var(--lf-border);
 	background: var(--lf-surface);
+}
+
+.lf-canvas-header__title {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
 }
 
 .lf-canvas-header h1,
@@ -184,11 +191,27 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
+	min-width: 0;
 }
 
 .lf-add-step-menu {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 8px;
+}
+
+.lf-next-step {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	max-width: 74ch;
+	margin: 0;
+	color: var(--lf-muted);
+	line-height: 1.45;
+}
+
+.lf-next-step strong {
+	color: var(--lf-accent-deep);
 }
 
 .lf-save-state {
@@ -244,6 +267,7 @@
 	display: grid;
 	place-content: center;
 	justify-items: center;
+	gap: 14px;
 	min-width: 0;
 	padding: 48px;
 	text-align: center;
@@ -476,6 +500,10 @@
 	min-width: 0;
 }
 
+.lf-product-chip span:first-child:last-child {
+	grid-column: 1 / -1;
+}
+
 .lf-product-chip strong,
 .lf-product-chip small {
 	display: block;
@@ -545,6 +573,17 @@
 	font-size: 12px;
 }
 
+.lf-helper-text {
+	margin-top: 6px !important;
+	font-size: 12px;
+}
+
+.lf-page-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .lf-action-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -609,5 +648,14 @@
 
 	.lf-header-actions {
 		width: 100%;
+	}
+
+	.lf-add-step-menu,
+	.lf-header-actions .lf-button {
+		width: 100%;
+	}
+
+	.lf-add-step-menu .lf-button {
+		flex: 1 1 160px;
 	}
 }
