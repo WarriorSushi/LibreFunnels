@@ -40,7 +40,7 @@ async function createFunnelFromCanvasButton( page ) {
 	);
 
 	expect( selectedFunnelId ).toBeGreaterThan( 0 );
-	await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+	await page.goto( '/wp-admin/admin.php?page=librefunnels-funnels' );
 	await expect( page.getByRole( 'button', { name: 'Build checkout path' } ) ).toBeVisible();
 
 	return selectedFunnelId;
@@ -276,8 +276,30 @@ async function fillCheckoutBillingDetails( page, stamp = Date.now() ) {
 test.describe( 'LibreFunnels canvas smoke', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
-		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-funnels' );
 		await expect( page.getByText( 'Funnel Workspace' ).first() ).toBeVisible();
+	} );
+
+	test( 'renders distinct LibreFunnels submenu screens', async ( { page } ) => {
+		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+		await expect( page.getByRole( 'heading', { name: 'Dashboard', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Store owner command center', { exact: true } ) ).toBeVisible();
+
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-templates' );
+		await expect( page.getByRole( 'heading', { name: 'Templates', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Template library', { exact: true } ) ).toBeVisible();
+
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-analytics' );
+		await expect( page.getByRole( 'heading', { name: 'Analytics', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Local analytics', { exact: true } ) ).toBeVisible();
+
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-settings' );
+		await expect( page.getByRole( 'heading', { name: 'Settings', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Global controls', { exact: true } ) ).toBeVisible();
+
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-setup' );
+		await expect( page.getByRole( 'heading', { name: 'Setup', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Launch readiness', { exact: true } ) ).toBeVisible();
 	} );
 
 	test( 'creates a checkout funnel with a page, products, and an order bump', async ( { page } ) => {
@@ -450,8 +472,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.evaluate( ( funnelId ) => {
 			window.localStorage.setItem( 'librefunnels.selectedFunnelId', String( funnelId ) );
 		}, setup.funnelId );
-		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
-		await page.getByRole( 'button', { name: 'Analytics' } ).click();
+		await page.goto( '/wp-admin/admin.php?page=librefunnels-analytics' );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Attributed revenue' );
 
 		const summary = await page.evaluate( async ( funnelId ) => {

@@ -80,6 +80,7 @@ Implemented so far:
 - Capability-guarded analytics summary REST endpoint for local dashboard reads.
 - React canvas analytics summary panel for the selected funnel, showing last-30-days attributed revenue, order count, offer accept rate, offer decisions, and a clear empty state until shopper/test-order data exists.
 - Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup.
+- Dashboard, Templates, Analytics, Settings, and Setup now render distinct React section pages instead of all linking to the same builder screen.
 - Funnel workspace tabs for Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so the visual map no longer carries analytics, commerce summaries, rules, and setup guidance all at once.
 - Dedicated Steps surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom steps visible to beginners before they open the focused canvas inspector.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.

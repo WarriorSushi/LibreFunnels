@@ -79,6 +79,7 @@
 - Canvas builds a conditional route without editing JSON
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
 - Admin workspace smoke verifies the sectioned funnel workspace rather than assuming analytics lives inside the canvas view
+- Admin submenu smoke verifies Dashboard, Templates, Analytics, Settings, and Setup render different section pages
 - Canvas smoke switches between Overview, Canvas, and Analytics workspace tabs where those surfaces are intentionally separated
 - Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates the guided starter path, checks setup progress, creates a funnel page, confirms draft publish guidance, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, saves an upsell offer through product search, checks imported broken-route recovery, renders a published checkout page, renders an offer page with reject routing to the next public step, and verifies offer accept adds the product to the WooCommerce cart before routing forward
 - Checkout flow

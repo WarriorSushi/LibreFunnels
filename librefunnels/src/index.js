@@ -17,6 +17,7 @@ const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/product
 const analyticsPath = settings.rest?.analytics || '/librefunnels/v1/analytics/summary';
 const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
 const adminSection = settings.activeSection || 'dashboard';
+const adminPages = settings.adminPages || {};
 
 const workspaceTabs = [
 	{ id: 'overview', label: __( 'Overview', 'librefunnels' ) },
@@ -35,6 +36,15 @@ const sectionDefaultTabs = {
 	settings: 'settings',
 	setup: 'overview',
 	templates: 'steps',
+};
+
+const sectionLabels = {
+	dashboard: __( 'Dashboard', 'librefunnels' ),
+	funnels: __( 'Funnels', 'librefunnels' ),
+	templates: __( 'Templates', 'librefunnels' ),
+	analytics: __( 'Analytics', 'librefunnels' ),
+	settings: __( 'Settings', 'librefunnels' ),
+	setup: __( 'Setup', 'librefunnels' ),
 };
 
 const starterStepTypes = [ 'landing', 'optin', 'checkout', 'upsell', 'downsell', 'thank_you', 'custom' ];
@@ -1065,6 +1075,32 @@ function App() {
 	const validationSummary = getValidationSummary();
 	const setupGuide = getSetupGuide( selectedFunnel, graph, funnelSteps, validationSummary );
 
+	if ( adminSection !== 'funnels' ) {
+		return (
+			<div className={ `wrap librefunnels-canvas-app lf-section-app lf-section-app--${ adminSection }` }>
+				<SectionPage
+					section={ adminSection }
+					funnels={ funnels }
+					steps={ steps }
+					selectedFunnel={ selectedFunnel }
+					graph={ graph }
+					funnelSteps={ funnelSteps }
+					setupGuide={ setupGuide }
+					warnings={ validationSummary }
+					analyticsSummary={ analyticsSummary }
+					isAnalyticsLoading={ isAnalyticsLoading }
+					analyticsError={ analyticsError }
+					notice={ notice }
+					error={ error }
+					onCreateFunnel={ createFunnel }
+					onSelectFunnel={ selectFunnel }
+					isLoading={ isLoading }
+					isSaving={ isSaving }
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div className={ `wrap librefunnels-canvas-app lf-console lf-console--${ adminSection }` }>
 			<Sidebar
@@ -1128,6 +1164,341 @@ function App() {
 				/>
 			</main>
 		</div>
+	);
+}
+
+function SectionPage( {
+	section,
+	funnels,
+	steps,
+	selectedFunnel,
+	graph,
+	funnelSteps,
+	setupGuide,
+	warnings,
+	analyticsSummary,
+	isAnalyticsLoading,
+	analyticsError,
+	notice,
+	error,
+	onCreateFunnel,
+	onSelectFunnel,
+	isLoading,
+	isSaving,
+} ) {
+	const title = sectionLabels[ section ] || sectionLabels.dashboard;
+
+	return (
+		<main className="lf-section-shell" aria-busy={ isLoading || isSaving }>
+			<section className="lf-section-hero">
+				<div>
+					<p className="lf-label">{ __( 'LibreFunnels', 'librefunnels' ) }</p>
+					<h1>{ title }</h1>
+				</div>
+				<div className="lf-section-actions">
+					{ notice && <span className="lf-save-state">{ notice }</span> }
+					<a className="lf-button" href={ adminPages.funnels || 'admin.php?page=librefunnels-funnels' }>
+						{ __( 'Open builder', 'librefunnels' ) }
+					</a>
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isLoading || isSaving }>
+						{ __( 'Create funnel', 'librefunnels' ) }
+					</button>
+				</div>
+			</section>
+
+			{ error && <div className="lf-alert">{ error }</div> }
+
+			{ section === 'templates' && <TemplatesSection onCreateFunnel={ onCreateFunnel } isSaving={ isSaving } /> }
+			{ section === 'analytics' && (
+				<AnalyticsSection
+					funnels={ funnels }
+					selectedFunnel={ selectedFunnel }
+					summary={ analyticsSummary }
+					isLoading={ isAnalyticsLoading }
+					error={ analyticsError }
+					onSelectFunnel={ onSelectFunnel }
+				/>
+			) }
+			{ section === 'settings' && <SettingsSection selectedFunnel={ selectedFunnel } /> }
+			{ section === 'setup' && <SetupSection selectedFunnel={ selectedFunnel } setupGuide={ setupGuide } /> }
+			{ section === 'dashboard' && (
+				<DashboardSection
+					funnels={ funnels }
+					steps={ steps }
+					selectedFunnel={ selectedFunnel }
+					graph={ graph }
+					funnelSteps={ funnelSteps }
+					setupGuide={ setupGuide }
+					warnings={ warnings }
+					analyticsSummary={ analyticsSummary }
+					isAnalyticsLoading={ isAnalyticsLoading }
+					onSelectFunnel={ onSelectFunnel }
+					onCreateFunnel={ onCreateFunnel }
+					isSaving={ isSaving }
+				/>
+			) }
+		</main>
+	);
+}
+
+function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps, setupGuide, warnings, analyticsSummary, isAnalyticsLoading, onSelectFunnel, onCreateFunnel, isSaving } ) {
+	const revenue = Number( analyticsSummary?.revenue || 0 );
+	const funnelIssues = funnels.reduce( ( count, funnel ) => count + Number( funnel.warnings?.length || 0 ), 0 );
+
+	return (
+		<div className="lf-section-stack">
+			<div className="lf-dashboard-hero">
+				<div>
+					<p className="lf-label">{ __( 'Store owner command center', 'librefunnels' ) }</p>
+					<h2>{ __( 'See what needs attention before opening the builder.', 'librefunnels' ) }</h2>
+					<p>{ __( 'Dashboard is for orientation: funnel health, setup progress, and quick jumps into the areas that should not crowd the canvas.', 'librefunnels' ) }</p>
+				</div>
+				<div className="lf-overview__actions">
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+						{ __( 'Create funnel', 'librefunnels' ) }
+					</button>
+					<a className="lf-button" href={ adminPages.analytics || 'admin.php?page=librefunnels-analytics' }>
+						{ __( 'View analytics', 'librefunnels' ) }
+					</a>
+				</div>
+			</div>
+
+			<div className="lf-overview-grid">
+				<OverviewStat label={ __( 'Funnels', 'librefunnels' ) } value={ formatPlainNumber( funnels.length ) } detail={ __( 'Draft and active funnel workspaces.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Steps', 'librefunnels' ) } value={ formatPlainNumber( steps.length ) } detail={ __( 'Pages, offers, checkouts, and thank-you steps.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Open issues', 'librefunnels' ) } value={ formatPlainNumber( funnelIssues ) } detail={ __( 'Validation warnings across loaded funnels.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Selected revenue', 'librefunnels' ) } value={ isAnalyticsLoading ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, analyticsSummary?.currency || 'USD' ) } detail={ __( 'Attributed revenue for the selected funnel.', 'librefunnels' ) } />
+			</div>
+
+			<div className="lf-section-grid">
+				<section className="lf-section-card lf-section-card--wide">
+					<p className="lf-label">{ __( 'Next best action', 'librefunnels' ) }</p>
+					<h3>{ setupGuide?.label || __( 'Start here', 'librefunnels' ) }</h3>
+					<p>{ setupGuide?.message || __( 'Create a funnel, then LibreFunnels will guide the next setup step.', 'librefunnels' ) }</p>
+					{ selectedFunnel && <SetupProgress setupGuide={ setupGuide } />}
+					{ ! selectedFunnel && (
+						<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+							{ __( 'Create first funnel', 'librefunnels' ) }
+						</button>
+					) }
+				</section>
+
+				<section className="lf-section-card">
+					<p className="lf-label">{ __( 'Selected funnel', 'librefunnels' ) }</p>
+					<h3>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'No funnel selected', 'librefunnels' ) }</h3>
+					<p>
+						{ selectedFunnel
+							? sprintf( __( '%1$d step(s), %2$d route(s), %3$d issue(s).', 'librefunnels' ), funnelSteps.length, graph.edges.length, warnings.length )
+							: __( 'Create or choose a funnel to see launch readiness here.', 'librefunnels' ) }
+					</p>
+					<a className="lf-button" href={ adminPages.funnels || 'admin.php?page=librefunnels-funnels' }>
+						{ __( 'Open funnel workspace', 'librefunnels' ) }
+					</a>
+				</section>
+			</div>
+
+			<RecentFunnels funnels={ funnels } selectedFunnel={ selectedFunnel } onSelectFunnel={ onSelectFunnel } />
+
+			<div className="lf-next-cards">
+				<SectionLinkCard title={ __( 'Templates', 'librefunnels' ) } text={ __( 'Start from proven funnel shapes without making the canvas a template browser.', 'librefunnels' ) } href={ adminPages.templates } />
+				<SectionLinkCard title={ __( 'Setup', 'librefunnels' ) } text={ __( 'Check WooCommerce readiness, pages, products, and publishing tasks.', 'librefunnels' ) } href={ adminPages.setup } />
+				<SectionLinkCard title={ __( 'Settings', 'librefunnels' ) } text={ __( 'Keep global behavior and compatibility options away from step editing.', 'librefunnels' ) } href={ adminPages.settings } />
+			</div>
+		</div>
+	);
+}
+
+function RecentFunnels( { funnels, selectedFunnel, onSelectFunnel } ) {
+	return (
+		<section className="lf-section-card">
+			<div className="lf-section-heading">
+				<div>
+					<p className="lf-label">{ __( 'Recent funnels', 'librefunnels' ) }</p>
+					<h2>{ __( 'Choose where to work next', 'librefunnels' ) }</h2>
+				</div>
+				<a className="lf-button" href={ adminPages.funnels || 'admin.php?page=librefunnels-funnels' }>
+					{ __( 'Open all funnels', 'librefunnels' ) }
+				</a>
+			</div>
+			{ funnels.length === 0 ? (
+				<div className="lf-empty-small">{ __( 'No funnels yet. Create one and it will appear here.', 'librefunnels' ) }</div>
+			) : (
+				<div className="lf-compact-list">
+					{ funnels.slice( 0, 6 ).map( ( funnel ) => (
+						<button
+							key={ funnel.id }
+							className={ `lf-compact-row ${ Number( selectedFunnel?.id || 0 ) === Number( funnel.id ) ? 'is-selected' : '' }` }
+							type="button"
+							onClick={ () => onSelectFunnel( funnel.id ) }
+						>
+							<span>
+								<strong>{ getPostTitle( funnel, __( 'Untitled funnel', 'librefunnels' ) ) }</strong>
+								<small>{ funnel.status }</small>
+							</span>
+							<em>{ funnel.warnings?.length ? sprintf( __( '%d issue(s)', 'librefunnels' ), funnel.warnings.length ) : __( 'No issues loaded', 'librefunnels' ) }</em>
+						</button>
+					) ) }
+				</div>
+			) }
+		</section>
+	);
+}
+
+function TemplatesSection( { onCreateFunnel, isSaving } ) {
+	const templates = [
+		{
+			title: __( 'Product Launch Funnel', 'librefunnels' ),
+			steps: __( 'Landing -> Checkout -> Upsell -> Thank You', 'librefunnels' ),
+			description: __( 'A simple launch path for one featured WooCommerce product with an optional upgrade.', 'librefunnels' ),
+		},
+		{
+			title: __( 'Lead Magnet to Checkout', 'librefunnels' ),
+			steps: __( 'Opt-in -> Offer -> Checkout -> Thank You', 'librefunnels' ),
+			description: __( 'Capture intent first, then route qualified shoppers toward a paid offer.', 'librefunnels' ),
+		},
+		{
+			title: __( 'Downsell Recovery', 'librefunnels' ),
+			steps: __( 'Checkout -> Upsell -> Downsell -> Thank You', 'librefunnels' ),
+			description: __( 'Add a lower-friction fallback offer when shoppers decline the main upsell.', 'librefunnels' ),
+		},
+	];
+
+	return (
+		<div className="lf-section-stack">
+			<div className="lf-dashboard-hero">
+				<div>
+					<p className="lf-label">{ __( 'Template library', 'librefunnels' ) }</p>
+					<h2>{ __( 'Funnel shapes belong here, not inside the canvas.', 'librefunnels' ) }</h2>
+					<p>{ __( 'This page will become the local, free template library. For now it documents the launch shapes LibreFunnels should generate next.', 'librefunnels' ) }</p>
+				</div>
+				<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+					{ __( 'Create blank funnel', 'librefunnels' ) }
+				</button>
+			</div>
+			<div className="lf-template-grid">
+				{ templates.map( ( template ) => (
+					<section className="lf-template-card" key={ template.title }>
+						<span className="lf-page-status">{ __( 'Planned', 'librefunnels' ) }</span>
+						<h3>{ template.title }</h3>
+						<p>{ template.description }</p>
+						<small>{ template.steps }</small>
+					</section>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
+function AnalyticsSection( { funnels, selectedFunnel, summary, isLoading, error, onSelectFunnel } ) {
+	return (
+		<div className="lf-section-stack">
+			<div className="lf-dashboard-hero">
+				<div>
+					<p className="lf-label">{ __( 'Local analytics', 'librefunnels' ) }</p>
+					<h2>{ __( 'Revenue and offer signals get their own room.', 'librefunnels' ) }</h2>
+					<p>{ __( 'This keeps conversion analysis separate from the visual map while still using first-party WooCommerce attribution.', 'librefunnels' ) }</p>
+				</div>
+			</div>
+			<FunnelSelect funnels={ funnels } selectedFunnel={ selectedFunnel } onSelectFunnel={ onSelectFunnel } />
+			{ selectedFunnel ? (
+				<AnalyticsSummary selectedFunnel={ selectedFunnel } summary={ summary } isLoading={ isLoading } error={ error } />
+			) : (
+				<div className="lf-empty-small">{ __( 'Create or select a funnel to see analytics.', 'librefunnels' ) }</div>
+			) }
+		</div>
+	);
+}
+
+function FunnelSelect( { funnels, selectedFunnel, onSelectFunnel } ) {
+	if ( funnels.length === 0 ) {
+		return null;
+	}
+
+	return (
+		<label className="lf-field lf-section-select">
+			<span>{ __( 'Report funnel', 'librefunnels' ) }</span>
+			<select value={ Number( selectedFunnel?.id || 0 ) } onChange={ ( event ) => onSelectFunnel( event.target.value ) }>
+				{ funnels.map( ( funnel ) => (
+					<option key={ funnel.id } value={ funnel.id }>
+						{ getPostTitle( funnel, __( 'Untitled funnel', 'librefunnels' ) ) }
+					</option>
+				) ) }
+			</select>
+		</label>
+	);
+}
+
+function SettingsSection( { selectedFunnel } ) {
+	return (
+		<div className="lf-section-stack">
+			<div className="lf-dashboard-hero">
+				<div>
+					<p className="lf-label">{ __( 'Global controls', 'librefunnels' ) }</p>
+					<h2>{ __( 'Settings should feel deliberate, not buried in a step inspector.', 'librefunnels' ) }</h2>
+					<p>{ __( 'The actual option persistence will arrive in later slices; this page now establishes the correct product home for global behavior.', 'librefunnels' ) }</p>
+				</div>
+			</div>
+			<div className="lf-settings-grid">
+				<SettingsCard title={ __( 'WooCommerce checkout takeover', 'librefunnels' ) } status={ __( 'Planned', 'librefunnels' ) } text={ __( 'Choose whether the default WooCommerce checkout redirects into a selected LibreFunnels funnel.', 'librefunnels' ) } />
+				<SettingsCard title={ __( 'Universal payment behavior', 'librefunnels' ) } status={ __( 'Safe fallback', 'librefunnels' ) } text={ __( 'Keep gateway handling compatible by default, then expose one-click options only where gateways support them safely.', 'librefunnels' ) } />
+				<SettingsCard title={ __( 'Privacy and analytics', 'librefunnels' ) } status={ __( 'Local only', 'librefunnels' ) } text={ __( 'Analytics stay first-party in the WordPress database. No tracking service or remote executable code.', 'librefunnels' ) } />
+				<SettingsCard title={ __( 'Selected funnel defaults', 'librefunnels' ) } status={ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'None selected', 'librefunnels' ) } text={ __( 'Future global defaults can use the selected funnel context without mixing with visual editing.', 'librefunnels' ) } />
+			</div>
+		</div>
+	);
+}
+
+function SettingsCard( { title, status, text } ) {
+	return (
+		<section className="lf-section-card">
+			<span className="lf-page-status">{ status }</span>
+			<h3>{ title }</h3>
+			<p>{ text }</p>
+		</section>
+	);
+}
+
+function SetupSection( { selectedFunnel, setupGuide } ) {
+	const storeTasks = [
+		__( 'Confirm WooCommerce products are published and purchasable.', 'librefunnels' ),
+		__( 'Create funnel pages and publish them after page-builder design.', 'librefunnels' ),
+		__( 'Run a test order through the checkout path.', 'librefunnels' ),
+		__( 'Review analytics after the test order records revenue attribution.', 'librefunnels' ),
+	];
+
+	return (
+		<div className="lf-section-stack">
+			<div className="lf-dashboard-hero">
+				<div>
+					<p className="lf-label">{ __( 'Launch readiness', 'librefunnels' ) }</p>
+					<h2>{ __( 'A guided setup page for beginners.', 'librefunnels' ) }</h2>
+					<p>{ __( 'Setup collects the operational checklist so the builder can stay focused on funnel structure.', 'librefunnels' ) }</p>
+				</div>
+			</div>
+			<section className="lf-section-card">
+				<p className="lf-label">{ __( 'Selected funnel setup', 'librefunnels' ) }</p>
+				<h3>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'No funnel selected', 'librefunnels' ) }</h3>
+				{ selectedFunnel ? <SetupProgress setupGuide={ setupGuide } /> : <p>{ __( 'Create or select a funnel to see its launch checklist.', 'librefunnels' ) }</p> }
+			</section>
+			<section className="lf-section-card">
+				<p className="lf-label">{ __( 'Store checklist', 'librefunnels' ) }</p>
+				<h3>{ __( 'Before sending traffic', 'librefunnels' ) }</h3>
+				<ul className="lf-check-list">
+					{ storeTasks.map( ( task ) => (
+						<li key={ task }>{ task }</li>
+					) ) }
+				</ul>
+			</section>
+		</div>
+	);
+}
+
+function SectionLinkCard( { title, text, href } ) {
+	return (
+		<a className="lf-next-card" href={ href || '#' }>
+			<strong>{ title }</strong>
+			<span>{ text }</span>
+		</a>
 	);
 }
 
