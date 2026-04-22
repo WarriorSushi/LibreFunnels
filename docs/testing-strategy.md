@@ -70,7 +70,7 @@
 - Canvas guided starter path creates checkout and thank-you steps and connects the default continue route
 - Canvas shows validation for missing start step, missing page ID, broken route target, and invalid conditional route
 - Canvas drags a node and persists the new position
-- Canvas creates and assigns a draft page without exposing raw page IDs
+- Canvas creates and assigns a draft page without exposing raw page IDs, then confirms the draft status plus edit-design and preview links
 - Canvas builds a conditional route without editing JSON
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
 - Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates the guided starter path, creates a funnel page, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, and saves an upsell offer through product search
@@ -104,4 +104,4 @@ Run these before commits that touch PHP, build tooling, or the admin app:
 - `npm run build`
 - `npm run test:e2e:canvas` when Docker WordPress is running and the admin app changes
 
-The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner canvas path, commerce controls, drag persistence, route/rule editing, and offer product controls. Expand it next for broken-route validation states, page publish/preview status, and public checkout/offer rendering.
+The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner canvas path, commerce controls, draft page status, edit/preview page handoff, drag persistence, route/rule editing, and offer product controls. Expand it next for broken-route validation states and public checkout/offer rendering.

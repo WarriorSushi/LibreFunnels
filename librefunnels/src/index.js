@@ -209,6 +209,26 @@ function getProductById( products, productId ) {
 	return products.find( ( product ) => Number( product.id ) === Number( productId ) );
 }
 
+function getPageStatusLabel( status ) {
+	const labels = {
+		publish: __( 'Published page', 'librefunnels' ),
+		draft: __( 'Draft page', 'librefunnels' ),
+		private: __( 'Private page', 'librefunnels' ),
+		pending: __( 'Pending page', 'librefunnels' ),
+	};
+
+	return labels[ status ] || __( 'Page assigned', 'librefunnels' );
+}
+
+function getNodePageMeta( step, isStart ) {
+	if ( step?.pageTitle ) {
+		const pageMeta = `${ getPageStatusLabel( step.pageStatus ) }: ${ step.pageTitle }`;
+		return isStart ? `${ __( 'Start step', 'librefunnels' ) } · ${ pageMeta }` : pageMeta;
+	}
+
+	return isStart ? __( 'Start step', 'librefunnels' ) : __( 'No page assigned', 'librefunnels' );
+}
+
 function createEmptyCheckoutProduct() {
 	return {
 		product_id: 0,
@@ -1032,7 +1052,7 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 						<span className="lf-node__type">{ stepTypes[ type ] || type }</span>
 						<strong>{ step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' ) }</strong>
 						<span className="lf-node__meta">
-							{ isStart ? __( 'Start step', 'librefunnels' ) : step?.pageTitle || __( 'No page assigned', 'librefunnels' ) }
+							{ getNodePageMeta( step, isStart ) }
 							{ warnings.length > 0 ? ` · ${ __( 'Needs attention', 'librefunnels' ) }` : '' }
 						</span>
 					</button>
@@ -1532,7 +1552,13 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 	const searchTimer = useRef( null );
 	const selectedPage = pages.find( ( page ) => Number( page.id ) === Number( step.pageId || 0 ) );
 	const pageEditUrl = step.pageEditUrl || selectedPage?.editUrl || '';
-	const pageUrl = selectedPage?.url || '';
+	const pageUrl = step.pageUrl || selectedPage?.url || '';
+	const pageStatus = step.pageStatus || selectedPage?.status || '';
+
+	useEffect( () => {
+		setNewTitle( step?.title ? `${ step.title } page` : __( 'New funnel page', 'librefunnels' ) );
+		setSearch( '' );
+	}, [ step?.id ] );
 
 	function handleSearch( value ) {
 		setSearch( value );
@@ -1544,10 +1570,22 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 		<div className="lf-panellet">
 			<div>
 				<span className="lf-field-heading">{ __( 'Assigned page', 'librefunnels' ) }</span>
-				<p>{ step.pageTitle || __( 'No page assigned yet.', 'librefunnels' ) }</p>
+				{ step.pageTitle ? (
+					<div className="lf-page-summary">
+						<strong>{ step.pageTitle }</strong>
+						<span className={ `lf-page-status is-${ pageStatus || 'unknown' }` }>{ getPageStatusLabel( pageStatus ) }</span>
+					</div>
+				) : (
+					<p>{ __( 'No page assigned yet.', 'librefunnels' ) }</p>
+				) }
 				<p className="lf-helper-text">
 					{ __( 'LibreFunnels creates a normal WordPress page with the funnel block inside. Open it in the block editor, Elementor, Bricks, Divi, Beaver Builder, or the page builder your site uses.', 'librefunnels' ) }
 				</p>
+				{ step.pageTitle && pageStatus !== 'publish' && (
+					<p className="lf-helper-text">
+						{ __( 'Publish the page from your editor when the design is ready for shoppers.', 'librefunnels' ) }
+					</p>
+				) }
 			</div>
 
 			{ pageEditUrl && (
@@ -1557,7 +1595,7 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 					</a>
 					{ pageUrl && (
 						<a className="lf-button" href={ pageUrl } target="_blank" rel="noreferrer">
-							{ __( 'View page', 'librefunnels' ) }
+							{ pageStatus === 'publish' ? __( 'View page', 'librefunnels' ) : __( 'Preview page', 'librefunnels' ) }
 						</a>
 					) }
 				</div>

@@ -63,11 +63,11 @@
   - WooCommerce product search for checkout, bump, offer, and product-rule assignment
   - Commerce inspector panels for multiple checkout products, multiple order bumps, and primary offer configuration
   - Per-section dirty indicators and save reminders in commerce controls
-  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, page creation, checkout products, and order bump saving
+  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, draft page status and edit/preview handoff, checkout products, and order bump saving
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays. Backend work should continue where the canvas needs it, especially route/rule browser coverage, drag persistence coverage, richer onboarding, and dashboard reads from local analytics.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays and the page assignment flow showing draft/published state plus builder handoff actions. Backend work should continue where the canvas needs it, especially broken-route browser coverage, public checkout/offer rendering coverage, richer onboarding, and dashboard reads from local analytics.
 
 ## Phase 5: Payments
 - Gateway adapter API

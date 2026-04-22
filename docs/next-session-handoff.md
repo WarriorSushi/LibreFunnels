@@ -64,7 +64,7 @@ Implemented so far:
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Beginner setup guidance in the canvas header with the next useful task.
-- Assigned pages now expose direct edit/view actions so store owners can create a funnel page and continue in their preferred page builder.
+- Assigned pages now expose status-aware draft/published labels, edit-design links, and preview/view actions so store owners can create a funnel page and continue in their preferred page builder with clear publishing guidance.
 - Store-owner-friendly conditional rule builder for supported rule types.
 - Product pickers in checkout, order bump, offer, and product-rule inspector controls.
 - Commerce inspector panels for multiple checkout product assignments, multiple order bumps, and primary offer configuration.
@@ -74,7 +74,7 @@ Implemented so far:
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, page creation, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, product search, and offer saving.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, product search, and offer saving.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -93,15 +93,14 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
-2. Add stronger first-run publishing guidance after the starter path exists, including which pages still need content or publishing.
-3. Expand Playwright coverage for broken-route validation states and public checkout/offer rendering.
-4. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
-5. Add revenue attribution events when WooCommerce order creation finalizes.
-6. Add dashboard reads from the local analytics table.
-7. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-8. Add database import service with nonces/capabilities once the admin flow exists.
-9. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
+1. Add stronger first-run publishing guidance after the starter path exists, including which pages still need content or publishing.
+2. Expand Playwright coverage for broken-route validation states and public checkout/offer rendering.
+3. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
+4. Add revenue attribution events when WooCommerce order creation finalizes.
+5. Add dashboard reads from the local analytics table.
+6. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
+7. Add database import service with nonces/capabilities once the admin flow exists.
+8. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

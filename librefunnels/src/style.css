@@ -622,6 +622,32 @@
 	font-size: 12px;
 }
 
+.lf-page-summary {
+	display: grid;
+	gap: 6px;
+}
+
+.lf-page-summary strong {
+	color: var(--lf-ink);
+	font-size: 14px;
+}
+
+.lf-page-status {
+	justify-self: start;
+	padding: 3px 8px;
+	border: 1px solid var(--lf-border);
+	border-radius: 999px;
+	background: var(--lf-surface);
+	color: var(--lf-muted);
+	font-size: 11px;
+	font-weight: 850;
+}
+
+.lf-page-status.is-publish {
+	border-color: color-mix(in oklch, var(--lf-accept) 42%, var(--lf-border));
+	color: var(--lf-accept);
+}
+
 .lf-unsaved-note {
 	padding: 10px 12px;
 	border: 1px solid color-mix(in oklch, var(--lf-warn) 35%, var(--lf-border));

@@ -38,7 +38,9 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByLabel( 'Create page' ).fill( pageTitle );
 		await page.getByRole( 'button', { name: 'Create and assign' } ).click();
 		await expect( page.getByText( 'Page created and assigned' ) ).toBeVisible();
+		await expect( page.getByText( 'Draft page' ).first() ).toBeVisible();
 		await expect( page.getByRole( 'link', { name: 'Edit page design' } ) ).toBeVisible();
+		await expect( page.getByRole( 'link', { name: 'Preview page' } ) ).toBeVisible();
 
 		const checkoutList = page.locator( '.lf-commerce-list--checkout-products' );
 		const firstCheckoutCard = checkoutList.locator( '.lf-commerce-card' ).first();
