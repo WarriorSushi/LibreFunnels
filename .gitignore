@@ -2,6 +2,7 @@
 /librefunnels/node_modules/
 /librefunnels/.phpunit.result.cache
 /librefunnels/dist/
+/.playwright-cli/
 /.idea/
 /.vscode/
 *.log

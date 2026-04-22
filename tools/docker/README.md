@@ -2,6 +2,8 @@
 
 This Docker Compose stack runs a local WordPress + WooCommerce install with the working `librefunnels/` plugin directory bind-mounted into WordPress.
 
+The stack uses MariaDB for the database because the WordPress CLI image ships with a MariaDB client. The `wpcli` service runs as UID/GID `33:33` so it can write to the same WordPress volume as the Apache WordPress container.
+
 ## Start
 
 From the repository root:

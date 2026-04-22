@@ -17,6 +17,21 @@ function Invoke-WP {
 	)
 
 	& $docker compose run --rm wpcli wp @Arguments --path=/var/www/html --allow-root
+
+	if ($LASTEXITCODE -ne 0) {
+		throw "WP-CLI command failed: wp $($Arguments -join ' ')"
+	}
+}
+
+function Test-WP {
+	param(
+		[Parameter(Mandatory = $true)]
+		[string[]] $Arguments
+	)
+
+	& $docker compose run --rm wpcli wp @Arguments --path=/var/www/html --allow-root *> $null
+
+	return $LASTEXITCODE -eq 0
 }
 
 & $docker compose up -d
@@ -24,7 +39,7 @@ function Invoke-WP {
 $ready = $false
 
 for ($attempt = 1; $attempt -le 30; $attempt++) {
-	& $docker compose run --rm wpcli wp db check --path=/var/www/html --allow-root *> $null
+	& $docker compose run --rm wpcli wp db query 'SELECT 1' --path=/var/www/html --allow-root *> $null
 
 	if ($LASTEXITCODE -eq 0) {
 		$ready = $true
@@ -38,31 +53,22 @@ if (-not $ready) {
 	throw 'WordPress database did not become ready in time.'
 }
 
-Invoke-WP -Arguments @(
-	'core',
-	'install',
-	'--url=http://localhost:8080',
-	'--title=LibreFunnels Local',
-	'--admin_user=admin',
-	'--admin_password=password',
-	'--admin_email=admin@example.test',
-	'--skip-email'
-)
+& $docker compose exec -T -u root wordpress chown -R www-data:www-data /var/www/html/wp-content
 
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-WP -Arguments @( 'core', 'is-installed' ))) {
 	Invoke-WP -Arguments @(
 		'core',
-		'is-installed'
+		'install',
+		'--url=http://localhost:8080',
+		'--title=LibreFunnels Local',
+		'--admin_user=admin',
+		'--admin_password=password',
+		'--admin_email=admin@example.test',
+		'--skip-email'
 	)
 }
 
-Invoke-WP -Arguments @(
-	'plugin',
-	'is-installed',
-	'woocommerce'
-)
-
-if ($LASTEXITCODE -ne 0) {
+if (-not (Test-WP -Arguments @( 'plugin', 'is-installed', 'woocommerce' ))) {
 	Invoke-WP -Arguments @(
 		'plugin',
 		'install',
@@ -73,7 +79,12 @@ if ($LASTEXITCODE -ne 0) {
 Invoke-WP -Arguments @(
 	'plugin',
 	'activate',
-	'woocommerce',
+	'woocommerce'
+)
+
+Invoke-WP -Arguments @(
+	'plugin',
+	'activate',
 	'librefunnels'
 )
 

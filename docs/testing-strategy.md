@@ -89,7 +89,7 @@
 
 ## Local Docker Harness
 The repository includes a Docker Compose WordPress rig for manual and future browser testing:
-- `compose.yaml` starts MySQL, WordPress, and WP-CLI.
+- `compose.yaml` starts MariaDB, WordPress, and WP-CLI.
 - `tools/docker/init-wordpress.ps1` installs WordPress, installs and activates WooCommerce, activates LibreFunnels, and seeds sample products.
 - Use this rig for Playwright checks once admin browser automation is added.
 - Privacy consent

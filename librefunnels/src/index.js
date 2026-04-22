@@ -1,6 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
-import { render, useEffect, useMemo, useRef, useState } from '@wordpress/element';
+import { createRoot, useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import './style.css';
 
 const settings = window.libreFunnelsAdmin || {};
@@ -1333,5 +1333,5 @@ function Warnings( { warnings } ) {
 const root = document.getElementById( settings.rootId || 'librefunnels-admin-app' );
 
 if ( root ) {
-	render( <App />, root );
+	createRoot( root ).render( <App /> );
 }
