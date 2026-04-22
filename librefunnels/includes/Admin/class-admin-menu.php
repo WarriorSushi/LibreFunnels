@@ -14,11 +14,11 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Admin_Menu {
 	/**
-	 * Menu hook suffix.
+	 * Menu hook suffixes keyed by LibreFunnels section.
 	 *
-	 * @var string
+	 * @var array<string,string>
 	 */
-	private $hook_suffix = '';
+	private $hook_suffixes = array();
 
 	/**
 	 * Registers WordPress admin hooks.
@@ -31,12 +31,12 @@ final class Admin_Menu {
 	}
 
 	/**
-	 * Adds the top-level menu page.
+	 * Adds the top-level menu page and product sections.
 	 *
 	 * @return void
 	 */
 	public function add_menu() {
-		$this->hook_suffix = add_menu_page(
+		$this->hook_suffixes['dashboard'] = add_menu_page(
 			__( 'LibreFunnels', 'librefunnels' ),
 			__( 'LibreFunnels', 'librefunnels' ),
 			'manage_woocommerce',
@@ -45,6 +45,48 @@ final class Admin_Menu {
 			'dashicons-randomize',
 			56
 		);
+
+		$sections = array(
+			'dashboard' => array(
+				'slug'  => 'librefunnels',
+				'title' => __( 'Dashboard', 'librefunnels' ),
+			),
+			'funnels'   => array(
+				'slug'  => 'librefunnels-funnels',
+				'title' => __( 'Funnels', 'librefunnels' ),
+			),
+			'templates' => array(
+				'slug'  => 'librefunnels-templates',
+				'title' => __( 'Templates', 'librefunnels' ),
+			),
+			'analytics' => array(
+				'slug'  => 'librefunnels-analytics',
+				'title' => __( 'Analytics', 'librefunnels' ),
+			),
+			'settings'  => array(
+				'slug'  => 'librefunnels-settings',
+				'title' => __( 'Settings', 'librefunnels' ),
+			),
+			'setup'     => array(
+				'slug'  => 'librefunnels-setup',
+				'title' => __( 'Setup', 'librefunnels' ),
+			),
+		);
+
+		foreach ( $sections as $section => $section_args ) {
+			$hook_suffix = add_submenu_page(
+				'librefunnels',
+				$section_args['title'],
+				$section_args['title'],
+				'manage_woocommerce',
+				$section_args['slug'],
+				array( $this, 'render_page' )
+			);
+
+			if ( $hook_suffix ) {
+				$this->hook_suffixes[ $section ] = $hook_suffix;
+			}
+		}
 	}
 
 	/**
@@ -54,7 +96,7 @@ final class Admin_Menu {
 	 * @return void
 	 */
 	public function enqueue_assets( $hook_suffix ) {
-		if ( $this->hook_suffix !== $hook_suffix ) {
+		if ( ! in_array( $hook_suffix, $this->hook_suffixes, true ) ) {
 			return;
 		}
 
@@ -237,9 +279,11 @@ final class Admin_Menu {
 	 */
 	private function get_app_settings() {
 		return array(
-			'rootId'    => 'librefunnels-admin-app',
-			'nonce'     => wp_create_nonce( 'wp_rest' ),
-			'rest'      => array(
+			'rootId'        => 'librefunnels-admin-app',
+			'nonce'         => wp_create_nonce( 'wp_rest' ),
+			'activeSection' => $this->get_current_section(),
+			'adminPages'    => $this->get_admin_pages(),
+			'rest'          => array(
 				'funnels'   => '/wp/v2/librefunnels-funnels',
 				'steps'     => '/wp/v2/librefunnels-steps',
 				'canvas'    => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
@@ -247,7 +291,7 @@ final class Admin_Menu {
 				'products'  => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/products',
 				'analytics' => '/' . Analytics_REST_Controller::REST_NAMESPACE . '/analytics/summary',
 			),
-			'metaKeys'  => array(
+			'metaKeys'      => array(
 				'graph'        => LIBREFUNNELS_FUNNEL_GRAPH_META,
 				'startStepId'  => LIBREFUNNELS_FUNNEL_START_STEP_META,
 				'stepFunnelId' => LIBREFUNNELS_STEP_FUNNEL_ID_META,
@@ -255,7 +299,7 @@ final class Admin_Menu {
 				'stepOrder'    => LIBREFUNNELS_STEP_ORDER_META,
 				'stepPageId'   => LIBREFUNNELS_STEP_PAGE_ID_META,
 			),
-			'stepTypes' => array(
+			'stepTypes'     => array(
 				'landing'            => __( 'Landing', 'librefunnels' ),
 				'optin'              => __( 'Opt-in', 'librefunnels' ),
 				'checkout'           => __( 'Checkout', 'librefunnels' ),
@@ -267,13 +311,55 @@ final class Admin_Menu {
 				'thank_you'          => __( 'Thank You', 'librefunnels' ),
 				'custom'             => __( 'Custom', 'librefunnels' ),
 			),
-			'routes'    => array(
+			'routes'        => array(
 				'next'        => __( 'Continue', 'librefunnels' ),
 				'accept'      => __( 'Accept', 'librefunnels' ),
 				'reject'      => __( 'Reject', 'librefunnels' ),
 				'conditional' => __( 'Conditional', 'librefunnels' ),
 				'fallback'    => __( 'Fallback', 'librefunnels' ),
 			),
+		);
+	}
+
+	/**
+	 * Gets the current LibreFunnels admin section from the page slug.
+	 *
+	 * @return string
+	 */
+	private function get_current_section() {
+		$page     = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : 'librefunnels'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$sections = array(
+			'librefunnels'           => 'dashboard',
+			'librefunnels-funnels'   => 'funnels',
+			'librefunnels-templates' => 'templates',
+			'librefunnels-analytics' => 'analytics',
+			'librefunnels-settings'  => 'settings',
+			'librefunnels-setup'     => 'setup',
+		);
+
+		return isset( $sections[ $page ] ) ? $sections[ $page ] : 'dashboard';
+	}
+
+	/**
+	 * Gets LibreFunnels admin page URLs for the React shell.
+	 *
+	 * @return array<string,string>
+	 */
+	private function get_admin_pages() {
+		$pages = array(
+			'dashboard' => 'librefunnels',
+			'funnels'   => 'librefunnels-funnels',
+			'templates' => 'librefunnels-templates',
+			'analytics' => 'librefunnels-analytics',
+			'settings'  => 'librefunnels-settings',
+			'setup'     => 'librefunnels-setup',
+		);
+
+		return array_map(
+			static function ( $slug ) {
+				return add_query_arg( 'page', $slug, admin_url( 'admin.php' ) );
+			},
+			$pages
 		);
 	}
 }

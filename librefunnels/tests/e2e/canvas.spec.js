@@ -277,29 +277,35 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
-		await expect( page.getByText( 'Canvas Builder' ).first() ).toBeVisible();
+		await expect( page.getByText( 'Funnel Workspace' ).first() ).toBeVisible();
 	} );
 
 	test( 'creates a checkout funnel with a page, products, and an order bump', async ( { page } ) => {
 		await expect( page.getByText( 'Build funnels with clarity, not clutter.' ) ).toHaveCount( 0 );
 
 		await createFunnelFromCanvasButton( page );
+		await page.getByRole( 'button', { name: 'Analytics' } ).click();
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Waiting for shopper data' );
+		await page.getByRole( 'button', { name: 'Overview' } ).click();
 
 		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
 		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();
 		await expect( page.getByRole( 'heading', { name: 'Checkout', exact: true } ) ).toBeVisible();
 		await expect( page.getByText( 'Thank You' ).first() ).toBeVisible();
 		await expect( page.getByText( '3 of 7 ready' ) ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Overview', exact: true } ).click();
 		await expect( page.getByText( 'Create pages for Checkout, Thank You.' ) ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Canvas', exact: true } ).click();
 
 		const pageTitle = `Playwright checkout ${ Date.now() }`;
 		await page.getByLabel( 'Create page' ).fill( pageTitle );
 		await page.getByRole( 'button', { name: 'Create and assign' } ).click();
 		await expect( page.getByText( 'Page created and assigned' ) ).toBeVisible();
 		await expect( page.getByText( 'Draft page' ).first() ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Overview', exact: true } ).click();
 		await expect( page.getByText( 'Create a page for Thank You.' ) ).toBeVisible();
 		await expect( page.getByText( 'Edit and publish Checkout.' ) ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Canvas', exact: true } ).click();
 		await expect( page.getByRole( 'link', { name: 'Edit page design' } ) ).toBeVisible();
 		await expect( page.getByRole( 'link', { name: 'Preview page' } ) ).toBeVisible();
 
@@ -338,7 +344,8 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		expect( afterDrag.x ).toBeGreaterThan( beforeDrag.x + 60 );
 
 		await page.reload();
-		await expect( page.getByText( 'Canvas Builder' ).first() ).toBeVisible();
+		await expect( page.getByText( 'Funnel Workspace' ).first() ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Canvas', exact: true } ).click();
 		const persistedCheckoutNode = page.locator( '.lf-node' ).filter( { hasText: 'Checkout' } ).first();
 		const afterReload = await persistedCheckoutNode.boundingBox();
 		expect( afterReload.x ).toBeGreaterThan( beforeDrag.x + 60 );
@@ -358,7 +365,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Save route' } ).click();
 		await expect( page.getByText( 'Route saved' ) ).toBeVisible();
 
-		await page.getByRole( 'button', { name: 'Add offer' } ).click();
+		await page.getByRole( 'button', { name: 'Add Upsell' } ).click();
 		await expect( page.getByRole( 'heading', { name: 'Upsell' } ) ).toBeVisible();
 		const offerPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Offer product' } );
 		await offerPanel.getByLabel( 'Find product' ).fill( 'Setup' );
@@ -399,7 +406,8 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		} );
 
 		await page.reload();
-		await expect( page.getByText( 'Canvas Builder' ).first() ).toBeVisible();
+		await expect( page.getByText( 'Funnel Workspace' ).first() ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Canvas', exact: true } ).click();
 		await expect( page.getByRole( 'button', { name: /Broken route/ } ) ).toBeVisible();
 
 		await page.getByRole( 'button', { name: /Broken route/ } ).click();
@@ -443,6 +451,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 			window.localStorage.setItem( 'librefunnels.selectedFunnelId', String( funnelId ) );
 		}, setup.funnelId );
 		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+		await page.getByRole( 'button', { name: 'Analytics' } ).click();
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Attributed revenue' );
 
 		const summary = await page.evaluate( async ( funnelId ) => {

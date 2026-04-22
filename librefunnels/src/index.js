@@ -16,6 +16,38 @@ const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
 const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/products';
 const analyticsPath = settings.rest?.analytics || '/librefunnels/v1/analytics/summary';
 const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
+const adminSection = settings.activeSection || 'dashboard';
+
+const workspaceTabs = [
+	{ id: 'overview', label: __( 'Overview', 'librefunnels' ) },
+	{ id: 'canvas', label: __( 'Canvas', 'librefunnels' ) },
+	{ id: 'steps', label: __( 'Steps', 'librefunnels' ) },
+	{ id: 'products', label: __( 'Products', 'librefunnels' ) },
+	{ id: 'rules', label: __( 'Rules', 'librefunnels' ) },
+	{ id: 'analytics', label: __( 'Analytics', 'librefunnels' ) },
+	{ id: 'settings', label: __( 'Settings', 'librefunnels' ) },
+];
+
+const sectionDefaultTabs = {
+	dashboard: 'overview',
+	funnels: 'overview',
+	analytics: 'analytics',
+	settings: 'settings',
+	setup: 'overview',
+	templates: 'steps',
+};
+
+const starterStepTypes = [ 'landing', 'optin', 'checkout', 'upsell', 'downsell', 'thank_you', 'custom' ];
+
+const stepTypeDescriptions = {
+	landing: __( 'Introduce the offer before checkout.', 'librefunnels' ),
+	optin: __( 'Capture a lead before the purchase path.', 'librefunnels' ),
+	checkout: __( 'Prepare WooCommerce products and payment.', 'librefunnels' ),
+	upsell: __( 'Offer a post-choice upgrade after checkout intent.', 'librefunnels' ),
+	downsell: __( 'Recover value when an upsell is declined.', 'librefunnels' ),
+	thank_you: __( 'Confirm the purchase and guide the next action.', 'librefunnels' ),
+	custom: __( 'Add a flexible page for any other funnel moment.', 'librefunnels' ),
+};
 
 const emptyGraph = {
 	version: 1,
@@ -533,6 +565,7 @@ function App() {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( '' );
 	const [ error, setError ] = useState( '' );
+	const [ activeWorkspaceTab, setActiveWorkspaceTab ] = useState( sectionDefaultTabs[ adminSection ] || 'overview' );
 	const [ analyticsSummary, setAnalyticsSummary ] = useState( null );
 	const [ isAnalyticsLoading, setIsAnalyticsLoading ] = useState( false );
 	const [ analyticsError, setAnalyticsError ] = useState( '' );
@@ -793,6 +826,7 @@ function App() {
 
 		if ( latestNode ) {
 			setSelectedItem( { type: 'node', id: latestNode.id } );
+			setActiveWorkspaceTab( 'canvas' );
 		}
 	}
 
@@ -876,6 +910,7 @@ function App() {
 
 			applyWorkspace( savedWorkspace, selectedFunnel.id );
 			setSelectedItem( { type: 'node', id: latestCheckoutNode.id } );
+			setActiveWorkspaceTab( 'canvas' );
 			setNotice( __( 'Starter path created', 'librefunnels' ) );
 		} catch ( nextError ) {
 			setNotice( '' );
@@ -1022,11 +1057,16 @@ function App() {
 		} );
 	}
 
+	async function createStarterPathAndOpenCanvas() {
+		await createStarterPath();
+		setActiveWorkspaceTab( 'canvas' );
+	}
+
 	const validationSummary = getValidationSummary();
 	const setupGuide = getSetupGuide( selectedFunnel, graph, funnelSteps, validationSummary );
 
 	return (
-		<div className="wrap librefunnels-canvas-app">
+		<div className={ `wrap librefunnels-canvas-app lf-console lf-console--${ adminSection }` }>
 			<Sidebar
 				funnels={ funnels }
 				selectedFunnelId={ selectedFunnelId }
@@ -1039,60 +1079,500 @@ function App() {
 				isSaving={ isSaving }
 			/>
 
-			<main className="lf-canvas-shell" aria-busy={ isLoading || isSaving }>
+			<main className="lf-workspace-shell" aria-busy={ isLoading || isSaving }>
 				<Header
 					selectedFunnel={ selectedFunnel }
 					warnings={ validationSummary }
 					setupGuide={ setupGuide }
 					isSaving={ isSaving }
 					notice={ notice }
-					onCreateStep={ createStep }
 					onCreateEdge={ createEdge }
 				/>
 
 				{ error && <div className="lf-alert">{ error }</div> }
 
-				<AnalyticsSummary
-					selectedFunnel={ selectedFunnel }
-					summary={ analyticsSummary }
-					isLoading={ isAnalyticsLoading }
-					error={ analyticsError }
-				/>
+				{ selectedFunnel && (
+					<WorkspaceTabs activeTab={ activeWorkspaceTab } onChange={ setActiveWorkspaceTab } />
+				) }
 
+				<WorkspaceContent
+					activeTab={ activeWorkspaceTab }
+					isLoading={ isLoading }
+					graph={ graph }
+					steps={ steps }
+					pages={ pages }
+					products={ products }
+					selectedFunnel={ selectedFunnel }
+					selectedItem={ selectedItem }
+					setupGuide={ setupGuide }
+					warnings={ validationSummary }
+					analyticsSummary={ analyticsSummary }
+					isAnalyticsLoading={ isAnalyticsLoading }
+					analyticsError={ analyticsError }
+					funnelSteps={ funnelSteps }
+					onSelect={ setSelectedItem }
+					onStartDrag={ startNodeDrag }
+					onCreateFunnel={ createFunnel }
+					onCreateStep={ createStep }
+					onCreateStarterPath={ createStarterPathAndOpenCanvas }
+					onCreateEdge={ createEdge }
+					onUpdateStep={ updateStep }
+					onDeleteStep={ deleteStep }
+					onSetStartStep={ setStartStep }
+					onSearchPages={ searchPages }
+					onSearchProducts={ searchProducts }
+					onCreatePageForStep={ createPageForStep }
+					onSaveGraph={ saveGraph }
+					onOpenTab={ setActiveWorkspaceTab }
+					isSaving={ isSaving }
+				/>
+			</main>
+		</div>
+	);
+}
+
+function WorkspaceTabs( { activeTab, onChange } ) {
+	return (
+		<nav className="lf-workspace-tabs" aria-label={ __( 'Funnel workspace sections', 'librefunnels' ) }>
+			{ workspaceTabs.map( ( tab ) => (
+				<button
+					key={ tab.id }
+					className={ activeTab === tab.id ? 'is-active' : '' }
+					type="button"
+					aria-current={ activeTab === tab.id ? 'page' : undefined }
+					onClick={ () => onChange( tab.id ) }
+				>
+					{ tab.label }
+				</button>
+			) ) }
+		</nav>
+	);
+}
+
+function WorkspaceContent( {
+	activeTab,
+	isLoading,
+	graph,
+	steps,
+	pages,
+	products,
+	selectedFunnel,
+	selectedItem,
+	setupGuide,
+	warnings,
+	analyticsSummary,
+	isAnalyticsLoading,
+	analyticsError,
+	funnelSteps,
+	onSelect,
+	onStartDrag,
+	onCreateFunnel,
+	onCreateStep,
+	onCreateStarterPath,
+	onCreateEdge,
+	onUpdateStep,
+	onDeleteStep,
+	onSetStartStep,
+	onSearchPages,
+	onSearchProducts,
+	onCreatePageForStep,
+	onSaveGraph,
+	onOpenTab,
+	isSaving,
+} ) {
+	if ( ! selectedFunnel ) {
+		return (
+			<div className="lf-workspace-panel">
 				<Canvas
 					isLoading={ isLoading }
 					graph={ graph }
 					steps={ steps }
 					selectedFunnel={ selectedFunnel }
 					selectedItem={ selectedItem }
-					onSelect={ setSelectedItem }
-					onStartDrag={ startNodeDrag }
-					onCreateFunnel={ createFunnel }
-					onCreateStep={ createStep }
-					onCreateStarterPath={ createStarterPath }
+					onSelect={ onSelect }
+					onStartDrag={ onStartDrag }
+					onCreateFunnel={ onCreateFunnel }
+					onCreateStep={ onCreateStep }
+					onCreateStarterPath={ onCreateStarterPath }
 					isSaving={ isSaving }
 				/>
-			</main>
+			</div>
+		);
+	}
 
-			<Inspector
-				selectedItem={ selectedItem }
-				selectedFunnel={ selectedFunnel }
-				graph={ graph }
-				steps={ steps }
-				pages={ pages }
-				products={ products }
+	if ( activeTab === 'canvas' ) {
+		return (
+			<div className="lf-canvas-workspace">
+				<div className="lf-canvas-column">
+					<StepPalette onCreateStep={ onCreateStep } isSaving={ isSaving } />
+					<Canvas
+						isLoading={ isLoading }
+						graph={ graph }
+						steps={ steps }
+						selectedFunnel={ selectedFunnel }
+						selectedItem={ selectedItem }
+						onSelect={ onSelect }
+						onStartDrag={ onStartDrag }
+						onCreateFunnel={ onCreateFunnel }
+						onCreateStep={ onCreateStep }
+						onCreateStarterPath={ onCreateStarterPath }
+						isSaving={ isSaving }
+					/>
+				</div>
+				<Inspector
+					selectedItem={ selectedItem }
+					selectedFunnel={ selectedFunnel }
+					graph={ graph }
+					steps={ steps }
+					pages={ pages }
+					products={ products }
+					funnelSteps={ funnelSteps }
+					onSelect={ onSelect }
+					onSaveGraph={ onSaveGraph }
+					onUpdateStep={ onUpdateStep }
+					onDeleteStep={ onDeleteStep }
+					onSetStartStep={ onSetStartStep }
+					onSearchPages={ onSearchPages }
+					onSearchProducts={ onSearchProducts }
+					onCreatePageForStep={ onCreatePageForStep }
+					isSaving={ isSaving }
+				/>
+			</div>
+		);
+	}
+
+	if ( activeTab === 'steps' ) {
+		return (
+			<StepsPanel
 				funnelSteps={ funnelSteps }
-				onSelect={ setSelectedItem }
-				onSaveGraph={ saveGraph }
-				onUpdateStep={ updateStep }
-				onDeleteStep={ deleteStep }
-				onSetStartStep={ setStartStep }
-				onSearchPages={ searchPages }
-				onSearchProducts={ searchProducts }
-				onCreatePageForStep={ createPageForStep }
+				graph={ graph }
+				selectedFunnel={ selectedFunnel }
+				onCreateStep={ onCreateStep }
+				onCreateStarterPath={ onCreateStarterPath }
+				onSelect={ onSelect }
+				onOpenTab={ onOpenTab }
 				isSaving={ isSaving }
 			/>
+		);
+	}
+
+	if ( activeTab === 'products' ) {
+		return <ProductsPanel funnelSteps={ funnelSteps } graph={ graph } onSelect={ onSelect } onOpenTab={ onOpenTab } />;
+	}
+
+	if ( activeTab === 'rules' ) {
+		return <RulesPanel graph={ graph } steps={ steps } onSelect={ onSelect } onCreateEdge={ onCreateEdge } onOpenTab={ onOpenTab } isSaving={ isSaving } />;
+	}
+
+	if ( activeTab === 'analytics' ) {
+		return (
+			<div className="lf-workspace-panel">
+				<AnalyticsSummary
+					selectedFunnel={ selectedFunnel }
+					summary={ analyticsSummary }
+					isLoading={ isAnalyticsLoading }
+					error={ analyticsError }
+				/>
+			</div>
+		);
+	}
+
+	if ( activeTab === 'settings' ) {
+		return (
+			<div className="lf-workspace-panel lf-workspace-panel--settings">
+				<FunnelInspector
+					selectedFunnel={ selectedFunnel }
+					funnelSteps={ funnelSteps }
+					graph={ graph }
+					onSetStartStep={ onSetStartStep }
+					isSaving={ isSaving }
+				/>
+			</div>
+		);
+	}
+
+	return (
+		<OverviewPanel
+			selectedFunnel={ selectedFunnel }
+			graph={ graph }
+			funnelSteps={ funnelSteps }
+			setupGuide={ setupGuide }
+			warnings={ warnings }
+			analyticsSummary={ analyticsSummary }
+			isAnalyticsLoading={ isAnalyticsLoading }
+			onCreateStarterPath={ onCreateStarterPath }
+			onOpenTab={ onOpenTab }
+			isSaving={ isSaving }
+		/>
+	);
+}
+
+function OverviewPanel( { selectedFunnel, graph, funnelSteps, setupGuide, warnings, analyticsSummary, isAnalyticsLoading, onCreateStarterPath, onOpenTab, isSaving } ) {
+	const checkoutStep = funnelSteps.find( ( step ) => step.type === 'checkout' );
+	const offerSteps = funnelSteps.filter( ( step ) => [ 'upsell', 'downsell', 'cross_sell', 'pre_checkout_offer' ].includes( step.type ) );
+	const pageReadyCount = funnelSteps.filter( ( step ) => Number( step.pageId || 0 ) > 0 ).length;
+	const revenue = Number( analyticsSummary?.revenue || 0 );
+
+	return (
+		<section className="lf-overview lf-workspace-panel">
+			<div className="lf-overview__hero">
+				<div>
+					<p className="lf-label">{ __( 'Funnel overview', 'librefunnels' ) }</p>
+					<h2>{ getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) }</h2>
+					<p>{ setupGuide?.message || __( 'Shape the path, create pages, assign products, and test the shopper journey.', 'librefunnels' ) }</p>
+				</div>
+				<div className="lf-overview__actions">
+					{ graph.nodes.length === 0 && (
+						<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterPath } disabled={ isSaving }>
+							{ __( 'Build checkout path', 'librefunnels' ) }
+						</button>
+					) }
+					<button className="lf-button" type="button" onClick={ () => onOpenTab( 'canvas' ) }>
+						{ __( 'Open canvas', 'librefunnels' ) }
+					</button>
+				</div>
+			</div>
+
+			<SetupProgress setupGuide={ setupGuide } />
+
+			<div className="lf-overview-grid">
+				<OverviewStat label={ __( 'Steps', 'librefunnels' ) } value={ formatPlainNumber( funnelSteps.length ) } detail={ __( 'Landing, checkout, offers, and confirmation pages.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Pages assigned', 'librefunnels' ) } value={ `${ pageReadyCount }/${ funnelSteps.length || 0 }` } detail={ __( 'Normal WordPress pages ready for your page builder.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Offers', 'librefunnels' ) } value={ formatPlainNumber( offerSteps.length ) } detail={ __( 'Upsell, downsell, cross-sell, or pre-checkout offers.', 'librefunnels' ) } />
+				<OverviewStat label={ __( 'Revenue', 'librefunnels' ) } value={ isAnalyticsLoading ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, analyticsSummary?.currency || 'USD' ) } detail={ __( 'Attributed WooCommerce revenue in the last 30 days.', 'librefunnels' ) } />
+			</div>
+
+			<div className="lf-next-cards">
+				<button className="lf-next-card" type="button" onClick={ () => onOpenTab( 'steps' ) }>
+					<strong>{ __( 'Plan every page in the path', 'librefunnels' ) }</strong>
+					<span>{ __( 'Add landing, opt-in, checkout, upsell, downsell, thank-you, or custom steps without crowding the map.', 'librefunnels' ) }</span>
+				</button>
+				<button className="lf-next-card" type="button" onClick={ () => onOpenTab( 'products' ) }>
+					<strong>{ checkoutStep ? __( 'Review checkout products', 'librefunnels' ) : __( 'Add a checkout step', 'librefunnels' ) }</strong>
+					<span>{ __( 'Keep product and bump work in its own area, then jump into the focused step inspector when needed.', 'librefunnels' ) }</span>
+				</button>
+				<button className="lf-next-card" type="button" onClick={ () => onOpenTab( 'rules' ) }>
+					<strong>{ warnings.length ? __( 'Resolve routing issues', 'librefunnels' ) : __( 'Review route logic', 'librefunnels' ) }</strong>
+					<span>{ __( 'See continue, accept, reject, conditional, and fallback routes away from the visual layout work.', 'librefunnels' ) }</span>
+				</button>
+			</div>
+		</section>
+	);
+}
+
+function OverviewStat( { label, value, detail } ) {
+	return (
+		<div className="lf-overview-stat">
+			<span>{ label }</span>
+			<strong>{ value }</strong>
+			<p>{ detail }</p>
 		</div>
+	);
+}
+
+function StepPalette( { onCreateStep, isSaving } ) {
+	return (
+		<div className="lf-step-palette" aria-label={ __( 'Add funnel step', 'librefunnels' ) }>
+			<span className="lf-label">{ __( 'Add step', 'librefunnels' ) }</span>
+			<div>
+				{ starterStepTypes.map( ( type ) => (
+					<button key={ type } className="lf-button" type="button" onClick={ () => onCreateStep( type ) } disabled={ isSaving }>
+						{ sprintf( __( 'Add %s', 'librefunnels' ), stepTypes[ type ] || type ) }
+					</button>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
+function StepsPanel( { funnelSteps, graph, selectedFunnel, onCreateStep, onCreateStarterPath, onSelect, onOpenTab, isSaving } ) {
+	const nodesByStepId = new Map( graph.nodes.map( ( node ) => [ Number( node.stepId ), node ] ) );
+
+	return (
+		<section className="lf-workspace-panel lf-steps-panel">
+			<div className="lf-section-heading">
+				<div>
+					<p className="lf-label">{ __( 'Steps', 'librefunnels' ) }</p>
+					<h2>{ __( 'Build the full funnel path', 'librefunnels' ) }</h2>
+					<p>{ __( 'Add landing, opt-in, checkout, upsell, downsell, thank-you, and custom steps here. The canvas can stay focused on route shape.', 'librefunnels' ) }</p>
+				</div>
+				{ graph.nodes.length === 0 && (
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterPath } disabled={ isSaving }>
+						{ __( 'Build checkout path', 'librefunnels' ) }
+					</button>
+				) }
+			</div>
+
+			<StepPalette onCreateStep={ onCreateStep } isSaving={ isSaving } />
+
+			<div className="lf-step-type-grid">
+				{ starterStepTypes.map( ( type ) => (
+					<div key={ type } className="lf-step-type-card">
+						<strong>{ stepTypes[ type ] || type }</strong>
+						<p>{ stepTypeDescriptions[ type ] || __( 'Add this step to the funnel path.', 'librefunnels' ) }</p>
+					</div>
+				) ) }
+			</div>
+
+			<div className="lf-step-table" aria-label={ __( 'Funnel steps', 'librefunnels' ) }>
+				{ funnelSteps.length === 0 ? (
+					<div className="lf-empty-small">
+						{ __( 'No steps yet. Start with the guided checkout path or add the exact step you need.', 'librefunnels' ) }
+					</div>
+				) : (
+					funnelSteps.map( ( step ) => {
+						const node = nodesByStepId.get( Number( step.id ) );
+						const isStart = Number( selectedFunnel.startStepId || 0 ) === Number( step.id );
+
+						return (
+							<div className="lf-step-row" key={ step.id }>
+								<div>
+									<span className="lf-node__type">{ stepTypes[ step.type ] || step.type }</span>
+									<strong>{ getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) }</strong>
+									<small>{ getNodePageMeta( step, isStart ) }</small>
+								</div>
+								<div className="lf-step-row__actions">
+									{ step.pageEditUrl && (
+										<a className="lf-button" href={ step.pageEditUrl }>
+											{ __( 'Edit page design', 'librefunnels' ) }
+										</a>
+									) }
+									{ step.pageUrl && (
+										<a className="lf-button" href={ step.pageUrl } target="_blank" rel="noreferrer">
+											{ step.pageStatus === 'publish' ? __( 'View page', 'librefunnels' ) : __( 'Preview page', 'librefunnels' ) }
+										</a>
+									) }
+									{ node && (
+										<button
+											className="lf-button"
+											type="button"
+											onClick={ () => {
+												onSelect( { type: 'node', id: node.id } );
+												onOpenTab( 'canvas' );
+											} }
+										>
+											{ __( 'Edit step', 'librefunnels' ) }
+										</button>
+									) }
+								</div>
+							</div>
+						);
+					} )
+				) }
+			</div>
+		</section>
+	);
+}
+
+function ProductsPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
+	const commerceSteps = funnelSteps.filter( ( step ) => [ 'checkout', 'upsell', 'downsell', 'cross_sell', 'pre_checkout_offer' ].includes( step.type ) );
+	const nodesByStepId = new Map( graph.nodes.map( ( node ) => [ Number( node.stepId ), node ] ) );
+
+	return (
+		<section className="lf-workspace-panel lf-products-panel">
+			<div className="lf-section-heading">
+				<div>
+					<p className="lf-label">{ __( 'Products', 'librefunnels' ) }</p>
+					<h2>{ __( 'Commerce configuration by step', 'librefunnels' ) }</h2>
+					<p>{ __( 'Checkout products, order bumps, and offer products are grouped here so the canvas does not become a product settings wall.', 'librefunnels' ) }</p>
+				</div>
+			</div>
+			<div className="lf-step-table">
+				{ commerceSteps.length === 0 ? (
+					<div className="lf-empty-small">
+						{ __( 'Add a checkout or offer step, then product controls will appear in that step inspector.', 'librefunnels' ) }
+					</div>
+				) : (
+					commerceSteps.map( ( step ) => {
+						const node = nodesByStepId.get( Number( step.id ) );
+						const checkoutCount = Array.isArray( step.checkoutProducts ) ? step.checkoutProducts.length : 0;
+						const bumpCount = Array.isArray( step.orderBumps ) ? step.orderBumps.length : 0;
+						const hasOffer = Boolean( step.offer?.product_id );
+
+						return (
+							<div className="lf-step-row" key={ step.id }>
+								<div>
+									<span className="lf-node__type">{ stepTypes[ step.type ] || step.type }</span>
+									<strong>{ getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) }</strong>
+									<small>
+										{ step.type === 'checkout'
+											? sprintf( __( '%1$d checkout product(s), %2$d bump(s)', 'librefunnels' ), checkoutCount, bumpCount )
+											: hasOffer
+												? __( 'Offer product configured', 'librefunnels' )
+												: __( 'Offer product needed', 'librefunnels' ) }
+									</small>
+								</div>
+								{ node && (
+									<button
+										className="lf-button"
+										type="button"
+										onClick={ () => {
+											onSelect( { type: 'node', id: node.id } );
+											onOpenTab( 'canvas' );
+										} }
+									>
+										{ __( 'Edit products', 'librefunnels' ) }
+									</button>
+								) }
+							</div>
+						);
+					} )
+				) }
+			</div>
+		</section>
+	);
+}
+
+function RulesPanel( { graph, steps, onSelect, onCreateEdge, onOpenTab, isSaving } ) {
+	const nodeMap = new Map( graph.nodes.map( ( node ) => [ node.id, node ] ) );
+
+	function getStepNameFromNodeId( nodeId ) {
+		const node = nodeMap.get( nodeId );
+		const step = node ? getStepById( steps, node.stepId ) : null;
+
+		return step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' );
+	}
+
+	return (
+		<section className="lf-workspace-panel lf-rules-panel">
+			<div className="lf-section-heading">
+				<div>
+					<p className="lf-label">{ __( 'Rules', 'librefunnels' ) }</p>
+					<h2>{ __( 'Route logic and conditions', 'librefunnels' ) }</h2>
+					<p>{ __( 'Review continue, accept, reject, conditional, and fallback routes here, then edit detailed logic in the route inspector.', 'librefunnels' ) }</p>
+				</div>
+				<button className="lf-button" type="button" onClick={ onCreateEdge } disabled={ isSaving || graph.nodes.length < 2 }>
+					{ __( 'Connect route', 'librefunnels' ) }
+				</button>
+			</div>
+			<div className="lf-step-table">
+				{ graph.edges.length === 0 ? (
+					<div className="lf-empty-small">
+						{ __( 'No routes yet. Add at least two steps, then connect the path shoppers should follow.', 'librefunnels' ) }
+					</div>
+				) : (
+					graph.edges.map( ( edge ) => (
+						<div className="lf-step-row" key={ edge.id }>
+							<div>
+								<span className="lf-node__type">{ routes[ edge.route ] || edge.route }</span>
+								<strong>{ sprintf( __( '%1$s to %2$s', 'librefunnels' ), getStepNameFromNodeId( edge.source ), getStepNameFromNodeId( edge.target ) ) }</strong>
+								<small>{ edge.route === 'conditional' && edge.rule?.type ? ruleLabels[ edge.rule.type ] || edge.rule.type : __( 'No condition required', 'librefunnels' ) }</small>
+							</div>
+							<button
+								className="lf-button"
+								type="button"
+								onClick={ () => {
+									onSelect( { type: 'edge', id: edge.id } );
+									onOpenTab( 'canvas' );
+								} }
+							>
+								{ __( 'Edit route', 'librefunnels' ) }
+							</button>
+						</div>
+					) )
+				) }
+			</div>
+		</section>
 	);
 }
 
@@ -1103,7 +1583,7 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isLoading, is
 				<span className="lf-brand__mark">LF</span>
 				<div>
 					<p>{ __( 'LibreFunnels', 'librefunnels' ) }</p>
-					<strong>{ __( 'Canvas Builder', 'librefunnels' ) }</strong>
+					<strong>{ __( 'Funnel Workspace', 'librefunnels' ) }</strong>
 				</div>
 			</div>
 
@@ -1141,7 +1621,7 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isLoading, is
 	);
 }
 
-function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCreateStep, onCreateEdge } ) {
+function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCreateEdge } ) {
 	const healthText =
 		warnings.length > 0
 			? sprintf( __( '%d issue(s)', 'librefunnels' ), warnings.length )
@@ -1152,7 +1632,7 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 	return (
 		<header className="lf-canvas-header">
 			<div className="lf-canvas-header__title">
-				<p className="lf-label">{ __( 'Visual funnel map', 'librefunnels' ) }</p>
+				<p className="lf-label">{ __( 'Funnel workspace', 'librefunnels' ) }</p>
 				<h1>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'Create your first funnel', 'librefunnels' ) }</h1>
 				{ setupGuide && (
 					<p className="lf-next-step">
@@ -1160,7 +1640,7 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 						<span>{ setupGuide.message }</span>
 					</p>
 				) }
-				<SetupProgress setupGuide={ setupGuide } />
+				<SetupProgress setupGuide={ setupGuide } compact />
 			</div>
 
 			<div className="lf-header-actions">
@@ -1168,14 +1648,6 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 				<span className={ `lf-health ${ warnings.length > 0 ? 'has-warnings' : 'is-clear' }` }>
 					{ healthText }
 				</span>
-				<div className="lf-add-step-menu">
-					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ ! selectedFunnel || isSaving }>
-						{ __( 'Add checkout', 'librefunnels' ) }
-					</button>
-					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'upsell' ) } disabled={ ! selectedFunnel || isSaving }>
-						{ __( 'Add offer', 'librefunnels' ) }
-					</button>
-				</div>
 				<button className="lf-button" type="button" onClick={ onCreateEdge } disabled={ ! selectedFunnel || isSaving }>
 					{ __( 'Connect route', 'librefunnels' ) }
 				</button>
@@ -1256,7 +1728,7 @@ function AnalyticsMetric( { label, value, detail } ) {
 	);
 }
 
-function SetupProgress( { setupGuide } ) {
+function SetupProgress( { setupGuide, compact = false } ) {
 	if ( ! setupGuide?.tasks?.length ) {
 		return null;
 	}
@@ -1271,21 +1743,23 @@ function SetupProgress( { setupGuide } ) {
 					<span style={ { width: `${ progress }%` } } />
 				</span>
 			</div>
-			<ol className="lf-setup-list">
-				{ setupGuide.tasks.map( ( task ) => (
-					<li
-						key={ task.id }
-						className={ `lf-setup-item ${ task.done ? 'is-done' : '' } ${ task.id === setupGuide.nextTaskId ? 'is-next' : '' }` }
-						aria-current={ task.id === setupGuide.nextTaskId ? 'step' : undefined }
-					>
-						<span className="lf-setup-item__mark" aria-hidden="true" />
-						<span>
-							<strong>{ task.label }</strong>
-							<small>{ task.detail }</small>
-						</span>
-					</li>
-				) ) }
-			</ol>
+			{ ! compact && (
+				<ol className="lf-setup-list">
+					{ setupGuide.tasks.map( ( task ) => (
+						<li
+							key={ task.id }
+							className={ `lf-setup-item ${ task.done ? 'is-done' : '' } ${ task.id === setupGuide.nextTaskId ? 'is-next' : '' }` }
+							aria-current={ task.id === setupGuide.nextTaskId ? 'step' : undefined }
+						>
+							<span className="lf-setup-item__mark" aria-hidden="true" />
+							<span>
+								<strong>{ task.label }</strong>
+								<small>{ task.detail }</small>
+							</span>
+						</li>
+					) ) }
+				</ol>
+			) }
 		</div>
 	);
 }

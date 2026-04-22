@@ -17,11 +17,12 @@ High visual quality must never come at the cost of clarity. A store owner should
 - What is the next useful action?
 
 ## Admin Experience
-- Visual canvas first.
+- Sectioned product console first: the WordPress LibreFunnels menu may use submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup rather than forcing every feature into the builder screen.
+- Focused canvas: the canvas should show the funnel journey and contextual editing, while analytics, product setup, route logic, templates, and settings can live in dedicated workspace sections.
 - Clear funnel steps.
 - Fast editing.
 - No cluttered WordPress meta-box maze.
-- Metrics visible where decisions happen.
+- Metrics visible in analytics/overview contexts without crowding the visual map.
 - Inline validation.
 - Guided empty states.
 - Mobile-aware preview tools.
@@ -31,6 +32,8 @@ High visual quality must never come at the cost of clarity. A store owner should
 - The canvas header should always explain the next setup task in store-owner language.
 - Funnel pages should be presented as normal WordPress pages that can be opened in the user's preferred page builder.
 - Header actions must wrap safely in the WordPress admin frame; no primary action should be clipped at common desktop widths.
+- Funnel workspace tabs should progressively separate Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so beginners see a clear next action and advanced controls remain available without feeling cramped.
+- Step creation must make the full funnel vocabulary visible: landing, opt-in, checkout, upsell, downsell, thank-you, and custom steps.
 
 ## Competitive Inspiration Boundaries
 CartFlows' public docs show useful patterns worth learning from: clear step types, per-step view/edit/settings actions, page-builder-compatible step pages, and templates that help beginners avoid blank-page anxiety. LibreFunnels may use those product lessons, but must not copy CartFlows code, visual design, templates, branding, screenshots, or wording.

@@ -185,7 +185,9 @@ Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.
 Edges represent accept/reject/conditional paths.
 
-The current admin page keeps a server-rendered workspace fallback inside `#librefunnels-admin-app`, then replaces it with the React canvas when built assets are available. Assets are enqueued only on the LibreFunnels admin screen through WordPress admin enqueue APIs. The PHP layer passes REST endpoints, meta keys, route labels, step labels, and a `wp_rest` nonce to the app before the script runs.
+LibreFunnels now uses a sectioned product-console direction in the WordPress admin. The top-level LibreFunnels menu owns submenu pages for Dashboard, Funnels, Templates, Analytics, Settings, and Setup. These sections currently share the same React shell and REST data source, but the PHP layer passes the active section and admin URLs so the app can open into the most relevant workspace area without cramming every feature into the canvas.
+
+The current admin page keeps a server-rendered workspace fallback inside `#librefunnels-admin-app`, then replaces it with the React app when built assets are available. Assets are enqueued only on registered LibreFunnels admin screens through WordPress admin enqueue APIs. The PHP layer passes REST endpoints, meta keys, route labels, step labels, the active admin section, admin page URLs, and a `wp_rest` nonce to the app before the script runs.
 
 The first React canvas uses WordPress REST-enabled CPTs and registered meta as its persistence layer:
 - Create and list funnels.
@@ -199,6 +201,8 @@ The first React canvas uses WordPress REST-enabled CPTs and registered meta as i
 Canvas writes now use first-party REST endpoints under `librefunnels/v1` for atomic builder actions. The generic WordPress post endpoints remain useful for compatibility, but the builder uses dedicated endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, draft page creation, and WooCommerce product search. Workspace payloads always include every step for the selected funnel, plus a recent global step set for surrounding context, so larger stores and long-running test sites do not turn newly-created canvas nodes into missing-step placeholders. Product lookup uses WooCommerce product APIs (`wc_get_products` and product objects) and searches both product text and SKU before serializing only the compact fields the canvas needs. This keeps validation and error messages aligned with funnel concepts instead of raw post-meta failures.
 
 Validation is visible in the canvas and inspector. Missing start steps, missing page assignments, nodes that point to missing or foreign steps, broken edge source/target IDs, and incomplete conditional rules stay visible instead of being hidden. The design direction remains store-owner-first refined SaaS: calm, explicit, and powerful without becoming a WordPress meta-box maze.
+
+The React workspace separates funnel work into Overview, Canvas, Steps, Products, Rules, Analytics, and Settings tabs. Overview gives first-run guidance and progress. Canvas keeps the visual journey and contextual inspector together. Steps exposes landing, opt-in, checkout, upsell, downsell, thank-you, and custom step creation without hiding those concepts behind a checkout-only starter path. Products and Rules summarize commerce/routing work and jump back to the focused canvas inspector for editing. Analytics is no longer rendered inside the canvas path by default; it has its own workspace context and can also be the default tab for the Analytics submenu.
 
 The JavaScript app is built with `@wordpress/scripts` from `librefunnels/src/index.js`. Built files under `librefunnels/build/` are committed so WordPress installs do not require Node tooling.
 

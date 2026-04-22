@@ -79,8 +79,11 @@ Implemented so far:
 - WooCommerce checkout order revenue attribution that groups marked order lines by funnel, records `order_revenue` events, and marks orders through WooCommerce CRUD metadata for HPOS-safe idempotency.
 - Capability-guarded analytics summary REST endpoint for local dashboard reads.
 - React canvas analytics summary panel for the selected funnel, showing last-30-days attributed revenue, order count, offer accept rate, offer decisions, and a clear empty state until shopper/test-order data exists.
+- Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup.
+- Funnel workspace tabs for Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so the visual map no longer carries analytics, commerce summaries, rules, and setup guidance all at once.
+- Dedicated Steps surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom steps visible to beginners before they open the focused canvas inspector.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -104,6 +107,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 3. Add database import service with nonces/capabilities once the admin flow exists.
 4. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
 5. Expand analytics UI from summary cards into step-level trends, conversion rates, and revenue attribution drilldowns.
+6. Continue decomposing the product console into real submenu-specific screens: dashboard summaries, templates, setup checklist, settings, and a richer analytics dashboard.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

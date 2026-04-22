@@ -64,11 +64,14 @@
   - Commerce inspector panels for multiple checkout products, multiple order bumps, and primary offer configuration
   - Per-section dirty indicators and save reminders in commerce controls
   - Derived setup progress checklist for missing pages, draft publish status, product readiness, routes, and validation
+  - Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup
+  - Funnel workspace tabs for Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so the canvas does not carry every product surface
+  - Dedicated step planning surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom step creation visible
   - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, setup progress naming the remaining launch tasks, and the selected funnel showing a first last-30-days analytics panel. Backend work should continue where the canvas needs it, especially extending public routing/runtime facts and building deeper analytics drilldowns.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, setup progress naming the remaining launch tasks, and the selected funnel opening into a sectioned workspace instead of one crowded canvas. Backend work should continue where the canvas needs it, especially extending public routing/runtime facts and building deeper analytics drilldowns.
 
 ## Phase 5: Payments
 - Gateway adapter API
