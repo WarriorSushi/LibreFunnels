@@ -473,6 +473,38 @@
 	gap: 10px;
 }
 
+.lf-commerce-list {
+	display: grid;
+	gap: 10px;
+}
+
+.lf-commerce-card {
+	display: grid;
+	gap: 12px;
+	padding: 12px;
+	border: 1px solid color-mix(in oklch, var(--lf-border) 78%, var(--lf-accent) 22%);
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-surface) 86%, var(--lf-surface-soft) 14%);
+}
+
+.lf-commerce-card__header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.lf-commerce-card__header strong {
+	font-size: 13px;
+}
+
+.lf-inline-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
 .lf-product-picker select {
 	min-height: 40px;
 }
@@ -578,6 +610,16 @@
 	font-size: 12px;
 }
 
+.lf-unsaved-note {
+	padding: 10px 12px;
+	border: 1px solid color-mix(in oklch, var(--lf-warn) 35%, var(--lf-border));
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-warn) 9%, var(--lf-surface));
+	color: oklch(0.4 0.09 60) !important;
+	font-size: 12px;
+	font-weight: 750;
+}
+
 .lf-page-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -657,5 +699,9 @@
 
 	.lf-add-step-menu .lf-button {
 		flex: 1 1 160px;
+	}
+
+	.lf-inline-fields {
+		grid-template-columns: 1fr;
 	}
 }

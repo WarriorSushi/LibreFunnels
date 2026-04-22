@@ -6,7 +6,8 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "wp-scripts build",
-    "start": "wp-scripts start"
+    "start": "wp-scripts start",
+    "test:e2e:canvas": "playwright test tests/e2e/canvas.spec.js"
   },
   "devDependencies": {
     "@wordpress/scripts": "^30.18.0"

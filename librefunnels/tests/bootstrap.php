@@ -151,7 +151,7 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 	 * @return string
 	 */
 	function sanitize_key( $key ) {
-		return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $key ) );
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 	}
 }
 

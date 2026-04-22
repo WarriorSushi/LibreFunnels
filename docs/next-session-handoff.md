@@ -65,10 +65,15 @@ Implemented so far:
 - Assigned pages now expose direct edit/view actions so store owners can create a funnel page and continue in their preferred page builder.
 - Store-owner-friendly conditional rule builder for supported rule types.
 - Product pickers in checkout, order bump, offer, and product-rule inspector controls.
-- Initial commerce inspector panels for checkout product assignment, one order bump, and primary offer configuration.
+- Commerce inspector panels for multiple checkout product assignments, multiple order bumps, and primary offer configuration.
+- Checkout product controls now expose quantity, variation ID, and optional variation attributes.
+- Order bump controls now support multiple bump cards with quantity, variation ID, variation attributes, title, description, discount, and enabled state.
+- Commerce inspector sections now show dirty badges and explicit save reminders before local edits are persisted.
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, page creation, multi-product checkout assignment, and order bump saving.
+- Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -86,9 +91,9 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Run the Docker WordPress rig and add Playwright checks for canvas mount, funnel creation, drag save, page creation, route edits, rule builder, and product picker flows.
-2. Expand commerce inspector editing from one checkout product/one bump to the full metadata arrays with variation and quantity controls.
-3. Add clearer per-control save feedback and dirty-state indicators in the canvas inspector.
+1. Expand Playwright coverage for drag persistence, route edits, rule builder, offer product controls, and product picker search behavior.
+2. Improve first-run funnel creation/onboarding so a beginner can create the initial checkout path with fewer manual steps.
+3. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
 4. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
 5. Add revenue attribution events when WooCommerce order creation finalizes.
 6. Add dashboard reads from the local analytics table.

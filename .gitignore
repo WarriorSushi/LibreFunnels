@@ -1,6 +1,8 @@
 /librefunnels/vendor/
 /librefunnels/node_modules/
 /librefunnels/.phpunit.result.cache
+/librefunnels/test-results/
+/librefunnels/playwright-report/
 /librefunnels/dist/
 /.playwright-cli/
 /output/

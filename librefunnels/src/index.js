@@ -209,6 +209,15 @@ function getProductById( products, productId ) {
 	return products.find( ( product ) => Number( product.id ) === Number( productId ) );
 }
 
+function createEmptyCheckoutProduct() {
+	return {
+		product_id: 0,
+		variation_id: 0,
+		quantity: 1,
+		variation: {},
+	};
+}
+
 function createEmptyOffer() {
 	return {
 		id: `offer-${ Date.now() }`,
@@ -224,11 +233,67 @@ function createEmptyOffer() {
 	};
 }
 
-function normalizeOfferForCompare( offer = {} ) {
+function normalizeVariation( variation = {} ) {
+	return Object.keys( variation || {} )
+		.sort()
+		.reduce( ( normalized, key ) => {
+			const value = variation[ key ];
+
+			if ( key && value !== undefined && value !== null && String( value ).trim() !== '' ) {
+				normalized[ key ] = String( value ).trim();
+			}
+
+			return normalized;
+		}, {} );
+}
+
+function variationToText( variation = {} ) {
+	return Object.entries( normalizeVariation( variation ) )
+		.map( ( [ key, value ] ) => `${ key }=${ value }` )
+		.join( '\n' );
+}
+
+function textToVariation( value ) {
+	return String( value || '' )
+		.split( '\n' )
+		.reduce( ( variation, line ) => {
+			const [ rawKey, ...rawValue ] = line.split( '=' );
+			const key = String( rawKey || '' ).trim();
+			const attributeValue = rawValue.join( '=' ).trim();
+
+			if ( key && attributeValue ) {
+				variation[ key ] = attributeValue;
+			}
+
+			return variation;
+		}, {} );
+}
+
+function normalizeCheckoutProductForCompare( product = {} ) {
 	return {
-		product_id: Number( offer.product_id || 0 ),
+		product_id: Number( product.product_id || 0 ),
+		variation_id: Number( product.variation_id || 0 ),
+		quantity: Number( product.quantity || 1 ),
+		variation: normalizeVariation( product.variation || {} ),
+	};
+}
+
+function checkoutProductsMatch( firstProducts = [], secondProducts = [] ) {
+	const first = Array.isArray( firstProducts ) ? firstProducts.map( normalizeCheckoutProductForCompare ) : [];
+	const second = Array.isArray( secondProducts ) ? secondProducts.map( normalizeCheckoutProductForCompare ) : [];
+
+	return JSON.stringify( first ) === JSON.stringify( second );
+}
+
+function normalizeOfferForCompare( offer = {} ) {
+	const productId = Number( offer.product_id || 0 );
+
+	return {
+		id: productId > 0 ? offer.id || '' : '',
+		product_id: productId,
 		variation_id: Number( offer.variation_id || 0 ),
 		quantity: Number( offer.quantity || 1 ),
+		variation: normalizeVariation( offer.variation || {} ),
 		title: offer.title || '',
 		description: offer.description || '',
 		discount_type: offer.discount_type || 'none',
@@ -239,6 +304,13 @@ function normalizeOfferForCompare( offer = {} ) {
 
 function offersMatch( firstOffer, secondOffer ) {
 	return JSON.stringify( normalizeOfferForCompare( firstOffer ) ) === JSON.stringify( normalizeOfferForCompare( secondOffer ) );
+}
+
+function offerListsMatch( firstOffers = [], secondOffers = [] ) {
+	const first = Array.isArray( firstOffers ) ? firstOffers.map( normalizeOfferForCompare ) : [];
+	const second = Array.isArray( secondOffers ) ? secondOffers.map( normalizeOfferForCompare ) : [];
+
+	return JSON.stringify( first ) === JSON.stringify( second );
 }
 
 function App() {
@@ -1019,36 +1091,81 @@ function CommercePanel( { step, products, onSearchProducts, onUpdateStep, isSavi
 }
 
 function CheckoutProductsPanel( { step, products, onSearchProducts, onUpdateStep, isSaving } ) {
-	const savedCheckoutProductId = Number( step.checkoutProducts?.[ 0 ]?.product_id || 0 );
-	const savedBump = step.orderBumps?.[ 0 ] || createEmptyOffer();
-	const [ checkoutProductId, setCheckoutProductId ] = useState( savedCheckoutProductId );
-	const [ bump, setBump ] = useState( savedBump );
-	const checkoutDirty = checkoutProductId !== savedCheckoutProductId;
-	const bumpDirty = ! offersMatch( bump, savedBump );
+	const savedCheckoutProducts = Array.isArray( step.checkoutProducts ) ? step.checkoutProducts : [];
+	const savedBumps = Array.isArray( step.orderBumps ) ? step.orderBumps : [];
+	const [ checkoutProducts, setCheckoutProducts ] = useState( savedCheckoutProducts.length ? savedCheckoutProducts : [ createEmptyCheckoutProduct() ] );
+	const [ bumps, setBumps ] = useState( savedBumps.length ? savedBumps : [ createEmptyOffer() ] );
+	const checkoutDirty = ! checkoutProductsMatch( checkoutProducts, savedCheckoutProducts );
+	const bumpDirty = ! offerListsMatch( bumps, savedBumps );
 
 	useEffect( () => {
-		setCheckoutProductId( Number( step.checkoutProducts?.[ 0 ]?.product_id || 0 ) );
-		setBump( step.orderBumps?.[ 0 ] || createEmptyOffer() );
+		const nextCheckoutProducts = Array.isArray( step.checkoutProducts ) ? step.checkoutProducts : [];
+		const nextBumps = Array.isArray( step.orderBumps ) ? step.orderBumps : [];
+
+		setCheckoutProducts( nextCheckoutProducts.length ? nextCheckoutProducts : [ createEmptyCheckoutProduct() ] );
+		setBumps( nextBumps.length ? nextBumps : [ createEmptyOffer() ] );
 	}, [ step.id ] );
+
+	function updateCheckoutProduct( index, fields ) {
+		setCheckoutProducts( ( current ) =>
+			current.map( ( product, productIndex ) =>
+				productIndex === index
+					? {
+							...product,
+							...fields,
+					  }
+					: product
+			)
+		);
+	}
+
+	function removeCheckoutProduct( index ) {
+		setCheckoutProducts( ( current ) => {
+			const nextProducts = current.filter( ( product, productIndex ) => productIndex !== index );
+
+			return nextProducts.length ? nextProducts : [ createEmptyCheckoutProduct() ];
+		} );
+	}
 
 	function saveCheckoutProduct() {
 		onUpdateStep( step, {
-			checkout_products: checkoutProductId
-				? [
-						{
-							product_id: checkoutProductId,
-							variation_id: 0,
-							quantity: 1,
-							variation: {},
-						},
-				  ]
-				: [],
+			checkout_products: checkoutProducts
+				.map( normalizeCheckoutProductForCompare )
+				.filter( ( product ) => product.product_id > 0 ),
+		} );
+	}
+
+	function updateBump( index, fields ) {
+		setBumps( ( current ) =>
+			current.map( ( bump, bumpIndex ) =>
+				bumpIndex === index
+					? {
+							...bump,
+							...fields,
+					  }
+					: bump
+			)
+		);
+	}
+
+	function removeBump( index ) {
+		setBumps( ( current ) => {
+			const nextBumps = current.filter( ( bump, bumpIndex ) => bumpIndex !== index );
+
+			return nextBumps.length ? nextBumps : [ createEmptyOffer() ];
 		} );
 	}
 
 	function saveBump() {
 		onUpdateStep( step, {
-			order_bumps: bump.product_id ? [ bump ] : [],
+			order_bumps: bumps
+				.map( ( bump ) => ( {
+					...bump,
+					quantity: Number( bump.quantity || 1 ),
+					variation_id: Number( bump.variation_id || 0 ),
+					variation: normalizeVariation( bump.variation || {} ),
+				} ) )
+				.filter( ( bump ) => Number( bump.product_id || 0 ) > 0 ),
 		} );
 	}
 
@@ -1059,18 +1176,37 @@ function CheckoutProductsPanel( { step, products, onSearchProducts, onUpdateStep
 					{ __( 'Checkout products', 'librefunnels' ) }
 					{ checkoutDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
 				</span>
-				<p>{ __( 'Choose the main product this checkout should prepare in the WooCommerce cart.', 'librefunnels' ) }</p>
+				<p>{ __( 'Choose every product this checkout should prepare in the WooCommerce cart.', 'librefunnels' ) }</p>
 			</div>
 
-			<ProductPicker value={ checkoutProductId } products={ products } onSearch={ onSearchProducts } onChange={ setCheckoutProductId } />
+			<div className="lf-commerce-list lf-commerce-list--checkout-products">
+				{ checkoutProducts.map( ( product, index ) => (
+					<div className="lf-commerce-card" key={ `checkout-product-${ index }` }>
+						<div className="lf-commerce-card__header">
+							<strong>{ sprintf( __( 'Checkout product %d', 'librefunnels' ), index + 1 ) }</strong>
+							<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => removeCheckoutProduct( index ) }>
+								{ __( 'Remove', 'librefunnels' ) }
+							</button>
+						</div>
+						<CheckoutProductFields
+							product={ product }
+							products={ products }
+							onSearchProducts={ onSearchProducts }
+							onChange={ ( fields ) => updateCheckoutProduct( index, fields ) }
+						/>
+					</div>
+				) ) }
+			</div>
+
 			<div className="lf-action-row">
 				<button className="lf-button" type="button" disabled={ isSaving || ! checkoutDirty } onClick={ saveCheckoutProduct }>
-					{ __( 'Save checkout product', 'librefunnels' ) }
+					{ __( 'Save checkout products', 'librefunnels' ) }
 				</button>
-				<button className="lf-button" type="button" disabled={ isSaving || checkoutProductId < 1 } onClick={ () => setCheckoutProductId( 0 ) }>
-					{ __( 'Clear', 'librefunnels' ) }
+				<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => setCheckoutProducts( [ ...checkoutProducts, createEmptyCheckoutProduct() ] ) }>
+					{ __( 'Add product', 'librefunnels' ) }
 				</button>
 			</div>
+			{ checkoutDirty && <p className="lf-unsaved-note">{ __( 'Save these checkout products before previewing the funnel.', 'librefunnels' ) }</p> }
 
 			<div className="lf-rule-divider" />
 
@@ -1079,18 +1215,32 @@ function CheckoutProductsPanel( { step, products, onSearchProducts, onUpdateStep
 					{ __( 'Order bump', 'librefunnels' ) }
 					{ bumpDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
 				</span>
-				<p>{ __( 'Add one focused checkout bump. Multiple bumps will use the same structure later.', 'librefunnels' ) }</p>
+				<p>{ __( 'Add focused checkout bumps that shoppers can accept before payment.', 'librefunnels' ) }</p>
 			</div>
 
-			<OfferFields offer={ bump } products={ products } onSearchProducts={ onSearchProducts } onChange={ setBump } />
+			<div className="lf-commerce-list lf-commerce-list--order-bumps">
+				{ bumps.map( ( bump, index ) => (
+					<div className="lf-commerce-card" key={ bump.id || `bump-${ index }` }>
+						<div className="lf-commerce-card__header">
+							<strong>{ sprintf( __( 'Order bump %d', 'librefunnels' ), index + 1 ) }</strong>
+							<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => removeBump( index ) }>
+								{ __( 'Remove', 'librefunnels' ) }
+							</button>
+						</div>
+						<OfferFields offer={ bump } products={ products } onSearchProducts={ onSearchProducts } onChange={ ( fields ) => updateBump( index, fields ) } />
+					</div>
+				) ) }
+			</div>
+
 			<div className="lf-action-row">
 				<button className="lf-button" type="button" disabled={ isSaving || ! bumpDirty } onClick={ saveBump }>
-					{ __( 'Save order bump', 'librefunnels' ) }
+					{ __( 'Save order bumps', 'librefunnels' ) }
 				</button>
-				<button className="lf-button" type="button" disabled={ isSaving || ! bump.product_id } onClick={ () => setBump( createEmptyOffer() ) }>
-					{ __( 'Clear', 'librefunnels' ) }
+				<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => setBumps( [ ...bumps, createEmptyOffer() ] ) }>
+					{ __( 'Add bump', 'librefunnels' ) }
 				</button>
 			</div>
+			{ bumpDirty && <p className="lf-unsaved-note">{ __( 'Save these bumps so they appear in checkout.', 'librefunnels' ) }</p> }
 		</div>
 	);
 }
@@ -1136,10 +1286,53 @@ function PrimaryOfferPanel( { step, products, onSearchProducts, onUpdateStep, is
 	);
 }
 
+function CheckoutProductFields( { product, products, onSearchProducts, onChange } ) {
+	return (
+		<div className="lf-offer-fields">
+			<ProductPicker value={ Number( product.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { product_id: Number( productId ) } ) } />
+
+			<div className="lf-inline-fields">
+				<label className="lf-field">
+					<span>{ __( 'Quantity', 'librefunnels' ) }</span>
+					<input type="number" min="1" step="1" value={ Number( product.quantity || 1 ) } onChange={ ( event ) => onChange( { quantity: Math.max( 1, Number( event.target.value ) || 1 ) } ) } />
+				</label>
+
+				<label className="lf-field">
+					<span>{ __( 'Variation ID', 'librefunnels' ) }</span>
+					<input type="number" min="0" step="1" value={ Number( product.variation_id || 0 ) } onChange={ ( event ) => onChange( { variation_id: Math.max( 0, Number( event.target.value ) || 0 ) } ) } />
+				</label>
+			</div>
+
+			<label className="lf-field">
+				<span>{ __( 'Variation attributes', 'librefunnels' ) }</span>
+				<textarea rows="3" placeholder={ __( 'attribute_pa_color=blue', 'librefunnels' ) } value={ variationToText( product.variation || {} ) } onChange={ ( event ) => onChange( { variation: textToVariation( event.target.value ) } ) } />
+			</label>
+			<p className="lf-helper-text">{ __( 'Use variation details only when the selected product is a variable product.', 'librefunnels' ) }</p>
+		</div>
+	);
+}
+
 function OfferFields( { offer, products, onSearchProducts, onChange } ) {
 	return (
 		<div className="lf-offer-fields">
 			<ProductPicker value={ Number( offer.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { ...offer, product_id: Number( productId ) } ) } />
+
+			<div className="lf-inline-fields">
+				<label className="lf-field">
+					<span>{ __( 'Quantity', 'librefunnels' ) }</span>
+					<input type="number" min="1" step="1" value={ Number( offer.quantity || 1 ) } onChange={ ( event ) => onChange( { ...offer, quantity: Math.max( 1, Number( event.target.value ) || 1 ) } ) } />
+				</label>
+
+				<label className="lf-field">
+					<span>{ __( 'Variation ID', 'librefunnels' ) }</span>
+					<input type="number" min="0" step="1" value={ Number( offer.variation_id || 0 ) } onChange={ ( event ) => onChange( { ...offer, variation_id: Math.max( 0, Number( event.target.value ) || 0 ) } ) } />
+				</label>
+			</div>
+
+			<label className="lf-field">
+				<span>{ __( 'Variation attributes', 'librefunnels' ) }</span>
+				<textarea rows="3" placeholder={ __( 'attribute_pa_color=blue', 'librefunnels' ) } value={ variationToText( offer.variation || {} ) } onChange={ ( event ) => onChange( { ...offer, variation: textToVariation( event.target.value ) } ) } />
+			</label>
 
 			<label className="lf-field">
 				<span>{ __( 'Offer title', 'librefunnels' ) }</span>

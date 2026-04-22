@@ -207,7 +207,8 @@ Canvas interaction expectations:
 - Route source, target, and label are edited through explicit selectors.
 - Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
 - Step page assignment uses page search and a draft page creation path that inserts the `[librefunnels_step]` shortcode.
-- Checkout steps can choose a main WooCommerce product and one initial order bump from the inspector. The metadata already supports arrays; the first UI keeps the common case focused before exposing multi-product and multi-bump controls.
+- Checkout steps can edit multiple WooCommerce product assignments from the inspector, including quantity, variation ID, and optional variation attributes. The same commerce panel can edit multiple order bumps with product, quantity, variation details, title, description, discount, and enabled state.
+- Checkout commerce panels show per-section dirty indicators and short save reminders so store owners know when local edits have not yet been persisted through the canvas REST endpoint.
 - Offer steps (`pre_checkout_offer`, `upsell`, `downsell`, `cross_sell`) can choose an offer product, title, short description, discount type/amount, and enabled state from the inspector.
 - Product-based conditional rules use the same product picker instead of raw product IDs.
 - Route deletion and step archiving are recoverable builder actions rather than silent data removal.

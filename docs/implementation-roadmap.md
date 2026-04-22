@@ -60,11 +60,13 @@
   - Store-owner-friendly conditional rule builder
   - Recoverable step archive and route delete controls
   - WooCommerce product search for checkout, bump, offer, and product-rule assignment
-  - Initial commerce inspector panels for checkout product, one order bump, and primary offer configuration
+  - Commerce inspector panels for multiple checkout products, multiple order bumps, and primary offer configuration
+  - Per-section dirty indicators and save reminders in commerce controls
+  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, page creation, checkout products, and order bump saving
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the first commerce-aware inspector now in place. Backend work should continue where the canvas needs it, especially multi-product/multi-bump editing, clearer save feedback, browser-verified canvas polish, and dashboard reads from local analytics.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays. Backend work should continue where the canvas needs it, especially route/rule browser coverage, drag persistence coverage, richer onboarding, and dashboard reads from local analytics.
 
 ## Phase 5: Payments
 - Gateway adapter API

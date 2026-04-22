@@ -24,6 +24,7 @@
 - Checkout product assignment sanitization
 - Checkout coupon sanitization
 - Checkout field rule sanitization
+- Multiple checkout product and order bump metadata sanitization
 
 ## Integration Tests
 - Shortcode rendering
@@ -71,6 +72,7 @@
 - Canvas creates and assigns a draft page without exposing raw page IDs
 - Canvas builds a conditional route without editing JSON
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
+- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a funnel page, saves multiple checkout products, and saves an order bump
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow
@@ -88,10 +90,10 @@
 - Escaping
 
 ## Local Docker Harness
-The repository includes a Docker Compose WordPress rig for manual and future browser testing:
+The repository includes a Docker Compose WordPress rig for manual and browser testing:
 - `compose.yaml` starts MariaDB, WordPress, and WP-CLI.
 - `tools/docker/init-wordpress.ps1` installs WordPress, installs and activates WooCommerce, activates LibreFunnels, and seeds sample products.
-- Use this rig for Playwright checks once admin browser automation is added.
+- `npm run test:e2e:canvas` from `librefunnels/` runs the Playwright smoke against `http://localhost:8080` by default. Override with `LIBREFUNNELS_WP_BASE_URL`, `LIBREFUNNELS_WP_ADMIN_USER`, and `LIBREFUNNELS_WP_ADMIN_PASSWORD` when needed.
 - Privacy consent
 
 ## Local Checks
@@ -99,5 +101,6 @@ Run these before commits that touch PHP, build tooling, or the admin app:
 - `composer lint`
 - `composer test`
 - `npm run build`
+- `npm run test:e2e:canvas` when Docker WordPress is running and the admin app changes
 
-When a local WordPress test site is available, add a browser check that confirms the React app mounts only on the LibreFunnels admin page and that the fallback shell is replaced without PHP notices.
+The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. Expand it next for drag persistence, route editing, rule builder behavior, and offer-step product controls.
