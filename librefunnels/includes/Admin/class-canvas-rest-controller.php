@@ -48,6 +48,12 @@ final class Canvas_REST_Controller {
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_workspace' ),
 				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'funnel_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
 			)
 		);
 
@@ -196,15 +202,22 @@ final class Canvas_REST_Controller {
 	/**
 	 * Returns the full canvas workspace.
 	 *
+	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
-	public function get_workspace() {
+	public function get_workspace( WP_REST_Request $request ) {
+		$funnels             = $this->get_funnels();
+		$requested_funnel_id = absint( $request->get_param( 'funnel_id' ) );
+		$selected_funnel_id  = $this->get_selected_funnel_id( $funnels, $requested_funnel_id );
+		$steps               = $this->get_steps( $selected_funnel_id );
+
 		return rest_ensure_response(
 			array(
-				'funnels'  => $this->get_funnels(),
-				'steps'    => $this->get_steps(),
-				'pages'    => $this->get_pages(),
-				'products' => $this->get_products( '', $this->get_assigned_product_ids() ),
+				'funnels'          => $funnels,
+				'steps'            => $steps,
+				'pages'            => $this->get_pages(),
+				'products'         => $this->get_products( '', $this->get_assigned_product_ids( $steps ) ),
+				'selectedFunnelId' => $selected_funnel_id,
 			)
 		);
 	}
@@ -591,13 +604,37 @@ final class Canvas_REST_Controller {
 	 * @return array<string,mixed>
 	 */
 	private function get_workspace_payload( $selected_funnel_id = 0 ) {
+		$selected_funnel_id = absint( $selected_funnel_id );
+		$steps              = $this->get_steps( $selected_funnel_id );
+
 		return array(
 			'funnels'          => $this->get_funnels(),
-			'steps'            => $this->get_steps( absint( $selected_funnel_id ) ),
+			'steps'            => $steps,
 			'pages'            => $this->get_pages(),
-			'products'         => $this->get_products( '', $this->get_assigned_product_ids() ),
-			'selectedFunnelId' => absint( $selected_funnel_id ),
+			'products'         => $this->get_products( '', $this->get_assigned_product_ids( $steps ) ),
+			'selectedFunnelId' => $selected_funnel_id,
 		);
+	}
+
+	/**
+	 * Gets a selected funnel ID from a request, falling back to the latest funnel.
+	 *
+	 * @param array<int,array<string,mixed>> $funnels             Serialized funnels.
+	 * @param int                            $requested_funnel_id Requested funnel ID.
+	 * @return int
+	 */
+	private function get_selected_funnel_id( array $funnels, $requested_funnel_id ) {
+		$requested_funnel_id = absint( $requested_funnel_id );
+
+		if ( $requested_funnel_id > 0 ) {
+			foreach ( $funnels as $funnel ) {
+				if ( isset( $funnel['id'] ) && absint( $funnel['id'] ) === $requested_funnel_id ) {
+					return $requested_funnel_id;
+				}
+			}
+		}
+
+		return ! empty( $funnels[0]['id'] ) ? absint( $funnels[0]['id'] ) : 0;
 	}
 
 	/**
@@ -840,12 +877,14 @@ final class Canvas_REST_Controller {
 	/**
 	 * Gets product IDs currently assigned in funnel step commerce metadata.
 	 *
+	 * @param array<int,array<string,mixed>>|null $steps Optional serialized steps.
 	 * @return int[]
 	 */
-	private function get_assigned_product_ids() {
-		$ids = array();
+	private function get_assigned_product_ids( $steps = null ) {
+		$ids   = array();
+		$steps = is_array( $steps ) ? $steps : $this->get_steps();
 
-		foreach ( $this->get_steps() as $step ) {
+		foreach ( $steps as $step ) {
 			foreach ( $step['checkoutProducts'] as $item ) {
 				$ids[] = isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0;
 			}

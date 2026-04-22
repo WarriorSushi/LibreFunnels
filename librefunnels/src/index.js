@@ -14,6 +14,7 @@ const routes = settings.routes || {};
 const canvasPath = settings.rest?.canvas || '/librefunnels/v1/canvas';
 const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
 const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/products';
+const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
 
 const emptyGraph = {
 	version: 1,
@@ -74,6 +75,26 @@ function normalizeNodePosition( node, index ) {
 
 function getStepById( steps, stepId ) {
 	return steps.find( ( step ) => Number( step.id ) === Number( stepId ) );
+}
+
+function getStoredSelectedFunnelId() {
+	try {
+		return Number( window.localStorage?.getItem( selectedFunnelStorageKey ) || 0 );
+	} catch ( error ) {
+		return 0;
+	}
+}
+
+function storeSelectedFunnelId( funnelId ) {
+	try {
+		if ( Number( funnelId ) > 0 ) {
+			window.localStorage?.setItem( selectedFunnelStorageKey, String( Number( funnelId ) ) );
+		} else {
+			window.localStorage?.removeItem( selectedFunnelStorageKey );
+		}
+	} catch ( error ) {
+		// Browsers can block storage in strict privacy modes; selection still works in memory.
+	}
 }
 
 function getNodeWarnings( node, steps, selectedFunnel ) {
@@ -480,7 +501,7 @@ function App() {
 	const [ steps, setSteps ] = useState( [] );
 	const [ pages, setPages ] = useState( [] );
 	const [ products, setProducts ] = useState( [] );
-	const [ selectedFunnelId, setSelectedFunnelId ] = useState( 0 );
+	const [ selectedFunnelId, setSelectedFunnelId ] = useState( () => getStoredSelectedFunnelId() );
 	const [ selectedItem, setSelectedItem ] = useState( { type: 'funnel' } );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSaving, setIsSaving ] = useState( false );
@@ -544,13 +565,19 @@ function App() {
 		};
 	}, [ dragging, selectedFunnel?.startStepId ] );
 
+	function selectFunnel( funnelId ) {
+		const nextFunnelId = Number( funnelId || 0 );
+		setSelectedFunnelId( nextFunnelId );
+		storeSelectedFunnelId( nextFunnelId );
+	}
+
 	function applyWorkspace( payload, preferredFunnelId = selectedFunnelId ) {
 		const workspace = payload?.workspace || payload || {};
 		const nextFunnels = Array.isArray( workspace.funnels ) ? workspace.funnels : [];
 		const nextSteps = Array.isArray( workspace.steps ) ? workspace.steps : [];
 		const nextPages = Array.isArray( workspace.pages ) ? workspace.pages : pages;
 		const nextProducts = Array.isArray( workspace.products ) ? workspace.products : products;
-		const candidateId = Number( workspace.selectedFunnelId || preferredFunnelId );
+		const candidateId = Number( workspace.selectedFunnelId || preferredFunnelId || getStoredSelectedFunnelId() );
 
 		setFunnels( nextFunnels );
 		setSteps( nextSteps );
@@ -559,21 +586,23 @@ function App() {
 
 		if ( nextFunnels.length > 0 ) {
 			const stillExists = nextFunnels.some( ( funnel ) => Number( funnel.id ) === Number( candidateId ) );
-			setSelectedFunnelId( stillExists ? candidateId : nextFunnels[ 0 ].id );
+			selectFunnel( stillExists ? candidateId : nextFunnels[ 0 ].id );
 		} else {
-			setSelectedFunnelId( 0 );
+			selectFunnel( 0 );
 		}
 	}
 
-	async function loadWorkspace( preferredFunnelId = selectedFunnelId ) {
+	async function loadWorkspace( preferredFunnelId = selectedFunnelId || getStoredSelectedFunnelId() ) {
 		setIsLoading( true );
 		setError( '' );
 
-		try {
-			const workspace = await apiFetch( { path: canvasPath } );
-			applyWorkspace( workspace, preferredFunnelId );
-			setSelectedItem( { type: 'funnel' } );
-		} catch ( nextError ) {
+	try {
+		const nextFunnelId = Number( preferredFunnelId || 0 );
+		const path = nextFunnelId > 0 ? `${ canvasPath }?funnel_id=${ encodeURIComponent( nextFunnelId ) }` : canvasPath;
+		const workspace = await apiFetch( { path } );
+		applyWorkspace( workspace, preferredFunnelId );
+		setSelectedItem( { type: 'funnel' } );
+	} catch ( nextError ) {
 			setError( nextError.message || __( 'LibreFunnels could not load the workspace.', 'librefunnels' ) );
 		} finally {
 			setIsLoading( false );
@@ -585,12 +614,13 @@ function App() {
 		setError( '' );
 		setNotice( __( 'Saving...', 'librefunnels' ) );
 
-		try {
-			const payload = await action();
-			applyWorkspace( payload );
-			setNotice( successMessage || __( 'Saved', 'librefunnels' ) );
-			return payload;
-		} catch ( nextError ) {
+	try {
+		const payload = await action();
+		const workspace = payload?.workspace || payload || {};
+		applyWorkspace( payload, workspace.selectedFunnelId || selectedFunnelId );
+		setNotice( successMessage || __( 'Saved', 'librefunnels' ) );
+		return payload;
+	} catch ( nextError ) {
 			setNotice( '' );
 			setError( nextError.message || __( 'LibreFunnels could not save this change.', 'librefunnels' ) );
 			return null;
@@ -612,11 +642,15 @@ function App() {
 			__( 'Funnel created', 'librefunnels' )
 		);
 
-		if ( payload?.selectedFunnelId ) {
-			setSelectedFunnelId( payload.selectedFunnelId );
-			setSelectedItem( { type: 'funnel' } );
-		}
+	const workspace = payload?.workspace || payload || {};
+	const nextFunnelId = Number( workspace.selectedFunnelId || 0 );
+
+	if ( nextFunnelId > 0 ) {
+		applyWorkspace( payload, nextFunnelId );
+		selectFunnel( nextFunnelId );
+		setSelectedItem( { type: 'funnel' } );
 	}
+}
 
 	function updateLocalGraph( nextGraph ) {
 		if ( ! selectedFunnel ) {
@@ -926,10 +960,11 @@ function App() {
 				funnels={ funnels }
 				selectedFunnelId={ selectedFunnelId }
 				onSelect={ ( id ) => {
-					setSelectedFunnelId( id );
+					selectFunnel( id );
 					setSelectedItem( { type: 'funnel' } );
 				} }
 				onCreate={ createFunnel }
+				isLoading={ isLoading }
 				isSaving={ isSaving }
 			/>
 
@@ -983,7 +1018,7 @@ function App() {
 	);
 }
 
-function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isSaving } ) {
+function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isLoading, isSaving } ) {
 	return (
 		<aside className="lf-sidebar">
 			<div className="lf-brand">
@@ -994,7 +1029,7 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isSaving } ) 
 				</div>
 			</div>
 
-			<button className="lf-button lf-button--primary" type="button" onClick={ onCreate } disabled={ isSaving }>
+			<button className="lf-button lf-button--primary" type="button" onClick={ onCreate } disabled={ isLoading || isSaving }>
 				{ __( 'Create funnel', 'librefunnels' ) }
 			</button>
 

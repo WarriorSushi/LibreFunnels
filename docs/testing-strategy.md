@@ -42,6 +42,8 @@
 - Selected order bump cart sync and removal
 - Order bump discounted cart item pricing
 - Order bump order line item attribution
+- Checkout product order line item attribution
+- WooCommerce order revenue attribution events
 - Pre-checkout offer package normalization
 - Pre-checkout offer accept/reject routing integration
 - Pre-checkout offer cart item attribution
@@ -61,6 +63,7 @@
 - Canvas step update persists checkout products, order bumps, and primary offer metadata through sanitizers
 - Local analytics events table is installed on activation/schema-version changes
 - Offer impression and accept/reject hooks write local events
+- Analytics summary REST reads are capability-guarded and query the local events table
 
 ## E2E Tests
 - Funnel creation
@@ -106,4 +109,4 @@ Run these before commits that touch PHP, build tooling, or the admin app:
 - `npm run build`
 - `npm run test:e2e:canvas` when Docker WordPress is running and the admin app changes
 
-The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner canvas path, setup progress guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, route/rule editing, broken-route recovery, public checkout rendering, public offer rendering, offer reject routing, and offer accept cart mutation. Expand it next for revenue attribution and dashboard reads.
+The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner canvas path, setup progress guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, route/rule editing, broken-route recovery, public checkout rendering, public offer rendering, offer reject routing, and offer accept cart mutation. Expand it next for a full checkout order creation smoke that proves revenue attribution appears in dashboard reads.

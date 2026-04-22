@@ -42,6 +42,7 @@ final class Order_Bump_Order_Metadata {
 			$item->add_meta_data( '_librefunnels_order_bump', 'yes', true );
 			$item->add_meta_data( '_librefunnels_order_bump_id', $this->get_string_value( $values, 'librefunnels_order_bump_id' ), true );
 			$item->add_meta_data( '_librefunnels_order_bump_step_id', $this->get_int_value( $values, 'librefunnels_order_bump_step_id' ), true );
+			$item->add_meta_data( '_librefunnels_funnel_id', $this->get_int_value( $values, 'librefunnels_funnel_id' ), true );
 			$this->add_discount_metadata( $item, '_librefunnels_order_bump', $values );
 			return;
 		}
@@ -50,7 +51,15 @@ final class Order_Bump_Order_Metadata {
 			$item->add_meta_data( '_librefunnels_pre_checkout_offer', 'yes', true );
 			$item->add_meta_data( '_librefunnels_offer_id', $this->get_string_value( $values, 'librefunnels_offer_id' ), true );
 			$item->add_meta_data( '_librefunnels_offer_step_id', $this->get_int_value( $values, 'librefunnels_offer_step_id' ), true );
+			$item->add_meta_data( '_librefunnels_funnel_id', $this->get_int_value( $values, 'librefunnels_funnel_id' ), true );
 			$this->add_discount_metadata( $item, '_librefunnels_offer', $values );
+			return;
+		}
+
+		if ( ! empty( $values['librefunnels_checkout_product'] ) ) {
+			$item->add_meta_data( '_librefunnels_checkout_product', 'yes', true );
+			$item->add_meta_data( '_librefunnels_checkout_step_id', $this->get_int_value( $values, 'librefunnels_checkout_step_id' ), true );
+			$item->add_meta_data( '_librefunnels_funnel_id', $this->get_int_value( $values, 'librefunnels_funnel_id' ), true );
 		}
 	}
 

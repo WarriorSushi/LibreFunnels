@@ -97,7 +97,7 @@ final class Event_Store {
 				'object_id'    => isset( $event['object_id'] ) ? sanitize_text_field( (string) $event['object_id'] ) : '',
 				'value'        => isset( $event['value'] ) ? (float) $event['value'] : 0.0,
 				'currency'     => isset( $event['currency'] ) ? sanitize_text_field( (string) $event['currency'] ) : '',
-				'customer_id'  => get_current_user_id(),
+				'customer_id'  => isset( $event['customer_id'] ) ? absint( $event['customer_id'] ) : get_current_user_id(),
 				'session_hash' => $this->get_session_hash(),
 				'context'      => wp_json_encode( $context ),
 				'created_at'   => current_time( 'mysql', true ),
@@ -106,6 +106,89 @@ final class Event_Store {
 		);
 
 		return false !== $insert;
+	}
+
+	/**
+	 * Gets a compact analytics summary for the admin dashboard.
+	 *
+	 * @param array<string,mixed> $args Query arguments.
+	 * @return array<string,mixed>
+	 */
+	public function get_dashboard_summary( array $args = array() ) {
+		global $wpdb;
+
+		$days      = isset( $args['days'] ) ? max( 1, min( 365, absint( $args['days'] ) ) ) : 30;
+		$funnel_id = isset( $args['funnel_id'] ) ? absint( $args['funnel_id'] ) : 0;
+		$since     = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
+		$where     = array( 'created_at >= %s' );
+		$params    = array( $since );
+
+		if ( $funnel_id > 0 ) {
+			$where[]  = 'funnel_id = %d';
+			$params[] = $funnel_id;
+		}
+
+		$where_sql  = implode( ' AND ', $where );
+		$table_name = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated from $wpdb->prefix and static suffix.
+		$counts_sql = "SELECT event_type, COUNT(*) AS event_count, COALESCE(SUM(value), 0) AS event_value FROM {$table_name} WHERE {$where_sql} GROUP BY event_type";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin analytics reads from LibreFunnels' local events table.
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is assembled from fixed SQL fragments and prepared placeholders.
+			$wpdb->prepare( $counts_sql, $params ),
+			ARRAY_A
+		);
+
+		$events = array(
+			'offer_impression' => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+			'offer_accept'     => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+			'offer_reject'     => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+			'order_revenue'    => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+		);
+
+		foreach ( $rows as $row ) {
+			$event_type = isset( $row['event_type'] ) ? sanitize_key( (string) $row['event_type'] ) : '';
+
+			if ( ! isset( $events[ $event_type ] ) ) {
+				$events[ $event_type ] = array(
+					'count' => 0,
+					'value' => 0.0,
+				);
+			}
+
+			$events[ $event_type ] = array(
+				'count' => isset( $row['event_count'] ) ? absint( $row['event_count'] ) : 0,
+				'value' => isset( $row['event_value'] ) ? (float) $row['event_value'] : 0.0,
+			);
+		}
+
+		$accept_count     = $events['offer_accept']['count'];
+		$impression_count = $events['offer_impression']['count'];
+
+		return array(
+			'period'          => array(
+				'days'  => $days,
+				'since' => $since,
+			),
+			'funnelId'        => $funnel_id,
+			'events'          => $events,
+			'revenue'         => $events['order_revenue']['value'],
+			'orders'          => $events['order_revenue']['count'],
+			'offerAcceptRate' => $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0,
+		);
 	}
 
 	/**

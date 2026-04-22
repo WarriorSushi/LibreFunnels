@@ -31,6 +31,21 @@ async function loginToWordPress( page ) {
 	}
 }
 
+async function createFunnelFromCanvasButton( page ) {
+	await page.getByRole( 'button', { name: 'Create funnel' } ).first().click();
+	await expect( page.getByText( 'Funnel created' ) ).toBeVisible();
+
+	const selectedFunnelId = await page.evaluate( () =>
+		Number( window.localStorage.getItem( 'librefunnels.selectedFunnelId' ) || 0 )
+	);
+
+	expect( selectedFunnelId ).toBeGreaterThan( 0 );
+	await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+	await expect( page.getByRole( 'button', { name: 'Build checkout path' } ) ).toBeVisible();
+
+	return selectedFunnelId;
+}
+
 async function createPublishedFunnelPages( page, options = {} ) {
 	const includeOffer = Boolean( options.includeOffer );
 	const stamp = Date.now();
@@ -218,8 +233,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 	test( 'creates a checkout funnel with a page, products, and an order bump', async ( { page } ) => {
 		await expect( page.getByText( 'Build funnels with clarity, not clutter.' ) ).toHaveCount( 0 );
 
-		await page.getByRole( 'button', { name: 'Create funnel' } ).first().click();
-		await expect( page.getByText( 'Funnel created' ) ).toBeVisible();
+		await createFunnelFromCanvasButton( page );
 
 		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
 		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();
@@ -267,6 +281,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.mouse.down();
 		await page.mouse.move( beforeDrag.x + 120, beforeDrag.y + 48, { steps: 8 } );
 		await page.mouse.up();
+		await expect( page.getByText( 'Canvas saved' ) ).toBeVisible();
 
 		const afterDrag = await checkoutNode.boundingBox();
 		expect( afterDrag.x ).toBeGreaterThan( beforeDrag.x + 60 );
@@ -304,8 +319,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 	} );
 
 	test( 'keeps imported broken routes visible and selectable', async ( { page } ) => {
-		await page.getByRole( 'button', { name: 'Create funnel' } ).first().click();
-		await expect( page.getByText( 'Funnel created' ) ).toBeVisible();
+		await createFunnelFromCanvasButton( page );
 
 		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
 		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();

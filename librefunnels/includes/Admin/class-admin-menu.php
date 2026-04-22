@@ -240,11 +240,12 @@ final class Admin_Menu {
 			'rootId'    => 'librefunnels-admin-app',
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'rest'      => array(
-				'funnels'  => '/wp/v2/librefunnels-funnels',
-				'steps'    => '/wp/v2/librefunnels-steps',
-				'canvas'   => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
-				'pages'    => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/pages',
-				'products' => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/products',
+				'funnels'   => '/wp/v2/librefunnels-funnels',
+				'steps'     => '/wp/v2/librefunnels-steps',
+				'canvas'    => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
+				'pages'     => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/pages',
+				'products'  => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/products',
+				'analytics' => '/' . Analytics_REST_Controller::REST_NAMESPACE . '/analytics/summary',
 			),
 			'metaKeys'  => array(
 				'graph'        => LIBREFUNNELS_FUNNEL_GRAPH_META,

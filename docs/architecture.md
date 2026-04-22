@@ -153,11 +153,11 @@ Configured order bump discounts are applied during WooCommerce cart total calcul
 
 Pre-checkout offer steps store their primary product offer in `_librefunnels_step_offer`. The default offer step template renders a product-led accept/reject page, protects actions with a step-scoped nonce, adds accepted pre-checkout offers to the WooCommerce cart, and then resolves the funnel's `accept` or `reject` route through the routing core. The target step must have `_librefunnels_step_page_id` assigned so the handler can redirect to the correct public page.
 
-Offer accept/reject actions are recorded in the WooCommerce customer session under `librefunnels_offer_actions`. This state is intentionally small and customer-scoped: step ID, offer ID, action, and timestamp. It gives later analytics, replay protection, and post-purchase flows a single state source without writing tracking data to orders or custom tables too early.
+Offer accept/reject actions are recorded in the WooCommerce customer session under `librefunnels_offer_actions`. This state is intentionally small and customer-scoped: step ID, offer ID, action, and timestamp. It gives replay protection, post-purchase flows, and analytics a single state source without storing sensitive customer behavior remotely.
 
 When WooCommerce creates order line items, LibreFunnels copies order bump and pre-checkout offer attribution from marked cart items onto the line item through WooCommerce's order item object API. This stores offer/bump ID, source step ID, discount type, discount amount, and original price without direct order postmeta access.
 
-Analytics events are a separate Phase 3/6 slice. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
+Checkout products added by LibreFunnels are also marked in the cart and copied onto order line items with checkout step ID and funnel ID metadata. Revenue attribution reads those line item markers through WooCommerce order item CRUD APIs after checkout order creation. Offer logic must continue to use WooCommerce product/cart/order APIs. Direct order post or postmeta access is not allowed because the payment and post-purchase phases must remain HPOS-compatible.
 
 ## Rule Core
 The first rule engine is pure PHP and evaluates structured rule trees against supplied facts. WooCommerce state is collected by a separate fact collector so conditional routing stays testable and prevents hidden cart/order mutation inside rule evaluation.
@@ -222,5 +222,8 @@ Initial events:
 - `offer_impression`
 - `offer_accept`
 - `offer_reject`
+- `order_revenue`
 
-Events store funnel ID, step ID, route, offer object ID, optional value/currency, a hashed WooCommerce session identifier when available, customer ID for logged-in users, JSON context, and UTC timestamp. High-volume dashboard queries will later read from this table rather than scanning orders or post meta.
+Events store funnel ID, step ID, route, object type/ID, optional value/currency, a hashed WooCommerce session identifier when available, customer ID for logged-in users, JSON context, and UTC timestamp. `order_revenue` is recorded once per WooCommerce order per attributed funnel after checkout order processing. The recorder groups attributed order lines by funnel, stores line sources in event context, and marks the order through WooCommerce CRUD metadata to prevent duplicates while remaining HPOS-compatible.
+
+Admin analytics reads are exposed through `GET /wp-json/librefunnels/v1/analytics/summary` behind `manage_woocommerce`. The first summary returns event counts, attributed revenue, order count, and offer accept rate for a selected period and optional funnel ID. Dashboard UI should read this local endpoint instead of scanning WooCommerce orders or calling external analytics services.

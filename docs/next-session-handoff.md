@@ -48,6 +48,7 @@ Implemented so far:
 - Order bump attribution copied onto WooCommerce order line item metadata through WooCommerce item objects.
 - Pre-checkout offer step metadata, import/export normalization, frontend template, accept/reject POST handler, route redirects, cart add, discount support, and line item attribution.
 - Customer-scoped offer accept/reject state stored in WooCommerce session for replay protection and future analytics.
+- Checkout product line item attribution copied from LibreFunnels-added cart items onto WooCommerce order items.
 - Pure rule evaluator with `all`, `any`, cart product, cart subtotal, customer login, and always rules.
 - WooCommerce fact collector for cart product IDs, variation IDs, subtotal, item count, and logged-in state.
 - Conditional graph route resolution using edge rule objects and existing fallback behavior.
@@ -74,7 +75,9 @@ Implemented so far:
 - Order bump controls now support multiple bump cards with quantity, variation ID, variation attributes, title, description, discount, and enabled state.
 - Commerce inspector sections now show dirty badges and explicit save reminders before local edits are persisted.
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
-- Local analytics event table and recorder for offer impressions, accepts, and rejects.
+- Local analytics event table and recorder for offer impressions, accepts, rejects, and attributed order revenue.
+- WooCommerce checkout order revenue attribution that groups marked order lines by funnel, records `order_revenue` events, and marks orders through WooCommerce CRUD metadata for HPOS-safe idempotency.
+- Capability-guarded analytics summary REST endpoint for local dashboard reads.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
 - Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
@@ -95,9 +98,9 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add revenue attribution events when WooCommerce order creation finalizes.
-2. Add dashboard reads from the local analytics table.
-3. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
+1. Surface analytics summaries in the React admin experience with beginner-friendly empty states.
+2. Add a full checkout order creation smoke that verifies `order_revenue` appears through the analytics summary endpoint.
+3. Add REST/integration tests for canvas and analytics endpoints once a WP test runtime is available.
 4. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
 5. Add database import service with nonces/capabilities once the admin flow exists.
 6. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.

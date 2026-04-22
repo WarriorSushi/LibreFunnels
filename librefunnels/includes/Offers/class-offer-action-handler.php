@@ -149,6 +149,7 @@ final class Offer_Action_Handler {
 		$quantity     = max( 1, absint( $offer['quantity'] ) );
 		$variation    = isset( $offer['variation'] ) && is_array( $offer['variation'] ) ? $offer['variation'] : array();
 		$product      = wc_get_product( $variation_id ? $variation_id : $product_id );
+		$funnel_id    = absint( get_post_meta( absint( $step_id ), LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) );
 
 		if ( $this->cart_contains_offer( $step_id, $offer['id'] ) ) {
 			return true;
@@ -163,6 +164,7 @@ final class Offer_Action_Handler {
 				'librefunnels_pre_checkout_offer' => true,
 				'librefunnels_offer_id'           => $offer['id'],
 				'librefunnels_offer_step_id'      => absint( $step_id ),
+				'librefunnels_funnel_id'          => $funnel_id,
 				'librefunnels_discount_type'      => $offer['discount_type'],
 				'librefunnels_discount_amount'    => $offer['discount_amount'],
 				'librefunnels_original_price'     => $product && method_exists( $product, 'get_price' ) ? (float) $product->get_price( 'edit' ) : 0.0,

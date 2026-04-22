@@ -157,6 +157,7 @@ final class Order_Bump_Handler {
 		$quantity     = max( 1, absint( $bump['quantity'] ) );
 		$variation    = isset( $bump['variation'] ) && is_array( $bump['variation'] ) ? $bump['variation'] : array();
 		$product      = wc_get_product( $variation_id ? $variation_id : $product_id );
+		$funnel_id    = absint( get_post_meta( absint( $step_id ), LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) );
 
 		$cart_item_key = $woocommerce->cart->add_to_cart(
 			$product_id,
@@ -167,6 +168,7 @@ final class Order_Bump_Handler {
 				'librefunnels_order_bump'         => true,
 				'librefunnels_order_bump_id'      => $bump['id'],
 				'librefunnels_order_bump_step_id' => absint( $step_id ),
+				'librefunnels_funnel_id'          => $funnel_id,
 				'librefunnels_discount_type'      => $bump['discount_type'],
 				'librefunnels_discount_amount'    => $bump['discount_amount'],
 				'librefunnels_original_price'     => $product && method_exists( $product, 'get_price' ) ? (float) $product->get_price( 'edit' ) : 0.0,

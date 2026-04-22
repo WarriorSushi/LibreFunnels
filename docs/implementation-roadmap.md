@@ -68,7 +68,7 @@
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, and setup progress naming the remaining launch tasks. Backend work should continue where the canvas needs it, especially dashboard reads from local analytics and revenue attribution.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, and setup progress naming the remaining launch tasks. Backend work should continue where the canvas needs it, especially presenting analytics summaries in the admin experience and extending public routing/runtime facts.
 
 ## Phase 5: Payments
 - Gateway adapter API
@@ -82,7 +82,8 @@ Phase 4 remains the active product track, with the commerce-aware inspector now 
   - Local events table
   - Offer impression events
   - Offer accept/reject events
-- Revenue attribution
+- Revenue attribution from WooCommerce order line items
+- Capability-guarded analytics summary REST reads
 - A/B testing
 - Step analytics
 - Dashboard reports

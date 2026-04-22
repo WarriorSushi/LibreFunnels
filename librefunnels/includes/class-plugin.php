@@ -8,9 +8,11 @@
 namespace LibreFunnels;
 
 use LibreFunnels\Admin\Admin_Menu;
+use LibreFunnels\Admin\Analytics_REST_Controller;
 use LibreFunnels\Admin\Canvas_REST_Controller;
 use LibreFunnels\Analytics\Event_Recorder;
 use LibreFunnels\Analytics\Event_Store;
+use LibreFunnels\Analytics\Revenue_Attribution;
 use LibreFunnels\Blocks\Block_Registry;
 use LibreFunnels\Checkout\Checkout_Field_Customizer;
 use LibreFunnels\Checkout\Global_Checkout;
@@ -127,6 +129,7 @@ final class Plugin {
 		( new Order_Bump_Order_Metadata() )->register();
 		( new Offer_Action_Handler() )->register();
 		( new Event_Recorder() )->register();
+		( new Revenue_Attribution() )->register();
 		Event_Store::maybe_install();
 
 		if ( is_admin() ) {
@@ -134,6 +137,7 @@ final class Plugin {
 		}
 
 		( new Canvas_REST_Controller() )->register();
+		( new Analytics_REST_Controller() )->register();
 	}
 
 	/**

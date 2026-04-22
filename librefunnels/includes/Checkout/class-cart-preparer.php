@@ -69,6 +69,8 @@ final class Cart_Preparer {
 			if ( ! $cart_item_key ) {
 				return new \WP_Error( 'add_to_cart_failed', __( 'LibreFunnels could not add an assigned product to the cart.', 'librefunnels' ) );
 			}
+
+			$this->add_checkout_attribution_to_cart_item( $cart_item_key, $step_id );
 		}
 
 		$coupon_result = $this->apply_step_coupons( $step_id );
@@ -78,6 +80,28 @@ final class Cart_Preparer {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Adds LibreFunnels checkout attribution to a cart item.
+	 *
+	 * @param string $cart_item_key Cart item key.
+	 * @param int    $step_id       Checkout step ID.
+	 * @return void
+	 */
+	private function add_checkout_attribution_to_cart_item( $cart_item_key, $step_id ) {
+		$woocommerce = WC();
+
+		if ( ! $woocommerce || ! $woocommerce->cart || ! isset( $woocommerce->cart->cart_contents[ $cart_item_key ] ) ) {
+			return;
+		}
+
+		$step_id   = absint( $step_id );
+		$funnel_id = absint( get_post_meta( $step_id, LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) );
+
+		$woocommerce->cart->cart_contents[ $cart_item_key ]['librefunnels_checkout_product'] = true;
+		$woocommerce->cart->cart_contents[ $cart_item_key ]['librefunnels_checkout_step_id'] = $step_id;
+		$woocommerce->cart->cart_contents[ $cart_item_key ]['librefunnels_funnel_id']        = $funnel_id;
 	}
 
 	/**
