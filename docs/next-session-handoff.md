@@ -75,7 +75,7 @@ Implemented so far:
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, product search, and offer saving.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, and offer saving.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -94,7 +94,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Expand Playwright coverage for broken-route validation states and public checkout/offer rendering.
+1. Expand Playwright coverage for public checkout/offer rendering.
 2. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
 3. Add revenue attribution events when WooCommerce order creation finalizes.
 4. Add dashboard reads from the local analytics table.

@@ -110,4 +110,43 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Save offer' } ).click();
 		await expect( page.getByText( 'Step saved' ) ).toBeVisible();
 	} );
+
+	test( 'keeps imported broken routes visible and selectable', async ( { page } ) => {
+		await page.getByRole( 'button', { name: 'Create funnel' } ).first().click();
+		await expect( page.getByText( 'Funnel created' ) ).toBeVisible();
+
+		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
+		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: 'Checkout', exact: true } ) ).toBeVisible();
+
+		await page.evaluate( async () => {
+			const apiFetch = window.wp.apiFetch;
+			const canvasPath = window.libreFunnelsAdmin.rest.canvas;
+			const workspace = await apiFetch( { path: canvasPath } );
+			const funnel = workspace.funnels[ 0 ];
+			const brokenGraph = {
+				...funnel.graph,
+				edges: funnel.graph.edges.map( ( edge, index ) =>
+					index === 0 ? { ...edge, target: 'missing-node' } : edge
+				),
+			};
+
+			await apiFetch( {
+				path: `${ canvasPath }/funnels/${ funnel.id }/graph`,
+				method: 'POST',
+				data: {
+					graph: brokenGraph,
+					start_step_id: funnel.startStepId,
+				},
+			} );
+		} );
+
+		await page.reload();
+		await expect( page.getByText( 'Canvas Builder' ).first() ).toBeVisible();
+		await expect( page.getByRole( 'button', { name: /Broken route/ } ) ).toBeVisible();
+
+		await page.getByRole( 'button', { name: /Broken route/ } ).click();
+		await expect( page.getByRole( 'heading', { name: 'Continue' } ) ).toBeVisible();
+		await expect( page.getByText( 'Target step is missing.' ) ).toBeVisible();
+	} );
 } );
