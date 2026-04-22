@@ -242,6 +242,8 @@ final class Admin_Menu {
 			'rest'      => array(
 				'funnels' => '/wp/v2/librefunnels-funnels',
 				'steps'   => '/wp/v2/librefunnels-steps',
+				'canvas'  => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
+				'pages'   => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/pages',
 			),
 			'metaKeys'  => array(
 				'graph'        => LIBREFUNNELS_FUNNEL_GRAPH_META,

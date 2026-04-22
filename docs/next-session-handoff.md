@@ -56,6 +56,13 @@ Implemented so far:
 - `@wordpress/scripts` build tooling with committed build assets.
 - Funnel list, create funnel action, step creation, start step assignment, node canvas, route edges, and inspector editing.
 - Canvas validation for missing start step, missing page assignment, missing/foreign step nodes, broken edge endpoints, and incomplete conditional rules.
+- Custom `librefunnels/v1` canvas REST endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation.
+- Draggable node positioning with persisted graph coordinates.
+- Explicit route source/target/label selectors and route delete control.
+- Page search/create-and-assign controls instead of raw page ID entry.
+- Store-owner-friendly conditional rule builder for supported rule types.
+- Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
+- Local analytics event table and recorder for offer impressions, accepts, and rejects.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -73,17 +80,15 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Improve the canvas editing loop with draggable node positioning, explicit source/target selectors for routes, delete/archive controls, and optimistic save feedback.
-2. Replace raw page ID entry with a WordPress page search/selector and clear "create page" path.
-3. Replace raw conditional JSON with a store-owner-friendly rule builder using the existing rule engine schema.
-4. Add custom REST endpoints for canvas save/load if the generic post endpoints become too awkward for validation or bulk updates.
-5. Add safe upsell/downsell accept-and-confirm flow foundation for arbitrary gateways.
-6. Add cross-sell/pre-checkout offer variants and placement rules.
-7. Add offer analytics events for impressions, accepts, rejects, and revenue attribution.
-8. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-9. Add focused tests for meta sanitization, step type validation, and the WordPress-facing router once a WP test runtime is available.
-10. Add database import service with nonces/capabilities once the admin flow exists.
-11. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
+1. Add product search controls to offer and rule panels so store owners do not type product IDs.
+2. Add offer configuration panels for checkout products, bumps, upsells, downsells, and cross-sells from the canvas inspector.
+3. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
+4. Add browser testing against a local WordPress site for canvas mount, drag save, page creation, route edits, and rule builder.
+5. Add revenue attribution events when WooCommerce order creation finalizes.
+6. Add dashboard reads from the local analytics table.
+7. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
+8. Add database import service with nonces/capabilities once the admin flow exists.
+9. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

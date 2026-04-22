@@ -196,6 +196,25 @@ The first React canvas uses WordPress REST-enabled CPTs and registered meta as i
 - Edit step title, type, and page ID.
 - Store conditional edge rule objects.
 
+Canvas writes now use first-party REST endpoints under `librefunnels/v1` for atomic builder actions. The generic WordPress post endpoints remain useful for compatibility, but the builder uses dedicated endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation. This keeps validation and error messages aligned with funnel concepts instead of raw post-meta failures.
+
 Validation is visible in the canvas and inspector. Missing start steps, missing page assignments, nodes that point to missing or foreign steps, broken edge source/target IDs, and incomplete conditional rules stay visible instead of being hidden. The design direction remains store-owner-first refined SaaS: calm, explicit, and powerful without becoming a WordPress meta-box maze.
 
 The JavaScript app is built with `@wordpress/scripts` from `librefunnels/src/index.js`. Built files under `librefunnels/build/` are committed so WordPress installs do not require Node tooling.
+
+Canvas interaction expectations:
+- Nodes can be dragged and saved back to graph position metadata.
+- Route source, target, and label are edited through explicit selectors.
+- Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
+- Step page assignment uses page search and a draft page creation path that inserts the `[librefunnels_step]` shortcode.
+- Route deletion and step archiving are recoverable builder actions rather than silent data removal.
+
+## Analytics Core
+LibreFunnels records first-party analytics in a local custom table, never to a remote service. The initial table is `{$wpdb->prefix}librefunnels_events`, installed through the plugin activation path and schema-version checks during boot.
+
+Initial events:
+- `offer_impression`
+- `offer_accept`
+- `offer_reject`
+
+Events store funnel ID, step ID, route, offer object ID, optional value/currency, a hashed WooCommerce session identifier when available, customer ID for logged-in users, JSON context, and UTC timestamp. High-volume dashboard queries will later read from this table rather than scanning orders or post meta.

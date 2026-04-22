@@ -54,6 +54,11 @@
   - Route edges for `next`, `accept`, `reject`, `conditional`, and `fallback`
   - Right-side inspector for funnel, step, and route editing
   - Inline validation for missing start step, page assignment, broken routes, and conditional rule gaps
+  - Draggable node positioning saved to graph metadata
+  - Atomic `librefunnels/v1` REST endpoints for canvas workspace actions
+  - Page search and draft page creation for step assignment
+  - Store-owner-friendly conditional rule builder
+  - Recoverable step archive and route delete controls
 - Smart routing
 - Validation UI
 
@@ -68,6 +73,9 @@ Phase 4 is now the active product track. Backend work should continue where the 
 
 ## Phase 6: Analytics and Testing
 - Event tracking
+  - Local events table
+  - Offer impression events
+  - Offer accept/reject events
 - Revenue attribution
 - A/B testing
 - Step analytics

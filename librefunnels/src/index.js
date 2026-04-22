@@ -1,6 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
-import { render, useEffect, useMemo, useState } from '@wordpress/element';
+import { render, useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import './style.css';
 
 const settings = window.libreFunnelsAdmin || {};
@@ -9,9 +9,10 @@ if ( settings.nonce && apiFetch.createNonceMiddleware ) {
 	apiFetch.use( apiFetch.createNonceMiddleware( settings.nonce ) );
 }
 
-const metaKeys = settings.metaKeys || {};
 const stepTypes = settings.stepTypes || {};
 const routes = settings.routes || {};
+const canvasPath = settings.rest?.canvas || '/librefunnels/v1/canvas';
+const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
 
 const emptyGraph = {
 	version: 1,
@@ -27,6 +28,14 @@ const routeClassNames = {
 	fallback: 'fallback',
 };
 
+const ruleLabels = {
+	always: __( 'Always match', 'librefunnels' ),
+	cart_contains_product: __( 'Cart contains product', 'librefunnels' ),
+	cart_subtotal_gte: __( 'Cart subtotal is at least', 'librefunnels' ),
+	cart_subtotal_lte: __( 'Cart subtotal is at most', 'librefunnels' ),
+	customer_logged_in: __( 'Customer is logged in', 'librefunnels' ),
+};
+
 function getPostTitle( post, fallback ) {
 	if ( post?.title?.raw ) {
 		return post.title.raw;
@@ -36,33 +45,20 @@ function getPostTitle( post, fallback ) {
 		return post.title.rendered.replace( /<[^>]+>/g, '' );
 	}
 
+	if ( post?.title ) {
+		return post.title;
+	}
+
 	return fallback;
 }
 
-function getMeta( post, key, fallback = '' ) {
-	return post?.meta && Object.prototype.hasOwnProperty.call( post.meta, key ) ? post.meta[ key ] : fallback;
-}
-
 function getGraph( funnel ) {
-	const graph = getMeta( funnel, metaKeys.graph, emptyGraph );
-
-	if ( ! graph || typeof graph !== 'object' ) {
-		return emptyGraph;
-	}
+	const graph = funnel?.graph || emptyGraph;
 
 	return {
 		version: 1,
 		nodes: Array.isArray( graph.nodes ) ? graph.nodes : [],
 		edges: Array.isArray( graph.edges ) ? graph.edges : [],
-	};
-}
-
-function updatePostMeta( post, meta ) {
-	return {
-		meta: {
-			...( post?.meta || {} ),
-			...meta,
-		},
 	};
 }
 
@@ -88,11 +84,11 @@ function getNodeWarnings( node, steps, selectedFunnel ) {
 		return warnings;
 	}
 
-	if ( Number( getMeta( step, metaKeys.stepFunnelId, 0 ) ) !== Number( selectedFunnel.id ) ) {
+	if ( Number( step.funnelId ) !== Number( selectedFunnel.id ) ) {
 		warnings.push( __( 'This step belongs to another funnel.', 'librefunnels' ) );
 	}
 
-	if ( Number( getMeta( step, metaKeys.stepPageId, 0 ) ) < 1 ) {
+	if ( Number( step.pageId ) < 1 ) {
 		warnings.push( __( 'Assign a page before sending shoppers here.', 'librefunnels' ) );
 	}
 
@@ -103,11 +99,11 @@ function getEdgeWarnings( edge, nodes ) {
 	const warnings = [];
 
 	if ( ! nodes.some( ( node ) => node.id === edge.source ) ) {
-		warnings.push( __( 'Source node is missing.', 'librefunnels' ) );
+		warnings.push( __( 'Source step is missing.', 'librefunnels' ) );
 	}
 
 	if ( ! nodes.some( ( node ) => node.id === edge.target ) ) {
-		warnings.push( __( 'Target node is missing.', 'librefunnels' ) );
+		warnings.push( __( 'Target step is missing.', 'librefunnels' ) );
 	}
 
 	if ( edge.route === 'conditional' && ! edge.rule?.type ) {
@@ -117,19 +113,40 @@ function getEdgeWarnings( edge, nodes ) {
 	return warnings;
 }
 
+function createRuleFromType( type, previous = {} ) {
+	if ( type === 'cart_contains_product' ) {
+		return {
+			type,
+			product_id: Number( previous.product_id || 0 ),
+		};
+	}
+
+	if ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' ) {
+		return {
+			type,
+			amount: Number( previous.amount || 0 ),
+		};
+	}
+
+	return { type };
+}
+
 function App() {
 	const [ funnels, setFunnels ] = useState( [] );
 	const [ steps, setSteps ] = useState( [] );
+	const [ pages, setPages ] = useState( [] );
 	const [ selectedFunnelId, setSelectedFunnelId ] = useState( 0 );
 	const [ selectedItem, setSelectedItem ] = useState( { type: 'funnel' } );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSaving, setIsSaving ] = useState( false );
+	const [ notice, setNotice ] = useState( '' );
 	const [ error, setError ] = useState( '' );
+	const [ dragging, setDragging ] = useState( null );
 
 	const selectedFunnel = funnels.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnelId ) );
 	const graph = selectedFunnel ? getGraph( selectedFunnel ) : emptyGraph;
 	const funnelSteps = useMemo(
-		() => steps.filter( ( step ) => Number( getMeta( step, metaKeys.stepFunnelId, 0 ) ) === Number( selectedFunnelId ) ),
+		() => steps.filter( ( step ) => Number( step.funnelId ) === Number( selectedFunnelId ) ),
 		[ steps, selectedFunnelId ]
 	);
 
@@ -137,27 +154,78 @@ function App() {
 		loadWorkspace();
 	}, [] );
 
+	useEffect( () => {
+		if ( ! dragging ) {
+			return undefined;
+		}
+
+		function handleMove( event ) {
+			const nextGraph = {
+				...dragging.graph,
+				nodes: dragging.graph.nodes.map( ( node ) => {
+					if ( node.id !== dragging.nodeId ) {
+						return node;
+					}
+
+					return {
+						...node,
+						position: {
+							x: Math.max( 24, dragging.origin.x + event.clientX - dragging.pointer.x ),
+							y: Math.max( 24, dragging.origin.y + event.clientY - dragging.pointer.y ),
+						},
+					};
+				} ),
+			};
+
+			updateLocalGraph( nextGraph );
+			setDragging( {
+				...dragging,
+				nextGraph,
+			} );
+		}
+
+		function handleUp() {
+			const graphToSave = dragging.nextGraph || dragging.graph;
+			setDragging( null );
+			saveGraph( graphToSave, Number( selectedFunnel?.startStepId || 0 ), { optimistic: true } );
+		}
+
+		window.addEventListener( 'pointermove', handleMove );
+		window.addEventListener( 'pointerup', handleUp, { once: true } );
+
+		return () => {
+			window.removeEventListener( 'pointermove', handleMove );
+			window.removeEventListener( 'pointerup', handleUp );
+		};
+	}, [ dragging, selectedFunnel?.startStepId ] );
+
+	function applyWorkspace( payload, preferredFunnelId = selectedFunnelId ) {
+		const workspace = payload?.workspace || payload || {};
+		const nextFunnels = Array.isArray( workspace.funnels ) ? workspace.funnels : [];
+		const nextSteps = Array.isArray( workspace.steps ) ? workspace.steps : [];
+		const nextPages = Array.isArray( workspace.pages ) ? workspace.pages : pages;
+		const candidateId = Number( workspace.selectedFunnelId || preferredFunnelId );
+
+		setFunnels( nextFunnels );
+		setSteps( nextSteps );
+		setPages( nextPages );
+
+		if ( nextFunnels.length > 0 ) {
+			const stillExists = nextFunnels.some( ( funnel ) => Number( funnel.id ) === Number( candidateId ) );
+			setSelectedFunnelId( stillExists ? candidateId : nextFunnels[ 0 ].id );
+		} else {
+			setSelectedFunnelId( 0 );
+		}
+	}
+
 	async function loadWorkspace( preferredFunnelId = selectedFunnelId ) {
 		setIsLoading( true );
 		setError( '' );
 
 		try {
-			const [ nextFunnels, nextSteps ] = await Promise.all( [
-				apiFetch( { path: `${ settings.rest.funnels }?per_page=100&context=edit` } ),
-				apiFetch( { path: `${ settings.rest.steps }?per_page=100&context=edit` } ),
-			] );
-			const safeFunnels = Array.isArray( nextFunnels ) ? nextFunnels : [];
-			const safeSteps = Array.isArray( nextSteps ) ? nextSteps : [];
-
-			setFunnels( safeFunnels );
-			setSteps( safeSteps );
-
-			if ( safeFunnels.length > 0 ) {
-				const stillExists = safeFunnels.some( ( funnel ) => Number( funnel.id ) === Number( preferredFunnelId ) );
-				const nextSelectedId = stillExists ? preferredFunnelId : safeFunnels[ 0 ].id;
-				setSelectedFunnelId( nextSelectedId );
-				setSelectedItem( { type: 'funnel' } );
-			}
+			const workspace = await apiFetch( { path: canvasPath } );
+			applyWorkspace( workspace, preferredFunnelId );
+			setSelectedItem( { type: 'funnel' } );
 		} catch ( nextError ) {
 			setError( nextError.message || __( 'LibreFunnels could not load the workspace.', 'librefunnels' ) );
 		} finally {
@@ -165,41 +233,79 @@ function App() {
 		}
 	}
 
-	async function createFunnel() {
+	async function runSave( action, successMessage ) {
 		setIsSaving( true );
 		setError( '' );
+		setNotice( __( 'Saving...', 'librefunnels' ) );
 
 		try {
-			const funnel = await apiFetch( {
-				path: settings.rest.funnels,
-				method: 'POST',
-				data: {
-					title: __( 'New checkout funnel', 'librefunnels' ),
-					status: 'draft',
-					meta: {
-						[ metaKeys.graph ]: emptyGraph,
-						[ metaKeys.startStepId ]: 0,
-					},
-				},
-			} );
-
-			await loadWorkspace( funnel.id );
+			const payload = await action();
+			applyWorkspace( payload );
+			setNotice( successMessage || __( 'Saved', 'librefunnels' ) );
+			return payload;
 		} catch ( nextError ) {
-			setError( nextError.message || __( 'LibreFunnels could not create the funnel.', 'librefunnels' ) );
+			setNotice( '' );
+			setError( nextError.message || __( 'LibreFunnels could not save this change.', 'librefunnels' ) );
+			return null;
 		} finally {
 			setIsSaving( false );
 		}
 	}
 
-	async function saveFunnelMeta( funnel, meta ) {
-		const updated = await apiFetch( {
-			path: `${ settings.rest.funnels }/${ funnel.id }`,
-			method: 'POST',
-			data: updatePostMeta( funnel, meta ),
-		} );
+	async function createFunnel() {
+		const payload = await runSave(
+			() =>
+				apiFetch( {
+					path: `${ canvasPath }/funnels`,
+					method: 'POST',
+					data: {
+						title: __( 'New checkout funnel', 'librefunnels' ),
+					},
+				} ),
+			__( 'Funnel created', 'librefunnels' )
+		);
 
-		setFunnels( ( current ) => current.map( ( item ) => ( item.id === updated.id ? updated : item ) ) );
-		return updated;
+		if ( payload?.selectedFunnelId ) {
+			setSelectedFunnelId( payload.selectedFunnelId );
+			setSelectedItem( { type: 'funnel' } );
+		}
+	}
+
+	function updateLocalGraph( nextGraph ) {
+		if ( ! selectedFunnel ) {
+			return;
+		}
+
+		setFunnels( ( current ) =>
+			current.map( ( funnel ) =>
+				Number( funnel.id ) === Number( selectedFunnel.id )
+					? {
+							...funnel,
+							graph: nextGraph,
+					  }
+					: funnel
+			)
+		);
+	}
+
+	async function saveGraph( nextGraph, nextStartStepId = Number( selectedFunnel?.startStepId || 0 ), options = {} ) {
+		if ( ! selectedFunnel ) {
+			return null;
+		}
+
+		updateLocalGraph( nextGraph );
+		return runSave(
+			() =>
+				apiFetch( {
+					path: `${ canvasPath }/funnels/${ selectedFunnel.id }/graph`,
+					method: 'POST',
+					data: {
+						graph: nextGraph,
+						start_step_id: nextStartStepId,
+					},
+				} ),
+			options.optimistic ? __( 'Canvas saved', 'librefunnels' ) : __( 'Route saved', 'librefunnels' )
+		);
 	}
 
 	async function createStep( type = 'checkout' ) {
@@ -207,92 +313,63 @@ function App() {
 			return;
 		}
 
-		setIsSaving( true );
-		setError( '' );
+		const position = {
+			x: 120 + graph.nodes.length * 260,
+			y: 140 + ( graph.nodes.length % 2 ) * 150,
+		};
 
-		try {
-			const order = funnelSteps.length + 1;
-			const step = await apiFetch( {
-				path: settings.rest.steps,
-				method: 'POST',
-				data: {
-					title: stepTypes[ type ] || __( 'New step', 'librefunnels' ),
-					status: 'draft',
-					meta: {
-						[ metaKeys.stepFunnelId ]: selectedFunnel.id,
-						[ metaKeys.stepType ]: type,
-						[ metaKeys.stepOrder ]: order,
-						[ metaKeys.stepPageId ]: 0,
+		const payload = await runSave(
+			() =>
+				apiFetch( {
+					path: `${ canvasPath }/funnels/${ selectedFunnel.id }/steps`,
+					method: 'POST',
+					data: {
+						title: stepTypes[ type ] || __( 'New step', 'librefunnels' ),
+						type,
+						order: funnelSteps.length + 1,
+						page_id: 0,
+						position,
 					},
-				},
-			} );
-			const nextGraph = getGraph( selectedFunnel );
-			const nextNode = {
-				id: `node-${ step.id }`,
-				stepId: step.id,
-				type,
-				position: {
-					x: 120 + nextGraph.nodes.length * 260,
-					y: 140 + ( nextGraph.nodes.length % 2 ) * 150,
-				},
-			};
-			const nextMeta = {
-				[ metaKeys.graph ]: {
-					...nextGraph,
-					nodes: [ ...nextGraph.nodes, nextNode ],
-				},
-			};
+				} ),
+			__( 'Step added', 'librefunnels' )
+		);
 
-			if ( Number( getMeta( selectedFunnel, metaKeys.startStepId, 0 ) ) < 1 ) {
-				nextMeta[ metaKeys.startStepId ] = step.id;
-			}
+		const workspace = payload?.workspace || payload;
+		const latestFunnel = workspace?.funnels?.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnel.id ) );
+		const latestNodes = latestFunnel ? getGraph( latestFunnel ).nodes : [];
+		const latestNode = latestNodes.length > 0 ? latestNodes[ latestNodes.length - 1 ] : null;
 
-			setSteps( ( current ) => [ ...current, step ] );
-			await saveFunnelMeta( selectedFunnel, nextMeta );
-			setSelectedItem( { type: 'node', id: nextNode.id } );
-		} catch ( nextError ) {
-			setError( nextError.message || __( 'LibreFunnels could not create the step.', 'librefunnels' ) );
-		} finally {
-			setIsSaving( false );
+		if ( latestNode ) {
+			setSelectedItem( { type: 'node', id: latestNode.id } );
 		}
 	}
 
 	async function updateStep( step, fields ) {
-		setIsSaving( true );
-		setError( '' );
-
-		try {
-			const updated = await apiFetch( {
-				path: `${ settings.rest.steps }/${ step.id }`,
-				method: 'POST',
-				data: fields,
-			} );
-
-			setSteps( ( current ) => current.map( ( item ) => ( item.id === updated.id ? updated : item ) ) );
-		} catch ( nextError ) {
-			setError( nextError.message || __( 'LibreFunnels could not update the step.', 'librefunnels' ) );
-		} finally {
-			setIsSaving( false );
-		}
+		return runSave(
+			() =>
+				apiFetch( {
+					path: `${ canvasPath }/steps/${ step.id }`,
+					method: 'POST',
+					data: fields,
+				} ),
+			__( 'Step saved', 'librefunnels' )
+		);
 	}
 
-	async function updateGraph( nextGraph ) {
-		if ( ! selectedFunnel ) {
+	async function deleteStep( step ) {
+		if ( ! step ) {
 			return;
 		}
 
-		setIsSaving( true );
-		setError( '' );
-
-		try {
-			await saveFunnelMeta( selectedFunnel, {
-				[ metaKeys.graph ]: nextGraph,
-			} );
-		} catch ( nextError ) {
-			setError( nextError.message || __( 'LibreFunnels could not save the graph.', 'librefunnels' ) );
-		} finally {
-			setIsSaving( false );
-		}
+		await runSave(
+			() =>
+				apiFetch( {
+					path: `${ canvasPath }/steps/${ step.id }`,
+					method: 'DELETE',
+				} ),
+			__( 'Step archived', 'librefunnels' )
+		);
+		setSelectedItem( { type: 'funnel' } );
 	}
 
 	async function createEdge() {
@@ -311,11 +388,49 @@ function App() {
 			rule: {},
 		};
 
-		await updateGraph( {
+		await saveGraph( {
 			...graph,
 			edges: [ ...graph.edges, edge ],
 		} );
 		setSelectedItem( { type: 'edge', id: edge.id } );
+	}
+
+	async function searchPages( searchTerm ) {
+		const suffix = searchTerm ? `?search=${ encodeURIComponent( searchTerm ) }` : '';
+		const nextPages = await apiFetch( { path: `${ pagesPath }${ suffix }` } );
+
+		if ( Array.isArray( nextPages ) ) {
+			setPages( nextPages );
+		}
+	}
+
+	async function createPageForStep( step, title ) {
+		const payload = await runSave(
+			() =>
+				apiFetch( {
+					path: pagesPath,
+					method: 'POST',
+					data: {
+						step_id: step.id,
+						title,
+					},
+				} ),
+			__( 'Page created and assigned', 'librefunnels' )
+		);
+
+		const page = payload?.page;
+
+		if ( page && ! pages.some( ( item ) => Number( item.id ) === Number( page.id ) ) ) {
+			setPages( ( current ) => [ page, ...current ] );
+		}
+	}
+
+	function setStartStep( stepId ) {
+		if ( ! selectedFunnel ) {
+			return;
+		}
+
+		saveGraph( graph, Number( stepId ) );
 	}
 
 	function getValidationSummary() {
@@ -323,8 +438,8 @@ function App() {
 			return [];
 		}
 
-		const warnings = [];
-		const startStepId = Number( getMeta( selectedFunnel, metaKeys.startStepId, 0 ) );
+		const warnings = Array.isArray( selectedFunnel.warnings ) ? [ ...selectedFunnel.warnings ] : [];
+		const startStepId = Number( selectedFunnel.startStepId || 0 );
 
 		if ( startStepId < 1 ) {
 			warnings.push( __( 'Choose a start step so shoppers know where to enter.', 'librefunnels' ) );
@@ -345,6 +460,24 @@ function App() {
 		return [ ...new Set( warnings ) ];
 	}
 
+	function startNodeDrag( event, node ) {
+		if ( event.button !== 0 ) {
+			return;
+		}
+
+		event.preventDefault();
+		setSelectedItem( { type: 'node', id: node.id } );
+		setDragging( {
+			nodeId: node.id,
+			graph,
+			pointer: {
+				x: event.clientX,
+				y: event.clientY,
+			},
+			origin: normalizeNodePosition( node, graph.nodes.findIndex( ( item ) => item.id === node.id ) ),
+		} );
+	}
+
 	return (
 		<div className="wrap librefunnels-canvas-app">
 			<Sidebar
@@ -363,6 +496,7 @@ function App() {
 					selectedFunnel={ selectedFunnel }
 					warnings={ getValidationSummary() }
 					isSaving={ isSaving }
+					notice={ notice }
 					onCreateStep={ createStep }
 					onCreateEdge={ createEdge }
 				/>
@@ -376,6 +510,7 @@ function App() {
 					selectedFunnel={ selectedFunnel }
 					selectedItem={ selectedItem }
 					onSelect={ setSelectedItem }
+					onStartDrag={ startNodeDrag }
 				/>
 			</main>
 
@@ -384,11 +519,15 @@ function App() {
 				selectedFunnel={ selectedFunnel }
 				graph={ graph }
 				steps={ steps }
+				pages={ pages }
 				funnelSteps={ funnelSteps }
 				onSelect={ setSelectedItem }
-				onUpdateGraph={ updateGraph }
+				onSaveGraph={ saveGraph }
 				onUpdateStep={ updateStep }
-				onSaveFunnelMeta={ saveFunnelMeta }
+				onDeleteStep={ deleteStep }
+				onSetStartStep={ setStartStep }
+				onSearchPages={ searchPages }
+				onCreatePageForStep={ createPageForStep }
 				isSaving={ isSaving }
 			/>
 		</div>
@@ -427,7 +566,10 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isSaving } ) 
 								onClick={ () => onSelect( funnel.id ) }
 							>
 								<strong>{ getPostTitle( funnel, __( 'Untitled funnel', 'librefunnels' ) ) }</strong>
-								<span>{ funnel.status }</span>
+								<span>
+									{ funnel.status }
+									{ funnel.warnings?.length ? ` · ${ sprintf( __( '%d issue(s)', 'librefunnels' ), funnel.warnings.length ) }` : '' }
+								</span>
 							</button>
 						) ) }
 					</div>
@@ -437,7 +579,7 @@ function Sidebar( { funnels, selectedFunnelId, onSelect, onCreate, isSaving } ) 
 	);
 }
 
-function Header( { selectedFunnel, warnings, isSaving, onCreateStep, onCreateEdge } ) {
+function Header( { selectedFunnel, warnings, isSaving, notice, onCreateStep, onCreateEdge } ) {
 	return (
 		<header className="lf-canvas-header">
 			<div>
@@ -446,14 +588,20 @@ function Header( { selectedFunnel, warnings, isSaving, onCreateStep, onCreateEdg
 			</div>
 
 			<div className="lf-header-actions">
+				{ notice && <span className="lf-save-state">{ notice }</span> }
 				<span className={ `lf-health ${ warnings.length > 0 ? 'has-warnings' : 'is-clear' }` }>
 					{ warnings.length > 0
 						? sprintf( __( '%d issue(s)', 'librefunnels' ), warnings.length )
 						: __( 'Ready', 'librefunnels' ) }
 				</span>
-				<button className="lf-button" type="button" onClick={ () => onCreateStep() } disabled={ ! selectedFunnel || isSaving }>
-					{ __( 'Add step', 'librefunnels' ) }
-				</button>
+				<div className="lf-add-step-menu">
+					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ ! selectedFunnel || isSaving }>
+						{ __( 'Add checkout', 'librefunnels' ) }
+					</button>
+					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'upsell' ) } disabled={ ! selectedFunnel || isSaving }>
+						{ __( 'Add offer', 'librefunnels' ) }
+					</button>
+				</div>
 				<button className="lf-button" type="button" onClick={ onCreateEdge } disabled={ ! selectedFunnel || isSaving }>
 					{ __( 'Connect route', 'librefunnels' ) }
 				</button>
@@ -462,14 +610,14 @@ function Header( { selectedFunnel, warnings, isSaving, onCreateStep, onCreateEdg
 	);
 }
 
-function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect } ) {
+function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag } ) {
 	const nodes = graph.nodes.map( ( node, index ) => ( {
 		...node,
 		position: normalizeNodePosition( node, index ),
 	} ) );
 	const nodeMap = new Map( nodes.map( ( node ) => [ node.id, node ] ) );
-	const canvasWidth = Math.max( 880, ...nodes.map( ( node ) => node.position.x + 230 ), 880 );
-	const canvasHeight = Math.max( 540, ...nodes.map( ( node ) => node.position.y + 150 ), 540 );
+	const canvasWidth = Math.max( 960, ...nodes.map( ( node ) => node.position.x + 250 ), 960 );
+	const canvasHeight = Math.max( 580, ...nodes.map( ( node ) => node.position.y + 160 ), 580 );
 
 	if ( isLoading ) {
 		return <div className="lf-canvas lf-canvas--empty">{ __( 'Loading your funnel workspace...', 'librefunnels' ) }</div>;
@@ -488,7 +636,7 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 		return (
 			<div className="lf-canvas lf-canvas--empty">
 				<h2>{ __( 'This funnel is ready for its first step.', 'librefunnels' ) }</h2>
-				<p>{ __( 'Add a checkout, offer, or thank-you step. LibreFunnels will keep broken routes visible as you build.', 'librefunnels' ) }</p>
+				<p>{ __( 'Add a checkout, offer, or thank-you step. Broken routes stay visible while you build.', 'librefunnels' ) }</p>
 			</div>
 		);
 	}
@@ -542,8 +690,8 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 			{ nodes.map( ( node ) => {
 				const step = getStepById( steps, node.stepId );
 				const warnings = step ? getNodeWarnings( node, steps, selectedFunnel ) : [ __( 'Missing step', 'librefunnels' ) ];
-				const type = getMeta( step, metaKeys.stepType, node.type || 'custom' );
-				const isStart = Number( getMeta( selectedFunnel, metaKeys.startStepId, 0 ) ) === Number( node.stepId );
+				const type = step?.type || node.type || 'custom';
+				const isStart = Number( selectedFunnel.startStepId || 0 ) === Number( node.stepId );
 
 				return (
 					<button
@@ -552,11 +700,12 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 						type="button"
 						style={ { left: `${ node.position.x }px`, top: `${ node.position.y }px` } }
 						onClick={ () => onSelect( { type: 'node', id: node.id } ) }
+						onPointerDown={ ( event ) => onStartDrag( event, node ) }
 					>
 						<span className="lf-node__type">{ stepTypes[ type ] || type }</span>
 						<strong>{ step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' ) }</strong>
 						<span className="lf-node__meta">
-							{ isStart ? __( 'Start step', 'librefunnels' ) : routes.next }
+							{ isStart ? __( 'Start step', 'librefunnels' ) : step?.pageTitle || __( 'No page assigned', 'librefunnels' ) }
 							{ warnings.length > 0 ? ` · ${ __( 'Needs attention', 'librefunnels' ) }` : '' }
 						</span>
 					</button>
@@ -566,7 +715,9 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 	);
 }
 
-function Inspector( { selectedItem, selectedFunnel, graph, steps, funnelSteps, onSelect, onUpdateGraph, onUpdateStep, onSaveFunnelMeta, isSaving } ) {
+function Inspector( props ) {
+	const { selectedItem, selectedFunnel, graph, steps, funnelSteps } = props;
+
 	if ( ! selectedFunnel ) {
 		return (
 			<aside className="lf-inspector">
@@ -581,46 +732,20 @@ function Inspector( { selectedItem, selectedFunnel, graph, steps, funnelSteps, o
 		const node = graph.nodes.find( ( item ) => item.id === selectedItem.id );
 		const step = node ? getStepById( steps, node.stepId ) : null;
 
-		return (
-			<NodeInspector
-				node={ node }
-				step={ step }
-				selectedFunnel={ selectedFunnel }
-				warnings={ node ? getNodeWarnings( node, steps, selectedFunnel ) : [] }
-				onUpdateStep={ onUpdateStep }
-				onSaveFunnelMeta={ onSaveFunnelMeta }
-				isSaving={ isSaving }
-			/>
-		);
+		return <NodeInspector { ...props } node={ node } step={ step } warnings={ node ? getNodeWarnings( node, steps, selectedFunnel ) : [] } />;
 	}
 
 	if ( selectedItem.type === 'edge' ) {
 		const edge = graph.edges.find( ( item ) => item.id === selectedItem.id );
 
-		return (
-			<EdgeInspector
-				edge={ edge }
-				graph={ graph }
-				onUpdateGraph={ onUpdateGraph }
-				onSelect={ onSelect }
-				isSaving={ isSaving }
-			/>
-		);
+		return <EdgeInspector { ...props } edge={ edge } />;
 	}
 
-	return (
-		<FunnelInspector
-			selectedFunnel={ selectedFunnel }
-			funnelSteps={ funnelSteps }
-			graph={ graph }
-			onSaveFunnelMeta={ onSaveFunnelMeta }
-			isSaving={ isSaving }
-		/>
-	);
+	return <FunnelInspector { ...props } funnelSteps={ funnelSteps } />;
 }
 
-function FunnelInspector( { selectedFunnel, funnelSteps, graph, onSaveFunnelMeta, isSaving } ) {
-	const startStepId = Number( getMeta( selectedFunnel, metaKeys.startStepId, 0 ) );
+function FunnelInspector( { selectedFunnel, funnelSteps, graph, onSetStartStep, isSaving } ) {
+	const startStepId = Number( selectedFunnel.startStepId || 0 );
 
 	return (
 		<aside className="lf-inspector">
@@ -628,11 +753,7 @@ function FunnelInspector( { selectedFunnel, funnelSteps, graph, onSaveFunnelMeta
 			<h2>{ getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) }</h2>
 			<label className="lf-field">
 				<span>{ __( 'Start step', 'librefunnels' ) }</span>
-				<select
-					value={ startStepId }
-					onChange={ ( event ) => onSaveFunnelMeta( selectedFunnel, { [ metaKeys.startStepId ]: Number( event.target.value ) } ) }
-					disabled={ isSaving }
-				>
+				<select value={ startStepId } onChange={ ( event ) => onSetStartStep( event.target.value ) } disabled={ isSaving }>
 					<option value="0">{ __( 'Choose a start step', 'librefunnels' ) }</option>
 					{ funnelSteps.map( ( step ) => (
 						<option key={ step.id } value={ step.id }>
@@ -645,19 +766,30 @@ function FunnelInspector( { selectedFunnel, funnelSteps, graph, onSaveFunnelMeta
 				<strong>{ sprintf( __( '%d node(s)', 'librefunnels' ), graph.nodes.length ) }</strong>
 				<span>{ sprintf( __( '%d route(s)', 'librefunnels' ), graph.edges.length ) }</span>
 			</div>
+			<Warnings warnings={ selectedFunnel.warnings || [] } />
 		</aside>
 	);
 }
 
-function NodeInspector( { node, step, selectedFunnel, warnings, onUpdateStep, onSaveFunnelMeta, isSaving } ) {
+function NodeInspector( {
+	node,
+	step,
+	selectedFunnel,
+	pages,
+	warnings,
+	onUpdateStep,
+	onDeleteStep,
+	onSetStartStep,
+	onSearchPages,
+	onCreatePageForStep,
+	isSaving,
+} ) {
 	const [ title, setTitle ] = useState( step ? getPostTitle( step, '' ) : '' );
-	const [ stepType, setStepType ] = useState( step ? getMeta( step, metaKeys.stepType, node?.type || 'custom' ) : 'custom' );
-	const [ pageId, setPageId ] = useState( step ? Number( getMeta( step, metaKeys.stepPageId, 0 ) ) : 0 );
+	const [ stepType, setStepType ] = useState( step?.type || node?.type || 'custom' );
 
 	useEffect( () => {
 		setTitle( step ? getPostTitle( step, '' ) : '' );
-		setStepType( step ? getMeta( step, metaKeys.stepType, node?.type || 'custom' ) : 'custom' );
-		setPageId( step ? Number( getMeta( step, metaKeys.stepPageId, 0 ) ) : 0 );
+		setStepType( step?.type || node?.type || 'custom' );
 	}, [ step?.id, node?.id ] );
 
 	if ( ! node || ! step ) {
@@ -692,10 +824,14 @@ function NodeInspector( { node, step, selectedFunnel, warnings, onUpdateStep, on
 				</select>
 			</label>
 
-			<label className="lf-field">
-				<span>{ __( 'Assigned page ID', 'librefunnels' ) }</span>
-				<input type="number" min="0" value={ pageId } onChange={ ( event ) => setPageId( Number( event.target.value ) ) } />
-			</label>
+			<PagePicker
+				step={ step }
+				pages={ pages }
+				onSearch={ onSearchPages }
+				onAssign={ ( pageId ) => onUpdateStep( step, { page_id: Number( pageId ) } ) }
+				onCreate={ ( pageTitle ) => onCreatePageForStep( step, pageTitle ) }
+				isSaving={ isSaving }
+			/>
 
 			<div className="lf-action-row">
 				<button
@@ -705,39 +841,80 @@ function NodeInspector( { node, step, selectedFunnel, warnings, onUpdateStep, on
 					onClick={ () =>
 						onUpdateStep( step, {
 							title,
-							meta: {
-								...( step.meta || {} ),
-								[ metaKeys.stepType ]: stepType,
-								[ metaKeys.stepPageId ]: pageId,
-							},
+							type: stepType,
+							page_id: Number( step.pageId || 0 ),
 						} )
 					}
 				>
 					{ __( 'Save step', 'librefunnels' ) }
 				</button>
-				<button
-					className="lf-button"
-					type="button"
-					disabled={ isSaving }
-					onClick={ () => onSaveFunnelMeta( selectedFunnel, { [ metaKeys.startStepId ]: step.id } ) }
-				>
-					{ __( 'Make start', 'librefunnels' ) }
+				<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => onSetStartStep( step.id ) }>
+					{ Number( selectedFunnel.startStepId ) === Number( step.id ) ? __( 'Start step', 'librefunnels' ) : __( 'Make start', 'librefunnels' ) }
 				</button>
 			</div>
+
+			<button className="lf-button lf-button--danger" type="button" disabled={ isSaving } onClick={ () => onDeleteStep( step ) }>
+				{ __( 'Archive step', 'librefunnels' ) }
+			</button>
 		</aside>
 	);
 }
 
-function EdgeInspector( { edge, graph, onUpdateGraph, onSelect, isSaving } ) {
+function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
+	const [ search, setSearch ] = useState( '' );
+	const [ newTitle, setNewTitle ] = useState( step?.title ? `${ step.title } page` : __( 'New funnel page', 'librefunnels' ) );
+	const searchTimer = useRef( null );
+
+	function handleSearch( value ) {
+		setSearch( value );
+		window.clearTimeout( searchTimer.current );
+		searchTimer.current = window.setTimeout( () => onSearch( value ), 250 );
+	}
+
+	return (
+		<div className="lf-panellet">
+			<div>
+				<span className="lf-field-heading">{ __( 'Assigned page', 'librefunnels' ) }</span>
+				<p>{ step.pageTitle || __( 'No page assigned yet.', 'librefunnels' ) }</p>
+			</div>
+
+			<label className="lf-field">
+				<span>{ __( 'Find page', 'librefunnels' ) }</span>
+				<input value={ search } placeholder={ __( 'Search pages...', 'librefunnels' ) } onChange={ ( event ) => handleSearch( event.target.value ) } />
+			</label>
+
+			<select value={ Number( step.pageId || 0 ) } onChange={ ( event ) => onAssign( event.target.value ) } disabled={ isSaving }>
+				<option value="0">{ __( 'Choose a page', 'librefunnels' ) }</option>
+				{ pages.map( ( page ) => (
+					<option key={ page.id } value={ page.id }>
+						{ page.title } ({ page.status })
+					</option>
+				) ) }
+			</select>
+
+			<label className="lf-field">
+				<span>{ __( 'Create page', 'librefunnels' ) }</span>
+				<input value={ newTitle } onChange={ ( event ) => setNewTitle( event.target.value ) } />
+			</label>
+			<button className="lf-button" type="button" disabled={ isSaving || ! newTitle.trim() } onClick={ () => onCreate( newTitle ) }>
+				{ __( 'Create and assign', 'librefunnels' ) }
+			</button>
+		</div>
+	);
+}
+
+function EdgeInspector( { edge, graph, steps, onSaveGraph, onSelect, isSaving } ) {
 	const [ route, setRoute ] = useState( edge?.route || 'next' );
-	const [ ruleText, setRuleText ] = useState( JSON.stringify( edge?.rule || {}, null, 2 ) );
-	const [ ruleError, setRuleError ] = useState( '' );
+	const [ source, setSource ] = useState( edge?.source || '' );
+	const [ target, setTarget ] = useState( edge?.target || '' );
+	const [ rule, setRule ] = useState( edge?.rule?.type ? edge.rule : { type: 'always' } );
 	const warnings = edge ? getEdgeWarnings( edge, graph.nodes ) : [];
 
 	useEffect( () => {
 		setRoute( edge?.route || 'next' );
-		setRuleText( JSON.stringify( edge?.rule || {}, null, 2 ) );
-		setRuleError( '' );
+		setSource( edge?.source || '' );
+		setTarget( edge?.target || '' );
+		setRule( edge?.rule?.type ? edge.rule : { type: 'always' } );
 	}, [ edge?.id ] );
 
 	if ( ! edge ) {
@@ -749,27 +926,24 @@ function EdgeInspector( { edge, graph, onUpdateGraph, onSelect, isSaving } ) {
 		);
 	}
 
+	function getNodeLabel( node ) {
+		const step = getStepById( steps, node.stepId );
+		const title = step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' );
+
+		return `${ title } - ${ stepTypes[ step?.type || node.type ] || node.type }`;
+	}
+
 	async function saveEdge() {
-		let parsedRule = {};
-
-		if ( route === 'conditional' && ruleText.trim() !== '' ) {
-			try {
-				parsedRule = JSON.parse( ruleText );
-			} catch ( parseError ) {
-				setRuleError( __( 'The conditional rule is not valid JSON yet.', 'librefunnels' ) );
-				return;
-			}
-		}
-
-		setRuleError( '' );
-		await onUpdateGraph( {
+		await onSaveGraph( {
 			...graph,
 			edges: graph.edges.map( ( item ) =>
 				item.id === edge.id
 					? {
 							...item,
+							source,
+							target,
 							route,
-							rule: parsedRule,
+							rule: route === 'conditional' ? rule : {},
 					  }
 					: item
 			),
@@ -777,11 +951,41 @@ function EdgeInspector( { edge, graph, onUpdateGraph, onSelect, isSaving } ) {
 		onSelect( { type: 'edge', id: edge.id } );
 	}
 
+	async function deleteEdge() {
+		await onSaveGraph( {
+			...graph,
+			edges: graph.edges.filter( ( item ) => item.id !== edge.id ),
+		} );
+		onSelect( { type: 'funnel' } );
+	}
+
 	return (
 		<aside className="lf-inspector">
 			<p className="lf-label">{ __( 'Route inspector', 'librefunnels' ) }</p>
 			<h2>{ routes[ edge.route ] || edge.route }</h2>
 			<Warnings warnings={ warnings } />
+
+			<label className="lf-field">
+				<span>{ __( 'From step', 'librefunnels' ) }</span>
+				<select value={ source } onChange={ ( event ) => setSource( event.target.value ) }>
+					{ graph.nodes.map( ( node ) => (
+						<option key={ node.id } value={ node.id }>
+							{ getNodeLabel( node ) }
+						</option>
+					) ) }
+				</select>
+			</label>
+
+			<label className="lf-field">
+				<span>{ __( 'To step', 'librefunnels' ) }</span>
+				<select value={ target } onChange={ ( event ) => setTarget( event.target.value ) }>
+					{ graph.nodes.map( ( node ) => (
+						<option key={ node.id } value={ node.id }>
+							{ getNodeLabel( node ) }
+						</option>
+					) ) }
+				</select>
+			</label>
 
 			<label className="lf-field">
 				<span>{ __( 'Route label', 'librefunnels' ) }</span>
@@ -794,24 +998,60 @@ function EdgeInspector( { edge, graph, onUpdateGraph, onSelect, isSaving } ) {
 				</select>
 			</label>
 
-			{ route === 'conditional' && (
-				<label className="lf-field">
-					<span>{ __( 'Rule JSON', 'librefunnels' ) }</span>
-					<textarea rows="8" value={ ruleText } onChange={ ( event ) => setRuleText( event.target.value ) } />
-				</label>
-			) }
+			{ route === 'conditional' && <RuleBuilder rule={ rule } onChange={ setRule } /> }
 
-			{ ruleError && <p className="lf-field-error">{ ruleError }</p> }
-
-			<button className="lf-button lf-button--primary" type="button" disabled={ isSaving } onClick={ saveEdge }>
-				{ __( 'Save route', 'librefunnels' ) }
-			</button>
+			<div className="lf-action-row">
+				<button className="lf-button lf-button--primary" type="button" disabled={ isSaving || ! source || ! target } onClick={ saveEdge }>
+					{ __( 'Save route', 'librefunnels' ) }
+				</button>
+				<button className="lf-button lf-button--danger" type="button" disabled={ isSaving } onClick={ deleteEdge }>
+					{ __( 'Delete route', 'librefunnels' ) }
+				</button>
+			</div>
 		</aside>
 	);
 }
 
+function RuleBuilder( { rule, onChange } ) {
+	const type = rule?.type || 'always';
+
+	return (
+		<div className="lf-panellet">
+			<div>
+				<span className="lf-field-heading">{ __( 'Condition', 'librefunnels' ) }</span>
+				<p>{ __( 'Choose when this route should be used. LibreFunnels will keep the fallback route available for everyone else.', 'librefunnels' ) }</p>
+			</div>
+
+			<label className="lf-field">
+				<span>{ __( 'Rule', 'librefunnels' ) }</span>
+				<select value={ type } onChange={ ( event ) => onChange( createRuleFromType( event.target.value, rule ) ) }>
+					{ Object.entries( ruleLabels ).map( ( [ value, label ] ) => (
+						<option key={ value } value={ value }>
+							{ label }
+						</option>
+					) ) }
+				</select>
+			</label>
+
+			{ type === 'cart_contains_product' && (
+				<label className="lf-field">
+					<span>{ __( 'Product ID', 'librefunnels' ) }</span>
+					<input type="number" min="1" value={ Number( rule.product_id || 0 ) } onChange={ ( event ) => onChange( { ...rule, product_id: Number( event.target.value ) } ) } />
+				</label>
+			) }
+
+			{ ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' ) && (
+				<label className="lf-field">
+					<span>{ __( 'Cart subtotal', 'librefunnels' ) }</span>
+					<input type="number" min="0" step="0.01" value={ Number( rule.amount || 0 ) } onChange={ ( event ) => onChange( { ...rule, amount: Number( event.target.value ) } ) } />
+				</label>
+			) }
+		</div>
+	);
+}
+
 function Warnings( { warnings } ) {
-	if ( warnings.length === 0 ) {
+	if ( ! warnings || warnings.length === 0 ) {
 		return <p className="lf-good">{ __( 'No visible issues.', 'librefunnels' ) }</p>;
 	}
 

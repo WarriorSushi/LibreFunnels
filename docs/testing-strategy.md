@@ -53,6 +53,11 @@
 - Product variations
 - React admin assets enqueue only on the LibreFunnels admin screen
 - Built canvas assets load with the PHP fallback still present for no-build installs
+- Canvas REST workspace loads funnels, steps, and pages behind `manage_woocommerce`
+- Canvas REST graph save updates graph and start-step meta together
+- Canvas page creation inserts `[librefunnels_step]` and assigns the page to the step
+- Local analytics events table is installed on activation/schema-version changes
+- Offer impression and accept/reject hooks write local events
 
 ## E2E Tests
 - Funnel creation
@@ -60,6 +65,9 @@
 - Canvas editing
 - Canvas creates a funnel, adds steps, connects a route, and saves graph meta
 - Canvas shows validation for missing start step, missing page ID, broken route target, and invalid conditional route
+- Canvas drags a node and persists the new position
+- Canvas creates and assigns a draft page without exposing raw page IDs
+- Canvas builds a conditional route without editing JSON
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow

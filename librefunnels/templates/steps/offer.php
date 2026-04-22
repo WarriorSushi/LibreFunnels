@@ -21,6 +21,7 @@ $librefunnels_title      = isset( $args['title'] ) ? (string) $args['title'] : '
 $librefunnels_offer      = isset( $args['offer'] ) && is_array( $args['offer'] ) ? $args['offer'] : array();
 $librefunnels_product    = isset( $args['product'] ) && is_object( $args['product'] ) ? $args['product'] : null;
 $librefunnels_price_html = isset( $args['price_html'] ) ? (string) $args['price_html'] : '';
+$librefunnels_step_type  = isset( $args['step_type'] ) ? sanitize_key( (string) $args['step_type'] ) : 'pre_checkout_offer';
 $librefunnels_headline   = isset( $librefunnels_offer['title'] ) && '' !== $librefunnels_offer['title'] ? (string) $librefunnels_offer['title'] : $librefunnels_title;
 $librefunnels_body       = isset( $librefunnels_offer['description'] ) ? (string) $librefunnels_offer['description'] : '';
 $librefunnels_discount   = isset( $librefunnels_offer['discount_type'] ) ? sanitize_key( (string) $librefunnels_offer['discount_type'] ) : 'none';
@@ -28,6 +29,14 @@ $librefunnels_amount     = isset( $librefunnels_offer['discount_amount'] ) ? (fl
 
 if ( 0 === $librefunnels_step_id || ! $librefunnels_product ) {
 	return;
+}
+
+$librefunnels_eyebrow = __( 'Before you continue', 'librefunnels' );
+$librefunnels_accept  = __( 'Add this to my order', 'librefunnels' );
+
+if ( in_array( $librefunnels_step_type, array( 'upsell', 'downsell', 'cross_sell' ), true ) ) {
+	$librefunnels_eyebrow = __( 'Confirm this offer in checkout', 'librefunnels' );
+	$librefunnels_accept  = __( 'Add offer and continue', 'librefunnels' );
 }
 ?>
 <section class="librefunnels-step librefunnels-step--offer">
@@ -40,7 +49,7 @@ if ( 0 === $librefunnels_step_id || ! $librefunnels_product ) {
 		</div>
 
 		<div class="librefunnels-offer-step__content">
-			<p class="librefunnels-offer-step__eyebrow"><?php esc_html_e( 'Before you continue', 'librefunnels' ); ?></p>
+			<p class="librefunnels-offer-step__eyebrow"><?php echo esc_html( $librefunnels_eyebrow ); ?></p>
 
 			<?php if ( '' !== $librefunnels_headline ) : ?>
 				<h1 class="librefunnels-offer-step__title"><?php echo esc_html( $librefunnels_headline ); ?></h1>
@@ -90,7 +99,7 @@ if ( 0 === $librefunnels_step_id || ! $librefunnels_product ) {
 				<?php wp_nonce_field( 'librefunnels_offer_' . $librefunnels_step_id, 'librefunnels_offer_nonce', false ); ?>
 
 				<button class="librefunnels-offer-step__accept" type="submit" name="librefunnels_offer_action" value="accept">
-					<?php esc_html_e( 'Add this to my order', 'librefunnels' ); ?>
+					<?php echo esc_html( $librefunnels_accept ); ?>
 				</button>
 
 				<button class="librefunnels-offer-step__reject" type="submit" name="librefunnels_offer_action" value="reject">

@@ -82,7 +82,7 @@ final class Step_Renderer {
 			return $this->render_checkout_step( $step );
 		}
 
-		if ( 'pre_checkout_offer' === $step_type ) {
+		if ( in_array( $step_type, array( 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ), true ) ) {
 			return $this->render_offer_step( $step, $step_type );
 		}
 
@@ -163,6 +163,7 @@ final class Step_Renderer {
 		}
 
 		$this->enqueue_frontend_assets();
+		do_action( 'librefunnels_offer_impression', absint( get_post_meta( $step->ID, LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) ), absint( $step->ID ), $offer );
 
 		return $this->template_loader->render(
 			'steps/offer.php',

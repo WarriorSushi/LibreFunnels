@@ -113,6 +113,7 @@ final class Offer_Action_Handler {
 		}
 
 		$this->offer_state->record_action( $step_id, isset( $offer['id'] ) ? $offer['id'] : '', $action );
+		do_action( 'librefunnels_offer_action_recorded', $funnel_id, $step_id, $action, $offer );
 		$this->redirect_to_route( $funnel_id, $step_id, $action );
 	}
 

@@ -103,6 +103,11 @@
 	color: oklch(0.99 0.006 174);
 }
 
+.lf-button--danger {
+	border-color: color-mix(in oklch, var(--lf-danger) 38%, var(--lf-border));
+	color: var(--lf-danger);
+}
+
 .lf-sidebar__section {
 	display: grid;
 	gap: 10px;
@@ -179,6 +184,17 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
+}
+
+.lf-add-step-menu {
+	display: flex;
+	gap: 8px;
+}
+
+.lf-save-state {
+	color: var(--lf-muted);
+	font-size: 12px;
+	font-weight: 750;
 }
 
 .lf-health {
@@ -313,9 +329,11 @@
 	background: var(--lf-surface);
 	color: var(--lf-ink);
 	text-align: left;
-	cursor: pointer;
+	cursor: grab;
 	box-shadow: 0 10px 28px color-mix(in oklch, var(--lf-ink) 7%, transparent);
 	transition: border-color 160ms ease, transform 160ms ease;
+	touch-action: none;
+	user-select: none;
 }
 
 .lf-node:hover,
@@ -394,6 +412,32 @@
 .lf-field textarea {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	font-size: 12px;
+}
+
+.lf-panellet {
+	display: grid;
+	gap: 12px;
+	padding: 12px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface-soft);
+}
+
+.lf-panellet select {
+	width: 100%;
+	min-height: 38px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+	color: var(--lf-ink);
+}
+
+.lf-field-heading {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--lf-ink);
+	font-size: 13px;
+	font-weight: 850;
 }
 
 .lf-action-row {

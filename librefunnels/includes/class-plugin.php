@@ -8,6 +8,9 @@
 namespace LibreFunnels;
 
 use LibreFunnels\Admin\Admin_Menu;
+use LibreFunnels\Admin\Canvas_REST_Controller;
+use LibreFunnels\Analytics\Event_Recorder;
+use LibreFunnels\Analytics\Event_Store;
 use LibreFunnels\Blocks\Block_Registry;
 use LibreFunnels\Checkout\Checkout_Field_Customizer;
 use LibreFunnels\Checkout\Global_Checkout;
@@ -91,6 +94,7 @@ final class Plugin {
 
 		( new Funnel_Post_Type() )->register_post_type();
 		( new Step_Post_Type() )->register_post_type();
+		Event_Store::install();
 		flush_rewrite_rules();
 
 		update_option( 'librefunnels_version', LIBREFUNNELS_VERSION, false );
@@ -122,10 +126,14 @@ final class Plugin {
 		( new Order_Bump_Handler() )->register();
 		( new Order_Bump_Order_Metadata() )->register();
 		( new Offer_Action_Handler() )->register();
+		( new Event_Recorder() )->register();
+		Event_Store::maybe_install();
 
 		if ( is_admin() ) {
 			( new Admin_Menu() )->register();
 		}
+
+		( new Canvas_REST_Controller() )->register();
 	}
 
 	/**
