@@ -64,11 +64,11 @@
   - Commerce inspector panels for multiple checkout products, multiple order bumps, and primary offer configuration
   - Per-section dirty indicators and save reminders in commerce controls
   - Derived setup progress checklist for missing pages, draft publish status, product readiness, routes, and validation
-  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, and imported broken-route recovery
+  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, and public offer reject routing
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, and setup progress naming the remaining launch tasks. Backend work should continue where the canvas needs it, especially public checkout/offer rendering coverage and dashboard reads from local analytics.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, and setup progress naming the remaining launch tasks. Backend work should continue where the canvas needs it, especially offer accept/cart mutation browser coverage and dashboard reads from local analytics.
 
 ## Phase 5: Payments
 - Gateway adapter API

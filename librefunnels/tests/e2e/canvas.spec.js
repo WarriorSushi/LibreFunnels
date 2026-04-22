@@ -9,11 +9,203 @@ async function loginToWordPress( page ) {
 	const username = page.locator( '#user_login' );
 
 	if ( await username.isVisible().catch( () => false ) ) {
+		await username.fill( '' );
 		await username.fill( adminUser );
-		await page.locator( '#user_pass' ).fill( adminPassword );
+		const password = page.locator( '#user_pass' );
+		await password.fill( '' );
+		await password.fill( adminPassword );
+		await username.evaluate( ( element, value ) => {
+			element.value = value;
+			element.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			element.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		}, adminUser );
+		await password.evaluate( ( element, value ) => {
+			element.value = value;
+			element.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			element.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		}, adminPassword );
+		await expect( username ).toHaveValue( adminUser );
+		await expect( password ).toHaveValue( adminPassword );
 		await page.getByRole( 'button', { name: /log in/i } ).click();
 		await expect( page ).toHaveURL( /wp-admin/ );
 	}
+}
+
+async function createPublishedFunnelPages( page, options = {} ) {
+	const includeOffer = Boolean( options.includeOffer );
+	const stamp = Date.now();
+
+	return page.evaluate( async ( { includeOffer: shouldIncludeOffer, stamp: setupStamp } ) => {
+		const apiFetch = window.wp.apiFetch;
+		const canvasPath = window.libreFunnelsAdmin.rest.canvas;
+
+		function findStep( workspace, funnelId, title ) {
+			return workspace.steps.find( ( step ) => Number( step.funnelId ) === Number( funnelId ) && step.title === title );
+		}
+
+		async function createStep( funnelId, title, type, order, position ) {
+			const workspace = await apiFetch( {
+				path: `${ canvasPath }/funnels/${ funnelId }/steps`,
+				method: 'POST',
+				data: {
+					title,
+					type,
+					order,
+					page_id: 0,
+					position,
+				},
+			} );
+
+			return {
+				step: findStep( workspace, funnelId, title ),
+				workspace,
+			};
+		}
+
+		async function createAndPublishPage( stepId, title ) {
+			const created = await apiFetch( {
+				path: `${ canvasPath }/pages`,
+				method: 'POST',
+				data: {
+					step_id: stepId,
+					title,
+				},
+			} );
+			const pageId = created.page.id;
+			const published = await apiFetch( {
+				path: `/wp/v2/pages/${ pageId }`,
+				method: 'POST',
+				data: {
+					status: 'publish',
+				},
+			} );
+
+			return {
+				id: pageId,
+				url: published.link,
+			};
+		}
+
+		const funnelTitle = `Public smoke funnel ${ setupStamp }`;
+		const createdFunnel = await apiFetch( {
+			path: `${ canvasPath }/funnels`,
+			method: 'POST',
+			data: {
+				title: funnelTitle,
+			},
+		} );
+		const funnelId = createdFunnel.selectedFunnelId;
+		const checkoutTitle = `Public Checkout ${ setupStamp }`;
+		const thankYouTitle = `Public Thank You ${ setupStamp }`;
+		const offerTitle = `Public Upsell ${ setupStamp }`;
+		const checkoutResult = await createStep( funnelId, checkoutTitle, 'checkout', 1, { x: 120, y: 160 } );
+		const checkoutStep = checkoutResult.step;
+		const offerResult = shouldIncludeOffer
+			? await createStep( funnelId, offerTitle, 'upsell', 2, { x: 440, y: 160 } )
+			: null;
+		const offerStep = offerResult?.step || null;
+		const thankYouResult = await createStep(
+			funnelId,
+			thankYouTitle,
+			'thank_you',
+			shouldIncludeOffer ? 3 : 2,
+			{ x: shouldIncludeOffer ? 760 : 440, y: 160 }
+		);
+		const thankYouStep = thankYouResult.step;
+		const latestWorkspace = thankYouResult.workspace;
+		const checkoutProduct =
+			latestWorkspace.products.find( ( product ) => product.name.includes( 'Digital' ) ) ||
+			latestWorkspace.products[ 0 ];
+		const offerProduct =
+			latestWorkspace.products.find( ( product ) => product.name.includes( 'Setup' ) ) ||
+			latestWorkspace.products[ 1 ] ||
+			checkoutProduct;
+
+		await apiFetch( {
+			path: `${ canvasPath }/steps/${ checkoutStep.id }`,
+			method: 'POST',
+			data: {
+				checkout_products: [
+					{
+						product_id: checkoutProduct.id,
+						variation_id: 0,
+						quantity: 1,
+						variation: {},
+					},
+				],
+			},
+		} );
+
+		if ( shouldIncludeOffer ) {
+			await apiFetch( {
+				path: `${ canvasPath }/steps/${ offerStep.id }`,
+				method: 'POST',
+				data: {
+					offer: {
+						id: `offer-${ setupStamp }`,
+						product_id: offerProduct.id,
+						variation_id: 0,
+						quantity: 1,
+						variation: {},
+						title: `Setup boost ${ setupStamp }`,
+						description: 'A focused implementation boost before checkout.',
+						discount_type: 'none',
+						discount_amount: 0,
+						enabled: true,
+					},
+				},
+			} );
+		}
+
+		const checkoutPage = await createAndPublishPage( checkoutStep.id, `${ checkoutTitle } Page` );
+		const offerPage = shouldIncludeOffer ? await createAndPublishPage( offerStep.id, `${ offerTitle } Page` ) : null;
+		const thankYouPage = await createAndPublishPage( thankYouStep.id, `${ thankYouTitle } Page` );
+		const nodes = [
+			{ id: `node-${ checkoutStep.id }`, stepId: checkoutStep.id, type: 'checkout', position: { x: 120, y: 160 } },
+			...( shouldIncludeOffer ? [ { id: `node-${ offerStep.id }`, stepId: offerStep.id, type: 'upsell', position: { x: 440, y: 160 } } ] : [] ),
+			{
+				id: `node-${ thankYouStep.id }`,
+				stepId: thankYouStep.id,
+				type: 'thank_you',
+				position: { x: shouldIncludeOffer ? 760 : 440, y: 160 },
+			},
+		];
+		const edges = shouldIncludeOffer
+			? [
+				{ id: `edge-checkout-offer-${ setupStamp }`, source: `node-${ checkoutStep.id }`, target: `node-${ offerStep.id }`, route: 'next', rule: {} },
+				{ id: `edge-offer-accept-${ setupStamp }`, source: `node-${ offerStep.id }`, target: `node-${ thankYouStep.id }`, route: 'accept', rule: {} },
+				{ id: `edge-offer-reject-${ setupStamp }`, source: `node-${ offerStep.id }`, target: `node-${ thankYouStep.id }`, route: 'reject', rule: {} },
+			]
+			: [
+				{ id: `edge-checkout-thanks-${ setupStamp }`, source: `node-${ checkoutStep.id }`, target: `node-${ thankYouStep.id }`, route: 'next', rule: {} },
+			];
+
+		await apiFetch( {
+			path: `${ canvasPath }/funnels/${ funnelId }/graph`,
+			method: 'POST',
+			data: {
+				graph: {
+					version: 1,
+					nodes,
+					edges,
+				},
+				start_step_id: checkoutStep.id,
+			},
+		} );
+
+		return {
+			funnelId,
+			checkoutTitle,
+			checkoutUrl: checkoutPage.url,
+			checkoutProductName: checkoutProduct.name,
+			offerTitle,
+			offerUrl: offerPage?.url || '',
+			offerHeadline: shouldIncludeOffer ? `Setup boost ${ setupStamp }` : '',
+			offerProductName: offerProduct.name,
+			thankYouTitle,
+			thankYouUrl: thankYouPage.url,
+		};
+	}, { includeOffer, stamp } );
 }
 
 test.describe( 'LibreFunnels canvas smoke', () => {
@@ -148,5 +340,33 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: /Broken route/ } ).click();
 		await expect( page.getByRole( 'heading', { name: 'Continue' } ) ).toBeVisible();
 		await expect( page.getByText( 'Target step is missing.' ) ).toBeVisible();
+	} );
+
+	test( 'renders a published checkout step and prepares the WooCommerce checkout', async ( { page } ) => {
+		const setup = await createPublishedFunnelPages( page );
+
+		await page.goto( setup.checkoutUrl );
+
+		await expect( page.locator( '.librefunnels-step--checkout' ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: setup.checkoutTitle, exact: true } ) ).toBeVisible();
+		await expect( page.locator( 'form.checkout' ) ).toBeVisible();
+		await expect( page.locator( '#order_review' ) ).toBeVisible();
+		await expect( page.getByText( setup.checkoutProductName ).first() ).toBeVisible();
+	} );
+
+	test( 'renders an offer step and routes reject actions to the next public page', async ( { page } ) => {
+		const setup = await createPublishedFunnelPages( page, { includeOffer: true } );
+
+		await page.goto( setup.offerUrl );
+
+		await expect( page.locator( '.librefunnels-step--offer' ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: setup.offerHeadline } ) ).toBeVisible();
+		await expect( page.getByText( 'A focused implementation boost before checkout.' ) ).toBeVisible();
+		await expect( page.getByRole( 'button', { name: 'Add offer and continue' } ) ).toBeVisible();
+		await page.getByRole( 'button', { name: 'No thanks, continue' } ).click();
+
+		await expect( page ).toHaveURL( setup.thankYouUrl );
+		await expect( page.locator( '.librefunnels-step--thank-you' ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: setup.thankYouTitle, exact: true } ) ).toBeVisible();
 	} );
 } );
