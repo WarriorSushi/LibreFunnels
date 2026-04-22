@@ -342,6 +342,75 @@
 	color: var(--lf-warn);
 }
 
+.lf-analytics {
+	display: grid;
+	gap: 14px;
+	padding: 16px 18px;
+	border-bottom: 1px solid var(--lf-border);
+	background: color-mix(in oklch, var(--lf-surface) 78%, var(--lf-surface-soft));
+}
+
+.lf-analytics__intro {
+	display: grid;
+	grid-template-columns: minmax(180px, 0.8fr) minmax(240px, 1.2fr);
+	gap: 12px;
+	align-items: end;
+}
+
+.lf-analytics__intro h2 {
+	margin: 4px 0 0;
+	font-size: 18px;
+	line-height: 1.2;
+}
+
+.lf-analytics__intro p {
+	max-width: 72ch;
+	margin: 0;
+	color: var(--lf-muted);
+	line-height: 1.45;
+}
+
+.lf-analytics__metrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(150px, 1fr));
+	gap: 8px;
+}
+
+.lf-analytics-card {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+}
+
+.lf-analytics-card span {
+	color: var(--lf-muted);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0;
+	text-transform: uppercase;
+}
+
+.lf-analytics-card strong {
+	color: var(--lf-ink);
+	font-size: 20px;
+	line-height: 1.15;
+}
+
+.lf-analytics-card p {
+	margin: 0;
+	color: var(--lf-muted);
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.lf-analytics.is-loading {
+	opacity: 0.78;
+}
+
 .lf-alert {
 	margin: 14px 18px 0;
 	padding: 12px 14px;
@@ -815,6 +884,10 @@
 		position: static;
 		max-height: none;
 	}
+
+	.lf-analytics__metrics {
+		grid-template-columns: repeat(2, minmax(150px, 1fr));
+	}
 }
 
 @media (max-width: 782px) {
@@ -829,6 +902,11 @@
 
 	.lf-header-actions {
 		width: 100%;
+	}
+
+	.lf-analytics__intro,
+	.lf-analytics__metrics {
+		grid-template-columns: 1fr;
 	}
 
 	.lf-add-step-menu,

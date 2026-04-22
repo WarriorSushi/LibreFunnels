@@ -14,6 +14,7 @@ const routes = settings.routes || {};
 const canvasPath = settings.rest?.canvas || '/librefunnels/v1/canvas';
 const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
 const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/products';
+const analyticsPath = settings.rest?.analytics || '/librefunnels/v1/analytics/summary';
 const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
 
 const emptyGraph = {
@@ -172,6 +173,31 @@ function getCreatePagesMessage( missingPageSteps ) {
 		),
 		formatStepTitles( missingPageSteps, __( 'these steps', 'librefunnels' ) )
 	);
+}
+
+function formatPlainNumber( value, options = {} ) {
+	const nextValue = Number( value || 0 );
+
+	return new Intl.NumberFormat( undefined, options ).format( nextValue );
+}
+
+function formatCurrency( value, currency = 'USD' ) {
+	try {
+		return new Intl.NumberFormat( undefined, {
+			style: 'currency',
+			currency: currency || 'USD',
+			maximumFractionDigits: 2,
+		} ).format( Number( value || 0 ) );
+	} catch ( error ) {
+		return formatPlainNumber( value, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		} );
+	}
+}
+
+function formatPercent( value ) {
+	return `${ formatPlainNumber( value, { maximumFractionDigits: 1 } ) }%`;
 }
 
 function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
@@ -507,6 +533,9 @@ function App() {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( '' );
 	const [ error, setError ] = useState( '' );
+	const [ analyticsSummary, setAnalyticsSummary ] = useState( null );
+	const [ isAnalyticsLoading, setIsAnalyticsLoading ] = useState( false );
+	const [ analyticsError, setAnalyticsError ] = useState( '' );
 	const [ dragging, setDragging ] = useState( null );
 
 	const selectedFunnel = funnels.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnelId ) );
@@ -519,6 +548,48 @@ function App() {
 	useEffect( () => {
 		loadWorkspace();
 	}, [] );
+
+	useEffect( () => {
+		let ignore = false;
+		const nextFunnelId = Number( selectedFunnelId || 0 );
+
+		if ( nextFunnelId < 1 ) {
+			setAnalyticsSummary( null );
+			setAnalyticsError( '' );
+			setIsAnalyticsLoading( false );
+
+			return () => {
+				ignore = true;
+			};
+		}
+
+		setIsAnalyticsLoading( true );
+		setAnalyticsError( '' );
+
+		apiFetch( {
+			path: `${ analyticsPath }?funnel_id=${ encodeURIComponent( nextFunnelId ) }&days=30`,
+		} )
+			.then( ( summary ) => {
+				if ( ! ignore ) {
+					setAnalyticsSummary( summary );
+				}
+			} )
+			.catch( ( nextError ) => {
+				if ( ! ignore ) {
+					setAnalyticsSummary( null );
+					setAnalyticsError( nextError.message || __( 'LibreFunnels could not load analytics yet.', 'librefunnels' ) );
+				}
+			} )
+			.finally( () => {
+				if ( ! ignore ) {
+					setIsAnalyticsLoading( false );
+				}
+			} );
+
+		return () => {
+			ignore = true;
+		};
+	}, [ selectedFunnelId ] );
 
 	useEffect( () => {
 		if ( ! dragging ) {
@@ -981,6 +1052,13 @@ function App() {
 
 				{ error && <div className="lf-alert">{ error }</div> }
 
+				<AnalyticsSummary
+					selectedFunnel={ selectedFunnel }
+					summary={ analyticsSummary }
+					isLoading={ isAnalyticsLoading }
+					error={ analyticsError }
+				/>
+
 				<Canvas
 					isLoading={ isLoading }
 					graph={ graph }
@@ -1103,6 +1181,78 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 				</button>
 			</div>
 		</header>
+	);
+}
+
+function AnalyticsSummary( { selectedFunnel, summary, isLoading, error } ) {
+	if ( ! selectedFunnel ) {
+		return null;
+	}
+
+	const events = summary?.events || {};
+	const currency = summary?.currency || 'USD';
+	const days = Number( summary?.period?.days || 30 );
+	const acceptCount = Number( events.offer_accept?.count || 0 );
+	const rejectCount = Number( events.offer_reject?.count || 0 );
+	const impressionCount = Number( events.offer_impression?.count || 0 );
+	const orders = Number( summary?.orders || 0 );
+	const revenue = Number( summary?.revenue || 0 );
+	const hasData = revenue > 0 || orders > 0 || impressionCount > 0 || acceptCount > 0 || rejectCount > 0;
+	const offerDecisionText = sprintf(
+		__( '%1$d accept / %2$d reject', 'librefunnels' ),
+		acceptCount,
+		rejectCount
+	);
+
+	return (
+		<section className={ `lf-analytics ${ isLoading ? 'is-loading' : '' }` } aria-label={ __( 'Funnel analytics summary', 'librefunnels' ) }>
+			<div className="lf-analytics__intro">
+				<div>
+					<p className="lf-label">{ __( 'Analytics', 'librefunnels' ) }</p>
+					<h2>{ sprintf( __( 'Last %d days', 'librefunnels' ), days ) }</h2>
+				</div>
+				<p>
+					{ error
+						? error
+						: hasData
+							? __( 'Local funnel signals from offer activity and attributed WooCommerce orders.', 'librefunnels' )
+							: __( 'Waiting for shopper data. Publish the funnel, send a test order through it, then revenue and offer decisions appear here.', 'librefunnels' ) }
+				</p>
+			</div>
+
+			<div className="lf-analytics__metrics" aria-live="polite">
+				<AnalyticsMetric
+					label={ __( 'Attributed revenue', 'librefunnels' ) }
+					value={ isLoading && ! summary ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, currency ) }
+					detail={ __( 'From marked checkout, bump, and offer order lines.', 'librefunnels' ) }
+				/>
+				<AnalyticsMetric
+					label={ __( 'Orders', 'librefunnels' ) }
+					value={ isLoading && ! summary ? '-' : formatPlainNumber( orders ) }
+					detail={ __( 'Recorded once per WooCommerce order and funnel.', 'librefunnels' ) }
+				/>
+				<AnalyticsMetric
+					label={ __( 'Offer accept rate', 'librefunnels' ) }
+					value={ isLoading && ! summary ? '-' : formatPercent( summary?.offerAcceptRate || 0 ) }
+					detail={ sprintf( __( '%d offer view(s) tracked locally.', 'librefunnels' ), impressionCount ) }
+				/>
+				<AnalyticsMetric
+					label={ __( 'Offer decisions', 'librefunnels' ) }
+					value={ isLoading && ! summary ? '-' : offerDecisionText }
+					detail={ __( 'Accept and reject clicks from public offer steps.', 'librefunnels' ) }
+				/>
+			</div>
+		</section>
+	);
+}
+
+function AnalyticsMetric( { label, value, detail } ) {
+	return (
+		<div className="lf-analytics-card">
+			<span>{ label }</span>
+			<strong>{ value }</strong>
+			<p>{ detail }</p>
+		</div>
 	);
 }
 

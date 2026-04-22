@@ -234,6 +234,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await expect( page.getByText( 'Build funnels with clarity, not clutter.' ) ).toHaveCount( 0 );
 
 		await createFunnelFromCanvasButton( page );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Waiting for shopper data' );
 
 		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
 		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();

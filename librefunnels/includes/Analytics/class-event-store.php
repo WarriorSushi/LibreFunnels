@@ -186,6 +186,7 @@ final class Event_Store {
 			'funnelId'        => $funnel_id,
 			'events'          => $events,
 			'revenue'         => $events['order_revenue']['value'],
+			'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 			'orders'          => $events['order_revenue']['count'],
 			'offerAcceptRate' => $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0,
 		);

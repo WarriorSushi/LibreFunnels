@@ -78,8 +78,9 @@ Implemented so far:
 - Local analytics event table and recorder for offer impressions, accepts, rejects, and attributed order revenue.
 - WooCommerce checkout order revenue attribution that groups marked order lines by funnel, records `order_revenue` events, and marks orders through WooCommerce CRUD metadata for HPOS-safe idempotency.
 - Capability-guarded analytics summary REST endpoint for local dashboard reads.
+- React canvas analytics summary panel for the selected funnel, showing last-30-days attributed revenue, order count, offer accept rate, offer decisions, and a clear empty state until shopper/test-order data exists.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -98,12 +99,11 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Surface analytics summaries in the React admin experience with beginner-friendly empty states.
-2. Add a full checkout order creation smoke that verifies `order_revenue` appears through the analytics summary endpoint.
-3. Add REST/integration tests for canvas and analytics endpoints once a WP test runtime is available.
-4. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-5. Add database import service with nonces/capabilities once the admin flow exists.
-6. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
+1. Add a full checkout order creation smoke that verifies `order_revenue` appears through the analytics summary endpoint and the admin analytics panel.
+2. Add REST/integration tests for canvas and analytics endpoints once a WP test runtime is available.
+3. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
+4. Add database import service with nonces/capabilities once the admin flow exists.
+5. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.
