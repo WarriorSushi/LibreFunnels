@@ -57,6 +57,7 @@ Implemented so far:
 - Funnel list, create funnel action, step creation, start step assignment, node canvas, route edges, and inspector editing.
 - Canvas validation for missing start step, missing page assignment, missing/foreign step nodes, broken edge endpoints, and incomplete conditional rules.
 - Custom `librefunnels/v1` canvas REST endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation.
+- Canvas workspace payloads always include every step for the selected funnel, preventing large or long-running sites from showing newly-created selected-funnel nodes as missing steps when the global recent-step list is capped.
 - Canvas product search endpoint using WooCommerce product APIs with name/SKU lookup and compact serialization.
 - Draggable node positioning with persisted graph coordinates.
 - Empty funnels now offer a guided starter path that creates checkout and thank-you steps, connects the default continue route, and sets checkout as the start step.
@@ -75,7 +76,7 @@ Implemented so far:
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, and public offer reject routing.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, setup progress checks, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -94,13 +95,12 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Expand Playwright coverage for offer accept routing/cart mutation.
-2. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
-3. Add revenue attribution events when WooCommerce order creation finalizes.
-4. Add dashboard reads from the local analytics table.
-5. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-6. Add database import service with nonces/capabilities once the admin flow exists.
-7. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
+1. Add revenue attribution events when WooCommerce order creation finalizes.
+2. Add dashboard reads from the local analytics table.
+3. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
+4. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
+5. Add database import service with nonces/capabilities once the admin flow exists.
+6. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

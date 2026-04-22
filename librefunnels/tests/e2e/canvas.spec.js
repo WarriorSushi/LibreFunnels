@@ -369,4 +369,18 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await expect( page.locator( '.librefunnels-step--thank-you' ) ).toBeVisible();
 		await expect( page.getByRole( 'heading', { name: setup.thankYouTitle, exact: true } ) ).toBeVisible();
 	} );
+
+	test( 'accepts a public offer, adds it to the cart, and routes forward', async ( { page } ) => {
+		const setup = await createPublishedFunnelPages( page, { includeOffer: true } );
+
+		await page.goto( setup.offerUrl );
+		await expect( page.locator( '.librefunnels-step--offer' ) ).toBeVisible();
+		await page.getByRole( 'button', { name: 'Add offer and continue' } ).click();
+
+		await expect( page ).toHaveURL( setup.thankYouUrl );
+		await expect( page.locator( '.librefunnels-step--thank-you' ) ).toBeVisible();
+
+		await page.goto( '/cart/' );
+		await expect( page.locator( 'body' ) ).toContainText( setup.offerProductName );
+	} );
 } );

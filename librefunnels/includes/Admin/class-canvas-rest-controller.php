@@ -593,7 +593,7 @@ final class Canvas_REST_Controller {
 	private function get_workspace_payload( $selected_funnel_id = 0 ) {
 		return array(
 			'funnels'          => $this->get_funnels(),
-			'steps'            => $this->get_steps(),
+			'steps'            => $this->get_steps( absint( $selected_funnel_id ) ),
 			'pages'            => $this->get_pages(),
 			'products'         => $this->get_products( '', $this->get_assigned_product_ids() ),
 			'selectedFunnelId' => absint( $selected_funnel_id ),
@@ -623,10 +623,29 @@ final class Canvas_REST_Controller {
 	/**
 	 * Gets steps.
 	 *
+	 * @param int $selected_funnel_id Selected funnel ID.
 	 * @return array<int,array<string,mixed>>
 	 */
-	private function get_steps() {
-		$posts = get_posts(
+	private function get_steps( $selected_funnel_id = 0 ) {
+		$selected_funnel_id = absint( $selected_funnel_id );
+		$posts              = array();
+
+		if ( 0 < $selected_funnel_id ) {
+			$posts = get_posts(
+				array(
+					'post_type'      => LIBREFUNNELS_STEP_POST_TYPE,
+					'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+					'posts_per_page' => -1,
+					'meta_key'       => LIBREFUNNELS_STEP_FUNNEL_ID_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Required to keep the selected funnel workspace complete.
+					'meta_value'     => $selected_funnel_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Required to keep the selected funnel workspace complete.
+					'orderby'        => 'menu_order title',
+					'order'          => 'ASC',
+					'no_found_rows'  => true,
+				)
+			);
+		}
+
+		$recent_posts = get_posts(
 			array(
 				'post_type'      => LIBREFUNNELS_STEP_POST_TYPE,
 				'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
@@ -637,7 +656,13 @@ final class Canvas_REST_Controller {
 			)
 		);
 
-		return array_map( array( $this, 'serialize_step' ), $posts );
+		$posts_by_id = array();
+
+		foreach ( array_merge( $posts, $recent_posts ) as $post ) {
+			$posts_by_id[ $post->ID ] = $post;
+		}
+
+		return array_map( array( $this, 'serialize_step' ), array_values( $posts_by_id ) );
 	}
 
 	/**
