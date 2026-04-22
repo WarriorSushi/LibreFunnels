@@ -48,9 +48,10 @@ async function createFunnelFromCanvasButton( page ) {
 
 async function createPublishedFunnelPages( page, options = {} ) {
 	const includeOffer = Boolean( options.includeOffer );
+	const checkoutProductPrice = options.checkoutProductPrice ? String( options.checkoutProductPrice ) : '';
 	const stamp = Date.now();
 
-	return page.evaluate( async ( { includeOffer: shouldIncludeOffer, stamp: setupStamp } ) => {
+	return page.evaluate( async ( { includeOffer: shouldIncludeOffer, checkoutProductPrice: setupCheckoutProductPrice, stamp: setupStamp } ) => {
 		const apiFetch = window.wp.apiFetch;
 		const canvasPath = window.libreFunnelsAdmin.rest.canvas;
 
@@ -128,13 +129,35 @@ async function createPublishedFunnelPages( page, options = {} ) {
 		);
 		const thankYouStep = thankYouResult.step;
 		const latestWorkspace = thankYouResult.workspace;
-		const checkoutProduct =
+		let checkoutProduct =
 			latestWorkspace.products.find( ( product ) => product.name.includes( 'Digital' ) ) ||
 			latestWorkspace.products[ 0 ];
 		const offerProduct =
 			latestWorkspace.products.find( ( product ) => product.name.includes( 'Setup' ) ) ||
 			latestWorkspace.products[ 1 ] ||
 			checkoutProduct;
+
+		if ( setupCheckoutProductPrice ) {
+			checkoutProduct = await apiFetch( {
+				path: '/wc/v3/products',
+				method: 'POST',
+				data: {
+					name: `LibreFunnels Revenue Smoke ${ setupStamp }`,
+					type: 'simple',
+					regular_price: setupCheckoutProductPrice,
+					status: 'publish',
+					virtual: true,
+				},
+			} );
+
+			await apiFetch( {
+				path: '/wc/v3/payment_gateways/cheque',
+				method: 'PUT',
+				data: {
+					enabled: true,
+				},
+			} );
+		}
 
 		await apiFetch( {
 			path: `${ canvasPath }/steps/${ checkoutStep.id }`,
@@ -213,6 +236,7 @@ async function createPublishedFunnelPages( page, options = {} ) {
 			checkoutTitle,
 			checkoutUrl: checkoutPage.url,
 			checkoutProductName: checkoutProduct.name,
+			checkoutProductPrice: Number( setupCheckoutProductPrice || checkoutProduct.price || 0 ),
 			offerTitle,
 			offerUrl: offerPage?.url || '',
 			offerHeadline: shouldIncludeOffer ? `Setup boost ${ setupStamp }` : '',
@@ -220,7 +244,33 @@ async function createPublishedFunnelPages( page, options = {} ) {
 			thankYouTitle,
 			thankYouUrl: thankYouPage.url,
 		};
-	}, { includeOffer, stamp } );
+	}, { includeOffer, checkoutProductPrice, stamp } );
+}
+
+async function fillCheckoutBillingDetails( page, stamp = Date.now() ) {
+	await page.locator( '#billing_first_name' ).fill( 'Liberty' );
+	await page.locator( '#billing_last_name' ).fill( 'Buyer' );
+	await page.locator( '#billing_address_1' ).fill( '100 Funnel Street' );
+	await page.locator( '#billing_city' ).fill( 'San Francisco' );
+	await page.locator( '#billing_postcode' ).fill( '94105' );
+	await page.locator( '#billing_phone' ).fill( '4155550199' );
+	await page.locator( '#billing_email' ).fill( `librefunnels-${ stamp }@example.test` );
+
+	const country = page.locator( '#billing_country' );
+	if ( await country.count() ) {
+		await country.selectOption( 'US' );
+	}
+
+	const state = page.locator( '#billing_state' );
+	if ( await state.count() ) {
+		const tagName = await state.evaluate( ( element ) => element.tagName.toLowerCase() );
+
+		if ( tagName === 'select' ) {
+			await state.selectOption( 'CA' );
+		} else {
+			await state.fill( 'CA' );
+		}
+	}
 }
 
 test.describe( 'LibreFunnels canvas smoke', () => {
@@ -367,6 +417,43 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await expect( page.locator( 'form.checkout' ) ).toBeVisible();
 		await expect( page.locator( '#order_review' ) ).toBeVisible();
 		await expect( page.getByText( setup.checkoutProductName ).first() ).toBeVisible();
+	} );
+
+	test( 'creates a checkout order and surfaces attributed revenue analytics', async ( { page } ) => {
+		const setup = await createPublishedFunnelPages( page, { checkoutProductPrice: '17' } );
+
+		await page.goto( setup.checkoutUrl );
+		await expect( page.locator( '.librefunnels-step--checkout' ) ).toBeVisible();
+		await fillCheckoutBillingDetails( page );
+
+		const chequeMethod = page.locator( 'input[name="payment_method"][value="cheque"]' );
+		if ( await chequeMethod.count() ) {
+			await chequeMethod.check( { force: true } );
+		}
+
+		const terms = page.locator( '#terms' );
+		if ( await terms.count() ) {
+			await terms.check( { force: true } );
+		}
+
+		await page.getByRole( 'button', { name: /place order/i } ).click();
+		await expect( page.getByText( /order received|thank you/i ).first() ).toBeVisible( { timeout: 30000 } );
+
+		await page.evaluate( ( funnelId ) => {
+			window.localStorage.setItem( 'librefunnels.selectedFunnelId', String( funnelId ) );
+		}, setup.funnelId );
+		await page.goto( '/wp-admin/admin.php?page=librefunnels' );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Attributed revenue' );
+
+		const summary = await page.evaluate( async ( funnelId ) => {
+			return window.wp.apiFetch( {
+				path: `${ window.libreFunnelsAdmin.rest.analytics }?funnel_id=${ encodeURIComponent( funnelId ) }&days=30`,
+			} );
+		}, setup.funnelId );
+
+		expect( summary.events.order_revenue.count ).toBeGreaterThan( 0 );
+		expect( Number( summary.revenue ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Local funnel signals' );
 	} );
 
 	test( 'renders an offer step and routes reject actions to the next public page', async ( { page } ) => {
