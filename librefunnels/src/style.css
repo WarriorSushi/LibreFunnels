@@ -345,6 +345,10 @@
 	stroke-width: 4;
 }
 
+.lf-edge:focus-visible path {
+	stroke-width: 4;
+}
+
 .lf-edge.has-warning path {
 	stroke: var(--lf-warn);
 }

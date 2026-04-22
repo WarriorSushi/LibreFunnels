@@ -60,6 +60,7 @@ Implemented so far:
 - Canvas product search endpoint using WooCommerce product APIs with name/SKU lookup and compact serialization.
 - Draggable node positioning with persisted graph coordinates.
 - Empty funnels now offer a guided starter path that creates checkout and thank-you steps, connects the default continue route, and sets checkout as the start step.
+- Canvas route edges now expose accessible route names, focus states, and keyboard activation.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Beginner setup guidance in the canvas header with the next useful task.
@@ -73,7 +74,7 @@ Implemented so far:
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, page creation, multi-product checkout assignment, and order bump saving.
+- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, page creation, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, product search, and offer saving.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 
 ## User Intent
@@ -92,9 +93,9 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Expand Playwright coverage for drag persistence, route edits, rule builder, offer product controls, and product picker search behavior.
-2. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
-3. Add stronger first-run publishing guidance after the starter path exists, including which pages still need content or publishing.
+1. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
+2. Add stronger first-run publishing guidance after the starter path exists, including which pages still need content or publishing.
+3. Expand Playwright coverage for broken-route validation states and public checkout/offer rendering.
 4. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
 5. Add revenue attribution events when WooCommerce order creation finalizes.
 6. Add dashboard reads from the local analytics table.

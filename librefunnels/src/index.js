@@ -968,15 +968,33 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 					const endY = target.position.y + 48;
 					const midX = startX + ( endX - startX ) / 2;
 					const routeClass = routeClassNames[ edge.route ] || 'continue';
+					const sourceStep = getStepById( steps, source.stepId );
+					const targetStep = getStepById( steps, target.stepId );
+					const routeLabel = routes[ edge.route ] || edge.route;
+					const edgeLabel = sprintf(
+						__( 'Route %1$s from %2$s to %3$s', 'librefunnels' ),
+						routeLabel,
+						sourceStep ? getPostTitle( sourceStep, __( 'source step', 'librefunnels' ) ) : __( 'source step', 'librefunnels' ),
+						targetStep ? getPostTitle( targetStep, __( 'target step', 'librefunnels' ) ) : __( 'target step', 'librefunnels' )
+					);
 
 					return (
 						<g
 							key={ edge.id }
 							className={ `lf-edge lf-edge--${ routeClass } ${ selectedItem.type === 'edge' && selectedItem.id === edge.id ? 'is-selected' : '' } ${ warnings.length ? 'has-warning' : '' }` }
+							role="button"
+							tabIndex="0"
+							aria-label={ edgeLabel }
 							onClick={ () => onSelect( { type: 'edge', id: edge.id } ) }
+							onKeyDown={ ( event ) => {
+								if ( event.key === 'Enter' || event.key === ' ' ) {
+									event.preventDefault();
+									onSelect( { type: 'edge', id: edge.id } );
+								}
+							} }
 						>
 							<path d={ `M ${ startX } ${ startY } C ${ midX } ${ startY }, ${ midX } ${ endY }, ${ endX } ${ endY }` } />
-							<text x={ midX } y={ ( startY + endY ) / 2 - 8 }>{ routes[ edge.route ] || edge.route }</text>
+							<text x={ midX } y={ ( startY + endY ) / 2 - 8 }>{ routeLabel }</text>
 						</g>
 					);
 				} ) }

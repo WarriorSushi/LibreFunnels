@@ -204,7 +204,7 @@ The JavaScript app is built with `@wordpress/scripts` from `librefunnels/src/ind
 
 Canvas interaction expectations:
 - Nodes can be dragged and saved back to graph position metadata.
-- Route source, target, and label are edited through explicit selectors.
+- Route edges expose accessible names, focus states, and keyboard activation so they can be selected without relying on precise SVG pointer hit testing. Route source, target, and label are edited through explicit selectors.
 - Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
 - Empty funnels offer a guided starter path action that creates checkout and thank-you steps, connects them with a `next` route, and marks checkout as the start step.
 - Step page assignment uses page search and a draft page creation path that inserts the `[librefunnels_step]` shortcode.

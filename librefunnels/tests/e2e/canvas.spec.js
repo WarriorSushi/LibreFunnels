@@ -60,5 +60,47 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Save order bumps' } ).click();
 		await expect( page.getByText( 'Step saved' ) ).toBeVisible();
 		await expect( page.getByText( 'Unsaved' ) ).toHaveCount( 0 );
+
+		const checkoutNode = page.locator( '.lf-node' ).filter( { hasText: 'Checkout' } ).first();
+		const beforeDrag = await checkoutNode.boundingBox();
+		expect( beforeDrag ).not.toBeNull();
+		await checkoutNode.hover( { position: { x: 24, y: 24 } } );
+		await page.mouse.down();
+		await page.mouse.move( beforeDrag.x + 120, beforeDrag.y + 48, { steps: 8 } );
+		await page.mouse.up();
+
+		const afterDrag = await checkoutNode.boundingBox();
+		expect( afterDrag.x ).toBeGreaterThan( beforeDrag.x + 60 );
+
+		await page.reload();
+		await expect( page.getByText( 'Canvas Builder' ).first() ).toBeVisible();
+		const persistedCheckoutNode = page.locator( '.lf-node' ).filter( { hasText: 'Checkout' } ).first();
+		const afterReload = await persistedCheckoutNode.boundingBox();
+		expect( afterReload.x ).toBeGreaterThan( beforeDrag.x + 60 );
+
+		const routeButton = page.getByRole( 'button', { name: /Route Continue from Checkout to Thank You/ } );
+		await routeButton.focus();
+		await routeButton.press( 'Enter' );
+		await expect( page.getByRole( 'heading', { name: 'Continue' } ) ).toBeVisible();
+		await page.getByLabel( 'Route label' ).selectOption( 'conditional' );
+
+		const conditionPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Condition' } );
+		await expect( conditionPanel.getByText( 'Condition', { exact: true } ) ).toBeVisible();
+		await conditionPanel.getByLabel( 'Rule' ).selectOption( 'cart_contains_product' );
+		await conditionPanel.getByLabel( 'Find product' ).fill( 'Digital' );
+		await expect( conditionPanel.locator( 'select' ).last() ).toContainText( 'Digital' );
+		await conditionPanel.locator( 'select' ).last().selectOption( { index: 1 } );
+		await page.getByRole( 'button', { name: 'Save route' } ).click();
+		await expect( page.getByText( 'Route saved' ) ).toBeVisible();
+
+		await page.getByRole( 'button', { name: 'Add offer' } ).click();
+		await expect( page.getByRole( 'heading', { name: 'Upsell' } ) ).toBeVisible();
+		const offerPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Offer product' } );
+		await offerPanel.getByLabel( 'Find product' ).fill( 'Setup' );
+		await expect( offerPanel.locator( 'select' ).first() ).toContainText( 'Setup' );
+		await offerPanel.locator( 'select' ).first().selectOption( { index: 1 } );
+		await offerPanel.getByLabel( 'Offer title' ).fill( 'Setup boost' );
+		await page.getByRole( 'button', { name: 'Save offer' } ).click();
+		await expect( page.getByText( 'Step saved' ) ).toBeVisible();
 	} );
 } );
