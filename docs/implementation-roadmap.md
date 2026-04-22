@@ -59,10 +59,12 @@
   - Page search and draft page creation for step assignment
   - Store-owner-friendly conditional rule builder
   - Recoverable step archive and route delete controls
+  - WooCommerce product search for checkout, bump, offer, and product-rule assignment
+  - Initial commerce inspector panels for checkout product, one order bump, and primary offer configuration
 - Smart routing
 - Validation UI
 
-Phase 4 is now the active product track. Backend work should continue where the canvas needs it, especially safer REST edit flows, page search, route creation controls, drag positioning, and store-owner-friendly rule builders.
+Phase 4 remains the active product track, with the first commerce-aware inspector now in place. Backend work should continue where the canvas needs it, especially multi-product/multi-bump editing, clearer save feedback, browser-verified canvas polish, and dashboard reads from local analytics.
 
 ## Phase 5: Payments
 - Gateway adapter API

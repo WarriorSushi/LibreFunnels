@@ -13,6 +13,7 @@ const stepTypes = settings.stepTypes || {};
 const routes = settings.routes || {};
 const canvasPath = settings.rest?.canvas || '/librefunnels/v1/canvas';
 const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
+const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/products';
 
 const emptyGraph = {
 	version: 1,
@@ -131,10 +132,47 @@ function createRuleFromType( type, previous = {} ) {
 	return { type };
 }
 
+function getProductById( products, productId ) {
+	return products.find( ( product ) => Number( product.id ) === Number( productId ) );
+}
+
+function createEmptyOffer() {
+	return {
+		id: `offer-${ Date.now() }`,
+		product_id: 0,
+		variation_id: 0,
+		quantity: 1,
+		variation: {},
+		title: '',
+		description: '',
+		discount_type: 'none',
+		discount_amount: 0,
+		enabled: true,
+	};
+}
+
+function normalizeOfferForCompare( offer = {} ) {
+	return {
+		product_id: Number( offer.product_id || 0 ),
+		variation_id: Number( offer.variation_id || 0 ),
+		quantity: Number( offer.quantity || 1 ),
+		title: offer.title || '',
+		description: offer.description || '',
+		discount_type: offer.discount_type || 'none',
+		discount_amount: Number( offer.discount_amount || 0 ),
+		enabled: Boolean( offer.enabled ?? true ),
+	};
+}
+
+function offersMatch( firstOffer, secondOffer ) {
+	return JSON.stringify( normalizeOfferForCompare( firstOffer ) ) === JSON.stringify( normalizeOfferForCompare( secondOffer ) );
+}
+
 function App() {
 	const [ funnels, setFunnels ] = useState( [] );
 	const [ steps, setSteps ] = useState( [] );
 	const [ pages, setPages ] = useState( [] );
+	const [ products, setProducts ] = useState( [] );
 	const [ selectedFunnelId, setSelectedFunnelId ] = useState( 0 );
 	const [ selectedItem, setSelectedItem ] = useState( { type: 'funnel' } );
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -204,11 +242,13 @@ function App() {
 		const nextFunnels = Array.isArray( workspace.funnels ) ? workspace.funnels : [];
 		const nextSteps = Array.isArray( workspace.steps ) ? workspace.steps : [];
 		const nextPages = Array.isArray( workspace.pages ) ? workspace.pages : pages;
+		const nextProducts = Array.isArray( workspace.products ) ? workspace.products : products;
 		const candidateId = Number( workspace.selectedFunnelId || preferredFunnelId );
 
 		setFunnels( nextFunnels );
 		setSteps( nextSteps );
 		setPages( nextPages );
+		setProducts( nextProducts );
 
 		if ( nextFunnels.length > 0 ) {
 			const stillExists = nextFunnels.some( ( funnel ) => Number( funnel.id ) === Number( candidateId ) );
@@ -404,6 +444,15 @@ function App() {
 		}
 	}
 
+	async function searchProducts( searchTerm ) {
+		const suffix = searchTerm ? `?search=${ encodeURIComponent( searchTerm ) }` : '';
+		const nextProducts = await apiFetch( { path: `${ productsPath }${ suffix }` } );
+
+		if ( Array.isArray( nextProducts ) ) {
+			setProducts( nextProducts );
+		}
+	}
+
 	async function createPageForStep( step, title ) {
 		const payload = await runSave(
 			() =>
@@ -520,6 +569,7 @@ function App() {
 				graph={ graph }
 				steps={ steps }
 				pages={ pages }
+				products={ products }
 				funnelSteps={ funnelSteps }
 				onSelect={ setSelectedItem }
 				onSaveGraph={ saveGraph }
@@ -527,6 +577,7 @@ function App() {
 				onDeleteStep={ deleteStep }
 				onSetStartStep={ setStartStep }
 				onSearchPages={ searchPages }
+				onSearchProducts={ searchProducts }
 				onCreatePageForStep={ createPageForStep }
 				isSaving={ isSaving }
 			/>
@@ -776,11 +827,13 @@ function NodeInspector( {
 	step,
 	selectedFunnel,
 	pages,
+	products,
 	warnings,
 	onUpdateStep,
 	onDeleteStep,
 	onSetStartStep,
 	onSearchPages,
+	onSearchProducts,
 	onCreatePageForStep,
 	isSaving,
 } ) {
@@ -833,6 +886,8 @@ function NodeInspector( {
 				isSaving={ isSaving }
 			/>
 
+			<CommercePanel step={ step } products={ products } onSearchProducts={ onSearchProducts } onUpdateStep={ onUpdateStep } isSaving={ isSaving } />
+
 			<div className="lf-action-row">
 				<button
 					className="lf-button lf-button--primary"
@@ -857,6 +912,220 @@ function NodeInspector( {
 				{ __( 'Archive step', 'librefunnels' ) }
 			</button>
 		</aside>
+	);
+}
+
+function CommercePanel( { step, products, onSearchProducts, onUpdateStep, isSaving } ) {
+	if ( step.type === 'checkout' ) {
+		return <CheckoutProductsPanel step={ step } products={ products } onSearchProducts={ onSearchProducts } onUpdateStep={ onUpdateStep } isSaving={ isSaving } />;
+	}
+
+	if ( [ 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ].includes( step.type ) ) {
+		return <PrimaryOfferPanel step={ step } products={ products } onSearchProducts={ onSearchProducts } onUpdateStep={ onUpdateStep } isSaving={ isSaving } />;
+	}
+
+	return null;
+}
+
+function CheckoutProductsPanel( { step, products, onSearchProducts, onUpdateStep, isSaving } ) {
+	const savedCheckoutProductId = Number( step.checkoutProducts?.[ 0 ]?.product_id || 0 );
+	const savedBump = step.orderBumps?.[ 0 ] || createEmptyOffer();
+	const [ checkoutProductId, setCheckoutProductId ] = useState( savedCheckoutProductId );
+	const [ bump, setBump ] = useState( savedBump );
+	const checkoutDirty = checkoutProductId !== savedCheckoutProductId;
+	const bumpDirty = ! offersMatch( bump, savedBump );
+
+	useEffect( () => {
+		setCheckoutProductId( Number( step.checkoutProducts?.[ 0 ]?.product_id || 0 ) );
+		setBump( step.orderBumps?.[ 0 ] || createEmptyOffer() );
+	}, [ step.id ] );
+
+	function saveCheckoutProduct() {
+		onUpdateStep( step, {
+			checkout_products: checkoutProductId
+				? [
+						{
+							product_id: checkoutProductId,
+							variation_id: 0,
+							quantity: 1,
+							variation: {},
+						},
+				  ]
+				: [],
+		} );
+	}
+
+	function saveBump() {
+		onUpdateStep( step, {
+			order_bumps: bump.product_id ? [ bump ] : [],
+		} );
+	}
+
+	return (
+		<div className="lf-panellet">
+			<div>
+				<span className="lf-field-heading">
+					{ __( 'Checkout products', 'librefunnels' ) }
+					{ checkoutDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
+				</span>
+				<p>{ __( 'Choose the main product this checkout should prepare in the WooCommerce cart.', 'librefunnels' ) }</p>
+			</div>
+
+			<ProductPicker value={ checkoutProductId } products={ products } onSearch={ onSearchProducts } onChange={ setCheckoutProductId } />
+			<div className="lf-action-row">
+				<button className="lf-button" type="button" disabled={ isSaving || ! checkoutDirty } onClick={ saveCheckoutProduct }>
+					{ __( 'Save checkout product', 'librefunnels' ) }
+				</button>
+				<button className="lf-button" type="button" disabled={ isSaving || checkoutProductId < 1 } onClick={ () => setCheckoutProductId( 0 ) }>
+					{ __( 'Clear', 'librefunnels' ) }
+				</button>
+			</div>
+
+			<div className="lf-rule-divider" />
+
+			<div>
+				<span className="lf-field-heading">
+					{ __( 'Order bump', 'librefunnels' ) }
+					{ bumpDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
+				</span>
+				<p>{ __( 'Add one focused checkout bump. Multiple bumps will use the same structure later.', 'librefunnels' ) }</p>
+			</div>
+
+			<OfferFields offer={ bump } products={ products } onSearchProducts={ onSearchProducts } onChange={ setBump } />
+			<div className="lf-action-row">
+				<button className="lf-button" type="button" disabled={ isSaving || ! bumpDirty } onClick={ saveBump }>
+					{ __( 'Save order bump', 'librefunnels' ) }
+				</button>
+				<button className="lf-button" type="button" disabled={ isSaving || ! bump.product_id } onClick={ () => setBump( createEmptyOffer() ) }>
+					{ __( 'Clear', 'librefunnels' ) }
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function PrimaryOfferPanel( { step, products, onSearchProducts, onUpdateStep, isSaving } ) {
+	const savedOffer = step.offer?.product_id ? step.offer : createEmptyOffer();
+	const [ offer, setOffer ] = useState( savedOffer );
+	const offerDirty = ! offersMatch( offer, savedOffer );
+
+	useEffect( () => {
+		setOffer( step.offer?.product_id ? step.offer : createEmptyOffer() );
+	}, [ step.id ] );
+
+	function clearOffer() {
+		const emptyOffer = createEmptyOffer();
+		setOffer( emptyOffer );
+
+		if ( savedOffer.product_id ) {
+			onUpdateStep( step, { offer: {} } );
+		}
+	}
+
+	return (
+		<div className="lf-panellet">
+			<div>
+				<span className="lf-field-heading">
+					{ __( 'Offer product', 'librefunnels' ) }
+					{ offerDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
+				</span>
+				<p>{ __( 'This step uses the universal accept-and-confirm flow, so it works with regular WooCommerce gateways.', 'librefunnels' ) }</p>
+			</div>
+
+			<OfferFields offer={ offer } products={ products } onSearchProducts={ onSearchProducts } onChange={ setOffer } />
+			<div className="lf-action-row">
+				<button className="lf-button" type="button" disabled={ isSaving || ! offerDirty || ! offer.product_id } onClick={ () => onUpdateStep( step, { offer } ) }>
+					{ __( 'Save offer', 'librefunnels' ) }
+				</button>
+				<button className="lf-button" type="button" disabled={ isSaving || ( ! offer.product_id && ! savedOffer.product_id ) } onClick={ clearOffer }>
+					{ __( 'Clear', 'librefunnels' ) }
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function OfferFields( { offer, products, onSearchProducts, onChange } ) {
+	return (
+		<div className="lf-offer-fields">
+			<ProductPicker value={ Number( offer.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { ...offer, product_id: Number( productId ) } ) } />
+
+			<label className="lf-field">
+				<span>{ __( 'Offer title', 'librefunnels' ) }</span>
+				<input value={ offer.title || '' } onChange={ ( event ) => onChange( { ...offer, title: event.target.value } ) } />
+			</label>
+
+			<label className="lf-field">
+				<span>{ __( 'Short description', 'librefunnels' ) }</span>
+				<textarea rows="3" value={ offer.description || '' } onChange={ ( event ) => onChange( { ...offer, description: event.target.value } ) } />
+			</label>
+
+			<label className="lf-field">
+				<span>{ __( 'Discount', 'librefunnels' ) }</span>
+				<select value={ offer.discount_type || 'none' } onChange={ ( event ) => onChange( { ...offer, discount_type: event.target.value } ) }>
+					<option value="none">{ __( 'No discount', 'librefunnels' ) }</option>
+					<option value="percentage">{ __( 'Percentage', 'librefunnels' ) }</option>
+					<option value="fixed">{ __( 'Fixed amount', 'librefunnels' ) }</option>
+				</select>
+			</label>
+
+			{ offer.discount_type !== 'none' && (
+				<label className="lf-field">
+					<span>{ __( 'Discount amount', 'librefunnels' ) }</span>
+					<input type="number" min="0" step="0.01" value={ Number( offer.discount_amount || 0 ) } onChange={ ( event ) => onChange( { ...offer, discount_amount: Number( event.target.value ) } ) } />
+				</label>
+			) }
+
+			<label className="lf-toggle">
+				<input type="checkbox" checked={ Boolean( offer.enabled ?? true ) } onChange={ ( event ) => onChange( { ...offer, enabled: event.target.checked } ) } />
+				<span>{ __( 'Offer enabled', 'librefunnels' ) }</span>
+			</label>
+		</div>
+	);
+}
+
+function ProductPicker( { value, products, onSearch, onChange } ) {
+	const [ search, setSearch ] = useState( '' );
+	const searchTimer = useRef( null );
+	const selectedProduct = getProductById( products, value );
+
+	function handleSearch( nextSearch ) {
+		setSearch( nextSearch );
+		window.clearTimeout( searchTimer.current );
+		searchTimer.current = window.setTimeout( () => onSearch( nextSearch ), 250 );
+	}
+
+	return (
+		<div className="lf-product-picker">
+			<label className="lf-field">
+				<span>{ __( 'Find product', 'librefunnels' ) }</span>
+				<input value={ search } placeholder={ __( 'Search products by name or SKU...', 'librefunnels' ) } onChange={ ( event ) => handleSearch( event.target.value ) } />
+			</label>
+
+			<select value={ Number( value || 0 ) } onChange={ ( event ) => onChange( Number( event.target.value ) ) }>
+				<option value="0">{ __( 'Choose a product', 'librefunnels' ) }</option>
+				{ products.map( ( product ) => (
+					<option key={ product.id } value={ product.id }>
+						{ product.name } { product.sku ? `(${ product.sku })` : '' }
+					</option>
+				) ) }
+			</select>
+
+			{ selectedProduct && (
+				<div className="lf-product-chip">
+					{ selectedProduct.imageUrl && <img src={ selectedProduct.imageUrl } alt="" />}
+					<span>
+						<strong>{ selectedProduct.name }</strong>
+						<small>
+							{ selectedProduct.priceHtml || selectedProduct.type }
+							{ ! selectedProduct.purchasable ? ` · ${ __( 'Not purchasable', 'librefunnels' ) }` : '' }
+						</small>
+					</span>
+				</div>
+			) }
+
+			{ products.length === 0 && <p className="lf-product-hint">{ __( 'No products found yet. Try another search, or create WooCommerce products first.', 'librefunnels' ) }</p> }
+		</div>
 	);
 }
 
@@ -903,7 +1172,7 @@ function PagePicker( { step, pages, onSearch, onAssign, onCreate, isSaving } ) {
 	);
 }
 
-function EdgeInspector( { edge, graph, steps, onSaveGraph, onSelect, isSaving } ) {
+function EdgeInspector( { edge, graph, steps, products, onSearchProducts, onSaveGraph, onSelect, isSaving } ) {
 	const [ route, setRoute ] = useState( edge?.route || 'next' );
 	const [ source, setSource ] = useState( edge?.source || '' );
 	const [ target, setTarget ] = useState( edge?.target || '' );
@@ -998,7 +1267,7 @@ function EdgeInspector( { edge, graph, steps, onSaveGraph, onSelect, isSaving } 
 				</select>
 			</label>
 
-			{ route === 'conditional' && <RuleBuilder rule={ rule } onChange={ setRule } /> }
+			{ route === 'conditional' && <RuleBuilder rule={ rule } products={ products } onSearchProducts={ onSearchProducts } onChange={ setRule } /> }
 
 			<div className="lf-action-row">
 				<button className="lf-button lf-button--primary" type="button" disabled={ isSaving || ! source || ! target } onClick={ saveEdge }>
@@ -1012,7 +1281,7 @@ function EdgeInspector( { edge, graph, steps, onSaveGraph, onSelect, isSaving } 
 	);
 }
 
-function RuleBuilder( { rule, onChange } ) {
+function RuleBuilder( { rule, products, onSearchProducts, onChange } ) {
 	const type = rule?.type || 'always';
 
 	return (
@@ -1034,10 +1303,7 @@ function RuleBuilder( { rule, onChange } ) {
 			</label>
 
 			{ type === 'cart_contains_product' && (
-				<label className="lf-field">
-					<span>{ __( 'Product ID', 'librefunnels' ) }</span>
-					<input type="number" min="1" value={ Number( rule.product_id || 0 ) } onChange={ ( event ) => onChange( { ...rule, product_id: Number( event.target.value ) } ) } />
-				</label>
+				<ProductPicker value={ Number( rule.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { ...rule, product_id: Number( productId ) } ) } />
 			) }
 
 			{ ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' ) && (

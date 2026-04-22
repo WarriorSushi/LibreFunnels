@@ -196,7 +196,7 @@ The first React canvas uses WordPress REST-enabled CPTs and registered meta as i
 - Edit step title, type, and page ID.
 - Store conditional edge rule objects.
 
-Canvas writes now use first-party REST endpoints under `librefunnels/v1` for atomic builder actions. The generic WordPress post endpoints remain useful for compatibility, but the builder uses dedicated endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation. This keeps validation and error messages aligned with funnel concepts instead of raw post-meta failures.
+Canvas writes now use first-party REST endpoints under `librefunnels/v1` for atomic builder actions. The generic WordPress post endpoints remain useful for compatibility, but the builder uses dedicated endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, draft page creation, and WooCommerce product search. Product lookup uses WooCommerce product APIs (`wc_get_products` and product objects) and searches both product text and SKU before serializing only the compact fields the canvas needs. This keeps validation and error messages aligned with funnel concepts instead of raw post-meta failures.
 
 Validation is visible in the canvas and inspector. Missing start steps, missing page assignments, nodes that point to missing or foreign steps, broken edge source/target IDs, and incomplete conditional rules stay visible instead of being hidden. The design direction remains store-owner-first refined SaaS: calm, explicit, and powerful without becoming a WordPress meta-box maze.
 
@@ -207,6 +207,9 @@ Canvas interaction expectations:
 - Route source, target, and label are edited through explicit selectors.
 - Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
 - Step page assignment uses page search and a draft page creation path that inserts the `[librefunnels_step]` shortcode.
+- Checkout steps can choose a main WooCommerce product and one initial order bump from the inspector. The metadata already supports arrays; the first UI keeps the common case focused before exposing multi-product and multi-bump controls.
+- Offer steps (`pre_checkout_offer`, `upsell`, `downsell`, `cross_sell`) can choose an offer product, title, short description, discount type/amount, and enabled state from the inspector.
+- Product-based conditional rules use the same product picker instead of raw product IDs.
 - Route deletion and step archiving are recoverable builder actions rather than silent data removal.
 
 ## Analytics Core

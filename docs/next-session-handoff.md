@@ -57,12 +57,16 @@ Implemented so far:
 - Funnel list, create funnel action, step creation, start step assignment, node canvas, route edges, and inspector editing.
 - Canvas validation for missing start step, missing page assignment, missing/foreign step nodes, broken edge endpoints, and incomplete conditional rules.
 - Custom `librefunnels/v1` canvas REST endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation.
+- Canvas product search endpoint using WooCommerce product APIs with name/SKU lookup and compact serialization.
 - Draggable node positioning with persisted graph coordinates.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Store-owner-friendly conditional rule builder for supported rule types.
+- Product pickers in checkout, order bump, offer, and product-rule inspector controls.
+- Initial commerce inspector panels for checkout product assignment, one order bump, and primary offer configuration.
 - Upsell, downsell, and cross-sell steps now share the safe accept-and-confirm offer rendering path.
 - Local analytics event table and recorder for offer impressions, accepts, and rejects.
+- Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -80,10 +84,10 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add product search controls to offer and rule panels so store owners do not type product IDs.
-2. Add offer configuration panels for checkout products, bumps, upsells, downsells, and cross-sells from the canvas inspector.
-3. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
-4. Add browser testing against a local WordPress site for canvas mount, drag save, page creation, route edits, and rule builder.
+1. Run the Docker WordPress rig and add Playwright checks for canvas mount, funnel creation, drag save, page creation, route edits, rule builder, and product picker flows.
+2. Expand commerce inspector editing from one checkout product/one bump to the full metadata arrays with variation and quantity controls.
+3. Add clearer per-control save feedback and dirty-state indicators in the canvas inspector.
+4. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
 5. Add revenue attribution events when WooCommerce order creation finalizes.
 6. Add dashboard reads from the local analytics table.
 7. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.

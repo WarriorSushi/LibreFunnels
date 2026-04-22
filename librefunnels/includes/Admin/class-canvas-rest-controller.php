@@ -158,6 +158,22 @@ final class Canvas_REST_Controller {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/canvas/products',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'search_products' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'search' => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -185,9 +201,10 @@ final class Canvas_REST_Controller {
 	public function get_workspace() {
 		return rest_ensure_response(
 			array(
-				'funnels' => $this->get_funnels(),
-				'steps'   => $this->get_steps(),
-				'pages'   => $this->get_pages(),
+				'funnels'  => $this->get_funnels(),
+				'steps'    => $this->get_steps(),
+				'pages'    => $this->get_pages(),
+				'products' => $this->get_products( '', $this->get_assigned_product_ids() ),
 			)
 		);
 	}
@@ -351,6 +368,18 @@ final class Canvas_REST_Controller {
 			update_post_meta( $step_id, LIBREFUNNELS_STEP_PAGE_ID_META, absint( $request->get_param( 'page_id' ) ) );
 		}
 
+		if ( $request->has_param( 'checkout_products' ) ) {
+			update_post_meta( $step_id, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, Registered_Meta::sanitize_checkout_products( $request->get_param( 'checkout_products' ) ) );
+		}
+
+		if ( $request->has_param( 'order_bumps' ) ) {
+			update_post_meta( $step_id, LIBREFUNNELS_ORDER_BUMPS_META, Registered_Meta::sanitize_order_bumps( $request->get_param( 'order_bumps' ) ) );
+		}
+
+		if ( $request->has_param( 'offer' ) ) {
+			update_post_meta( $step_id, LIBREFUNNELS_STEP_OFFER_META, Registered_Meta::sanitize_step_offer( $request->get_param( 'offer' ) ) );
+		}
+
 		return rest_ensure_response( $this->get_workspace_payload( $funnel_id ) );
 	}
 
@@ -417,6 +446,16 @@ final class Canvas_REST_Controller {
 	}
 
 	/**
+	 * Searches WooCommerce products for assignment controls.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function search_products( WP_REST_Request $request ) {
+		return rest_ensure_response( $this->get_products( (string) $request->get_param( 'search' ) ) );
+	}
+
+	/**
 	 * Creates a draft page for a step and assigns it.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -465,24 +504,33 @@ final class Canvas_REST_Controller {
 	 */
 	private function get_step_args( $include_funnel ) {
 		$args = array(
-			'title'    => array(
+			'title'             => array(
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
-			'type'     => array(
+			'type'              => array(
 				'type'              => 'string',
 				'enum'              => Step_Post_Type::get_allowed_step_types(),
 				'sanitize_callback' => array( Registered_Meta::class, 'sanitize_step_type' ),
 			),
-			'page_id'  => array(
+			'page_id'           => array(
 				'type'              => 'integer',
 				'sanitize_callback' => 'absint',
 			),
-			'order'    => array(
+			'order'             => array(
 				'type'              => 'integer',
 				'sanitize_callback' => 'absint',
 			),
-			'position' => array(
+			'position'          => array(
+				'type' => 'object',
+			),
+			'checkout_products' => array(
+				'type' => 'array',
+			),
+			'order_bumps'       => array(
+				'type' => 'array',
+			),
+			'offer'             => array(
 				'type' => 'object',
 			),
 		);
@@ -547,6 +595,7 @@ final class Canvas_REST_Controller {
 			'funnels'          => $this->get_funnels(),
 			'steps'            => $this->get_steps(),
 			'pages'            => $this->get_pages(),
+			'products'         => $this->get_products( '', $this->get_assigned_product_ids() ),
 			'selectedFunnelId' => absint( $selected_funnel_id ),
 		);
 	}
@@ -617,6 +666,71 @@ final class Canvas_REST_Controller {
 	}
 
 	/**
+	 * Gets WooCommerce products for assignment controls.
+	 *
+	 * @param string $search      Optional search term.
+	 * @param int[]  $include_ids Product IDs that must be included.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function get_products( $search = '', array $include_ids = array() ) {
+		if ( ! function_exists( 'wc_get_products' ) ) {
+			return array();
+		}
+
+		$args = array(
+			'status'  => array( 'publish', 'private' ),
+			'limit'   => 20,
+			'orderby' => 'name',
+			'order'   => 'ASC',
+			'return'  => 'objects',
+		);
+
+		$search          = sanitize_text_field( $search );
+		$product_objects = array();
+
+		if ( '' !== trim( $search ) ) {
+			$name_args           = $args;
+			$name_args['search'] = '*' . $search . '*';
+
+			$sku_args        = $args;
+			$sku_args['sku'] = $search;
+
+			$product_objects = array_merge( wc_get_products( $name_args ), wc_get_products( $sku_args ) );
+		} else {
+			$product_objects = wc_get_products( $args );
+		}
+
+		$seen    = array();
+		$results = array();
+
+		foreach ( $product_objects as $product ) {
+			$serialized = $this->serialize_product( $product );
+
+			if ( $serialized ) {
+				$seen[ $serialized['id'] ] = true;
+				$results[]                 = $serialized;
+			}
+		}
+
+		$include_ids = array_unique( array_filter( array_map( 'absint', $include_ids ) ) );
+
+		foreach ( $include_ids as $product_id ) {
+			if ( isset( $seen[ $product_id ] ) ) {
+				continue;
+			}
+
+			$product = wc_get_product( $product_id );
+			$product = $product ? $this->serialize_product( $product ) : null;
+
+			if ( $product ) {
+				$results[] = $product;
+			}
+		}
+
+		return $results;
+	}
+
+	/**
 	 * Serializes a funnel.
 	 *
 	 * @param \WP_Post $post Funnel post.
@@ -655,16 +769,70 @@ final class Canvas_REST_Controller {
 		$page    = $page_id ? get_post( $page_id ) : null;
 
 		return array(
-			'id'          => absint( $post->ID ),
-			'title'       => get_the_title( $post ),
-			'status'      => $post->post_status,
-			'funnelId'    => absint( get_post_meta( $post->ID, LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) ),
-			'type'        => Registered_Meta::sanitize_step_type( get_post_meta( $post->ID, LIBREFUNNELS_STEP_TYPE_META, true ) ),
-			'order'       => absint( get_post_meta( $post->ID, LIBREFUNNELS_STEP_ORDER_META, true ) ),
-			'pageId'      => $page_id,
-			'pageTitle'   => $page ? get_the_title( $page ) : '',
-			'pageEditUrl' => $page ? get_edit_post_link( $page_id, 'raw' ) : '',
+			'id'               => absint( $post->ID ),
+			'title'            => get_the_title( $post ),
+			'status'           => $post->post_status,
+			'funnelId'         => absint( get_post_meta( $post->ID, LIBREFUNNELS_STEP_FUNNEL_ID_META, true ) ),
+			'type'             => Registered_Meta::sanitize_step_type( get_post_meta( $post->ID, LIBREFUNNELS_STEP_TYPE_META, true ) ),
+			'order'            => absint( get_post_meta( $post->ID, LIBREFUNNELS_STEP_ORDER_META, true ) ),
+			'pageId'           => $page_id,
+			'pageTitle'        => $page ? get_the_title( $page ) : '',
+			'pageEditUrl'      => $page ? get_edit_post_link( $page_id, 'raw' ) : '',
+			'checkoutProducts' => Registered_Meta::sanitize_checkout_products( get_post_meta( $post->ID, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, true ) ),
+			'orderBumps'       => Registered_Meta::sanitize_order_bumps( get_post_meta( $post->ID, LIBREFUNNELS_ORDER_BUMPS_META, true ) ),
+			'offer'            => Registered_Meta::sanitize_step_offer( get_post_meta( $post->ID, LIBREFUNNELS_STEP_OFFER_META, true ) ),
 		);
+	}
+
+	/**
+	 * Serializes a WooCommerce product.
+	 *
+	 * @param \WC_Product|mixed $product Product object.
+	 * @return array<string,mixed>|null
+	 */
+	private function serialize_product( $product ) {
+		if ( ! is_object( $product ) || ! method_exists( $product, 'get_id' ) ) {
+			return null;
+		}
+
+		$image_id  = method_exists( $product, 'get_image_id' ) ? absint( $product->get_image_id() ) : 0;
+		$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : '';
+
+		return array(
+			'id'          => absint( $product->get_id() ),
+			'name'        => method_exists( $product, 'get_name' ) ? $product->get_name() : '',
+			'type'        => method_exists( $product, 'get_type' ) ? $product->get_type() : '',
+			'sku'         => method_exists( $product, 'get_sku' ) ? $product->get_sku() : '',
+			'price'       => method_exists( $product, 'get_price' ) ? (string) $product->get_price() : '',
+			'priceHtml'   => method_exists( $product, 'get_price_html' ) ? wp_strip_all_tags( $product->get_price_html() ) : '',
+			'purchasable' => method_exists( $product, 'is_purchasable' ) ? (bool) $product->is_purchasable() : false,
+			'imageUrl'    => is_string( $image_url ) ? $image_url : '',
+		);
+	}
+
+	/**
+	 * Gets product IDs currently assigned in funnel step commerce metadata.
+	 *
+	 * @return int[]
+	 */
+	private function get_assigned_product_ids() {
+		$ids = array();
+
+		foreach ( $this->get_steps() as $step ) {
+			foreach ( $step['checkoutProducts'] as $item ) {
+				$ids[] = isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0;
+			}
+
+			foreach ( $step['orderBumps'] as $item ) {
+				$ids[] = isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0;
+			}
+
+			if ( ! empty( $step['offer']['product_id'] ) ) {
+				$ids[] = absint( $step['offer']['product_id'] );
+			}
+		}
+
+		return $ids;
 	}
 
 	/**

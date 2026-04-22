@@ -56,6 +56,8 @@
 - Canvas REST workspace loads funnels, steps, and pages behind `manage_woocommerce`
 - Canvas REST graph save updates graph and start-step meta together
 - Canvas page creation inserts `[librefunnels_step]` and assigns the page to the step
+- Canvas product search returns WooCommerce products through supported product APIs and keeps assigned products visible
+- Canvas step update persists checkout products, order bumps, and primary offer metadata through sanitizers
 - Local analytics events table is installed on activation/schema-version changes
 - Offer impression and accept/reject hooks write local events
 
@@ -68,6 +70,7 @@
 - Canvas drags a node and persists the new position
 - Canvas creates and assigns a draft page without exposing raw page IDs
 - Canvas builds a conditional route without editing JSON
+- Canvas selects products for checkout, order bump, offer, and product-based conditional rules
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow
@@ -83,6 +86,12 @@
 - SQL preparation
 - Sanitization
 - Escaping
+
+## Local Docker Harness
+The repository includes a Docker Compose WordPress rig for manual and future browser testing:
+- `compose.yaml` starts MySQL, WordPress, and WP-CLI.
+- `tools/docker/init-wordpress.ps1` installs WordPress, installs and activates WooCommerce, activates LibreFunnels, and seeds sample products.
+- Use this rig for Playwright checks once admin browser automation is added.
 - Privacy consent
 
 ## Local Checks
