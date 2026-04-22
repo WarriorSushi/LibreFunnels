@@ -1,5 +1,5 @@
 import apiFetch from '@wordpress/api-fetch';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { createRoot, useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import './style.css';
 
@@ -114,6 +114,45 @@ function getEdgeWarnings( edge, nodes ) {
 	return warnings;
 }
 
+function formatStepTitles( stepList, fallback ) {
+	const titles = stepList
+		.slice( 0, 2 )
+		.map( ( step ) => getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) );
+
+	if ( titles.length === 0 ) {
+		return fallback;
+	}
+
+	if ( stepList.length > titles.length ) {
+		return sprintf(
+			_n( '%1$s and %2$d more', '%1$s and %2$d more', stepList.length - titles.length, 'librefunnels' ),
+			titles.join( ', ' ),
+			stepList.length - titles.length
+		);
+	}
+
+	return titles.join( ', ' );
+}
+
+function getCreatePagesDetail( missingPageSteps ) {
+	return sprintf(
+		_n( 'Create a page for %s.', 'Create pages for %s.', missingPageSteps.length, 'librefunnels' ),
+		formatStepTitles( missingPageSteps, __( 'these steps', 'librefunnels' ) )
+	);
+}
+
+function getCreatePagesMessage( missingPageSteps ) {
+	return sprintf(
+		_n(
+			'Create or assign a page for %s, then edit it with your page builder.',
+			'Create or assign pages for %s, then edit them with your page builder.',
+			missingPageSteps.length,
+			'librefunnels'
+		),
+		formatStepTitles( missingPageSteps, __( 'these steps', 'librefunnels' ) )
+	);
+}
+
 function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 	if ( ! selectedFunnel ) {
 		return {
@@ -126,46 +165,147 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 	const nodes = graph.nodes || [];
 	const startStepId = Number( selectedFunnel.startStepId || 0 );
 	const nodeStepIds = nodes.map( ( node ) => Number( node.stepId || 0 ) );
-	const missingPageStep = funnelSteps.find( ( step ) => nodeStepIds.includes( Number( step.id ) ) && Number( step.pageId || 0 ) < 1 );
-	const checkoutStep = funnelSteps.find( ( step ) => 'checkout' === step.type );
+	const canvasSteps = funnelSteps.filter( ( step ) => nodeStepIds.includes( Number( step.id ) ) );
+	const missingPageSteps = canvasSteps.filter( ( step ) => Number( step.pageId || 0 ) < 1 );
+	const unpublishedPageSteps = canvasSteps.filter(
+		( step ) => Number( step.pageId || 0 ) > 0 && step.pageStatus !== 'publish'
+	);
+	const checkoutStep = canvasSteps.find( ( step ) => 'checkout' === step.type );
+	const hasValidStartStep = startStepId > 0 && funnelSteps.some( ( step ) => Number( step.id ) === startStepId );
+	const hasCheckoutProducts = Boolean( checkoutStep?.checkoutProducts?.length );
+	const hasConnectedRoute = nodes.length < 2 || graph.edges.length > 0;
+	let publishDetail = __( 'All assigned pages are published.', 'librefunnels' );
+
+	if ( unpublishedPageSteps.length > 0 ) {
+		publishDetail = sprintf(
+			__( 'Edit and publish %s.', 'librefunnels' ),
+			formatStepTitles( unpublishedPageSteps, __( 'these pages', 'librefunnels' ) )
+		);
+	} else if ( canvasSteps.length < 1 || missingPageSteps.length > 0 ) {
+		publishDetail = __( 'Create pages before publishing.', 'librefunnels' );
+	}
+
+	const tasks = [
+		{
+			id: 'path',
+			label: __( 'Path', 'librefunnels' ),
+			detail: nodes.length > 0
+				? __( 'Checkout path exists.', 'librefunnels' )
+				: __( 'Build checkout and thank-you steps.', 'librefunnels' ),
+			done: nodes.length > 0,
+		},
+		{
+			id: 'start',
+			label: __( 'Start', 'librefunnels' ),
+			detail: hasValidStartStep
+				? __( 'Shopper entry step is set.', 'librefunnels' )
+				: __( 'Choose where shoppers enter.', 'librefunnels' ),
+			done: hasValidStartStep,
+		},
+		{
+			id: 'pages',
+			label: __( 'Pages', 'librefunnels' ),
+			detail: canvasSteps.length < 1
+				? __( 'Create steps before assigning pages.', 'librefunnels' )
+				: missingPageSteps.length > 0
+					? getCreatePagesDetail( missingPageSteps )
+					: __( 'Every step has a page.', 'librefunnels' ),
+			done: canvasSteps.length > 0 && missingPageSteps.length === 0,
+		},
+		{
+			id: 'publish',
+			label: __( 'Publish', 'librefunnels' ),
+			detail: publishDetail,
+			done: canvasSteps.length > 0 && missingPageSteps.length === 0 && unpublishedPageSteps.length === 0,
+		},
+		{
+			id: 'products',
+			label: __( 'Products', 'librefunnels' ),
+			detail: hasCheckoutProducts
+				? __( 'Checkout products are selected.', 'librefunnels' )
+				: __( 'Choose at least one checkout product.', 'librefunnels' ),
+			done: hasCheckoutProducts,
+		},
+		{
+			id: 'route',
+			label: __( 'Route', 'librefunnels' ),
+			detail: hasConnectedRoute
+				? __( 'Shopper route is connected.', 'librefunnels' )
+				: __( 'Connect the steps shoppers should follow.', 'librefunnels' ),
+			done: hasConnectedRoute,
+		},
+		{
+			id: 'review',
+			label: __( 'Review', 'librefunnels' ),
+			detail: warnings.length > 0
+				? sprintf(
+					_n( '%d item still needs attention.', '%d items still need attention.', warnings.length, 'librefunnels' ),
+					warnings.length
+				)
+				: __( 'No blocking validation issues.', 'librefunnels' ),
+			done: warnings.length === 0,
+		},
+	];
+	const nextTask = tasks.find( ( task ) => ! task.done );
+	const completed = tasks.filter( ( task ) => task.done ).length;
+	const baseGuide = {
+		tasks,
+		completed,
+		total: tasks.length,
+		nextTaskId: nextTask?.id || '',
+	};
 
 	if ( nodes.length === 0 ) {
 		return {
+			...baseGuide,
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: __( 'Add a checkout step first. You can add offers and thank-you pages after the basic path exists.', 'librefunnels' ),
 		};
 	}
 
-	if ( startStepId < 1 ) {
+	if ( ! hasValidStartStep ) {
 		return {
+			...baseGuide,
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: __( 'Choose which step shoppers enter first. Most funnels start at the checkout or landing step.', 'librefunnels' ),
 		};
 	}
 
-	if ( missingPageStep ) {
+	if ( missingPageSteps.length > 0 ) {
 		return {
+			...baseGuide,
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: getCreatePagesMessage( missingPageSteps ),
+		};
+	}
+
+	if ( unpublishedPageSteps.length > 0 ) {
+		return {
+			...baseGuide,
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: sprintf(
-				__( 'Create or assign a page for %s, then edit that page with your page builder.', 'librefunnels' ),
-				getPostTitle( missingPageStep, __( 'this step', 'librefunnels' ) )
+				__( 'Edit and publish %s so shoppers can reach the funnel.', 'librefunnels' ),
+				formatStepTitles( unpublishedPageSteps, __( 'these pages', 'librefunnels' ) )
 			),
 		};
 	}
 
-	if ( checkoutStep && ! checkoutStep.checkoutProducts?.length ) {
+	if ( ! hasCheckoutProducts ) {
 		return {
+			...baseGuide,
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: __( 'Choose the product this checkout should sell so LibreFunnels can prepare the cart.', 'librefunnels' ),
 		};
 	}
 
-	if ( nodes.length > 1 && graph.edges.length === 0 ) {
+	if ( ! hasConnectedRoute ) {
 		return {
+			...baseGuide,
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: __( 'Connect the route shoppers should follow from one step to the next.', 'librefunnels' ),
@@ -174,6 +314,7 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 
 	if ( warnings.length > 0 ) {
 		return {
+			...baseGuide,
 			status: 'warning',
 			label: __( 'Needs attention', 'librefunnels' ),
 			message: __( 'Fix the highlighted items in the inspector. Broken steps stay visible so you do not lose context.', 'librefunnels' ),
@@ -181,6 +322,7 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 	}
 
 	return {
+		...baseGuide,
 		status: 'ready',
 		label: __( 'Ready', 'librefunnels' ),
 		message: __( 'The basic path is configured. Preview the pages, then add offers, bumps, and conditions.', 'librefunnels' ),
@@ -905,6 +1047,7 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 						<span>{ setupGuide.message }</span>
 					</p>
 				) }
+				<SetupProgress setupGuide={ setupGuide } />
 			</div>
 
 			<div className="lf-header-actions">
@@ -925,6 +1068,40 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 				</button>
 			</div>
 		</header>
+	);
+}
+
+function SetupProgress( { setupGuide } ) {
+	if ( ! setupGuide?.tasks?.length ) {
+		return null;
+	}
+
+	const progress = Math.round( ( setupGuide.completed / setupGuide.total ) * 100 );
+
+	return (
+		<div className="lf-setup-progress" aria-label={ __( 'Setup progress', 'librefunnels' ) }>
+			<div className="lf-setup-progress__meter">
+				<span>{ sprintf( __( '%1$d of %2$d ready', 'librefunnels' ), setupGuide.completed, setupGuide.total ) }</span>
+				<span className="lf-setup-progress__bar" aria-hidden="true">
+					<span style={ { width: `${ progress }%` } } />
+				</span>
+			</div>
+			<ol className="lf-setup-list">
+				{ setupGuide.tasks.map( ( task ) => (
+					<li
+						key={ task.id }
+						className={ `lf-setup-item ${ task.done ? 'is-done' : '' } ${ task.id === setupGuide.nextTaskId ? 'is-next' : '' }` }
+						aria-current={ task.id === setupGuide.nextTaskId ? 'step' : undefined }
+					>
+						<span className="lf-setup-item__mark" aria-hidden="true" />
+						<span>
+							<strong>{ task.label }</strong>
+							<small>{ task.detail }</small>
+						</span>
+					</li>
+				) ) }
+			</ol>
+		</div>
 	);
 }
 

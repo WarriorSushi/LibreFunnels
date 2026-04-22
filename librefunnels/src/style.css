@@ -214,6 +214,107 @@
 	color: var(--lf-accent-deep);
 }
 
+.lf-setup-progress {
+	display: grid;
+	gap: 10px;
+	padding-top: 4px;
+}
+
+.lf-setup-progress__meter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	color: var(--lf-muted);
+	font-size: 12px;
+	font-weight: 750;
+}
+
+.lf-setup-progress__bar {
+	display: inline-flex;
+	width: min(220px, 100%);
+	height: 6px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: var(--lf-surface-quiet);
+}
+
+.lf-setup-progress__bar span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--lf-accent);
+	transition: width 0.18s ease;
+}
+
+.lf-setup-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.lf-setup-item {
+	display: grid;
+	grid-template-columns: 14px minmax(0, 1fr);
+	gap: 8px;
+	align-items: start;
+	padding: 10px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface-soft);
+}
+
+.lf-setup-item.is-next {
+	border-color: color-mix(in oklch, var(--lf-warn) 48%, var(--lf-border));
+	background: color-mix(in oklch, var(--lf-warn) 8%, var(--lf-surface));
+}
+
+.lf-setup-item.is-done {
+	border-color: color-mix(in oklch, var(--lf-accept) 40%, var(--lf-border));
+	background: color-mix(in oklch, var(--lf-accept) 7%, var(--lf-surface));
+}
+
+.lf-setup-item__mark {
+	width: 10px;
+	height: 10px;
+	margin-top: 4px;
+	border: 2px solid var(--lf-border);
+	border-radius: 999px;
+	background: var(--lf-surface);
+}
+
+.lf-setup-item.is-next .lf-setup-item__mark {
+	border-color: var(--lf-warn);
+	box-shadow: 0 0 0 3px color-mix(in oklch, var(--lf-warn) 16%, transparent);
+}
+
+.lf-setup-item.is-done .lf-setup-item__mark {
+	border-color: var(--lf-accept);
+	background: var(--lf-accept);
+}
+
+.lf-setup-item strong,
+.lf-setup-item small {
+	display: block;
+	min-width: 0;
+}
+
+.lf-setup-item strong {
+	color: var(--lf-ink);
+	font-size: 12px;
+	line-height: 1.2;
+}
+
+.lf-setup-item small {
+	margin-top: 3px;
+	color: var(--lf-muted);
+	font-size: 11px;
+	line-height: 1.35;
+}
+
 .lf-save-state {
 	color: var(--lf-muted);
 	font-size: 12px;

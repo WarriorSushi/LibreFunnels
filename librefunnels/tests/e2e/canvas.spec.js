@@ -33,12 +33,16 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();
 		await expect( page.getByRole( 'heading', { name: 'Checkout', exact: true } ) ).toBeVisible();
 		await expect( page.getByText( 'Thank You' ).first() ).toBeVisible();
+		await expect( page.getByText( '3 of 7 ready' ) ).toBeVisible();
+		await expect( page.getByText( 'Create pages for Checkout, Thank You.' ) ).toBeVisible();
 
 		const pageTitle = `Playwright checkout ${ Date.now() }`;
 		await page.getByLabel( 'Create page' ).fill( pageTitle );
 		await page.getByRole( 'button', { name: 'Create and assign' } ).click();
 		await expect( page.getByText( 'Page created and assigned' ) ).toBeVisible();
 		await expect( page.getByText( 'Draft page' ).first() ).toBeVisible();
+		await expect( page.getByText( 'Create a page for Thank You.' ) ).toBeVisible();
+		await expect( page.getByText( 'Edit and publish Checkout.' ) ).toBeVisible();
 		await expect( page.getByRole( 'link', { name: 'Edit page design' } ) ).toBeVisible();
 		await expect( page.getByRole( 'link', { name: 'Preview page' } ) ).toBeVisible();
 
@@ -53,6 +57,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await secondCheckoutCard.getByLabel( 'Quantity' ).fill( '1' );
 		await page.getByRole( 'button', { name: 'Save checkout products' } ).click();
 		await expect( page.getByText( 'Step saved' ) ).toBeVisible();
+		await expect( page.getByText( '4 of 7 ready' ) ).toBeVisible();
 
 		const bumpList = page.locator( '.lf-commerce-list--order-bumps' );
 		const firstBumpCard = bumpList.locator( '.lf-commerce-card' ).first();
