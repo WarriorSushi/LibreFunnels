@@ -1,0 +1,464 @@
+.librefunnels-canvas-app {
+	--lf-surface: oklch(0.992 0.004 174);
+	--lf-surface-soft: oklch(0.972 0.008 174);
+	--lf-surface-quiet: oklch(0.948 0.012 174);
+	--lf-ink: oklch(0.19 0.018 174);
+	--lf-muted: oklch(0.46 0.018 174);
+	--lf-border: oklch(0.83 0.018 174);
+	--lf-accent: oklch(0.44 0.105 174);
+	--lf-accent-deep: oklch(0.3 0.09 174);
+	--lf-warn: oklch(0.55 0.14 60);
+	--lf-danger: oklch(0.52 0.15 28);
+	--lf-accept: oklch(0.48 0.12 150);
+	--lf-reject: oklch(0.54 0.13 28);
+	--lf-conditional: oklch(0.45 0.1 245);
+	display: grid;
+	grid-template-columns: 260px minmax(0, 1fr) 320px;
+	gap: 16px;
+	max-width: none;
+	min-height: calc(100vh - 96px);
+	margin: 20px 20px 0 2px;
+	color: var(--lf-ink);
+}
+
+.lf-sidebar,
+.lf-canvas-shell,
+.lf-inspector {
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+}
+
+.lf-sidebar,
+.lf-inspector {
+	display: grid;
+	align-content: start;
+	gap: 20px;
+	padding: 18px;
+}
+
+.lf-brand {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}
+
+.lf-brand__mark {
+	display: grid;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	border: 1px solid color-mix(in oklch, var(--lf-accent) 42%, transparent);
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-accent) 13%, transparent);
+	color: var(--lf-accent-deep);
+	font-weight: 850;
+}
+
+.lf-brand p,
+.lf-label {
+	margin: 0;
+	color: var(--lf-accent-deep);
+	font-size: 11px;
+	font-weight: 850;
+	letter-spacing: 0;
+	text-transform: uppercase;
+}
+
+.lf-brand strong {
+	display: block;
+	margin-top: 2px;
+	font-size: 16px;
+}
+
+.lf-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 36px;
+	padding: 0 12px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+	color: var(--lf-ink);
+	font-weight: 750;
+	cursor: pointer;
+	transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.lf-button:hover:not(:disabled),
+.lf-button:focus-visible {
+	border-color: var(--lf-accent);
+	transform: translateY(-1px);
+}
+
+.lf-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+.lf-button--primary {
+	border-color: var(--lf-accent-deep);
+	background: var(--lf-accent-deep);
+	color: oklch(0.99 0.006 174);
+}
+
+.lf-sidebar__section {
+	display: grid;
+	gap: 10px;
+}
+
+.lf-empty-small {
+	padding: 14px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface-soft);
+	color: var(--lf-muted);
+	line-height: 1.5;
+}
+
+.lf-funnel-list {
+	display: grid;
+	gap: 8px;
+}
+
+.lf-funnel-item {
+	display: grid;
+	gap: 4px;
+	width: 100%;
+	padding: 12px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--lf-ink);
+	text-align: left;
+	cursor: pointer;
+}
+
+.lf-funnel-item.is-selected {
+	border-color: color-mix(in oklch, var(--lf-accent) 55%, var(--lf-border));
+	background: color-mix(in oklch, var(--lf-accent) 10%, transparent);
+}
+
+.lf-funnel-item span {
+	color: var(--lf-muted);
+	font-size: 12px;
+	text-transform: capitalize;
+}
+
+.lf-canvas-shell {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr);
+	min-width: 0;
+	overflow: hidden;
+	background: var(--lf-surface-soft);
+}
+
+.lf-canvas-header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 18px;
+	border-bottom: 1px solid var(--lf-border);
+	background: var(--lf-surface);
+}
+
+.lf-canvas-header h1,
+.lf-inspector h2 {
+	margin: 4px 0 0;
+	color: var(--lf-ink);
+	font-size: 22px;
+	font-weight: 850;
+	line-height: 1.15;
+}
+
+.lf-header-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.lf-health {
+	display: inline-flex;
+	align-items: center;
+	min-height: 30px;
+	padding: 0 10px;
+	border: 1px solid var(--lf-border);
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 850;
+}
+
+.lf-health.is-clear {
+	border-color: color-mix(in oklch, var(--lf-accept) 45%, transparent);
+	color: var(--lf-accept);
+}
+
+.lf-health.has-warnings {
+	border-color: color-mix(in oklch, var(--lf-warn) 45%, transparent);
+	color: var(--lf-warn);
+}
+
+.lf-alert {
+	margin: 14px 18px 0;
+	padding: 12px 14px;
+	border: 1px solid color-mix(in oklch, var(--lf-danger) 40%, transparent);
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-danger) 9%, transparent);
+	color: var(--lf-danger);
+	font-weight: 700;
+}
+
+.lf-canvas {
+	position: relative;
+	min-width: var(--lf-canvas-width, 880px);
+	min-height: var(--lf-canvas-height, 540px);
+	overflow: auto;
+	background:
+		linear-gradient(color-mix(in oklch, var(--lf-border) 28%, transparent) 1px, transparent 1px),
+		linear-gradient(90deg, color-mix(in oklch, var(--lf-border) 28%, transparent) 1px, transparent 1px),
+		var(--lf-surface-soft);
+	background-size: 28px 28px;
+}
+
+.lf-canvas--empty {
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	min-width: 0;
+	padding: 48px;
+	text-align: center;
+}
+
+.lf-canvas--empty h2 {
+	max-width: 22ch;
+	margin: 0;
+	font-size: 32px;
+	line-height: 1.05;
+}
+
+.lf-canvas--empty p {
+	max-width: 58ch;
+	margin: 12px 0 0;
+	color: var(--lf-muted);
+	line-height: 1.6;
+}
+
+.lf-edges {
+	position: absolute;
+	inset: 0;
+	width: var(--lf-canvas-width, 880px);
+	height: var(--lf-canvas-height, 540px);
+	pointer-events: none;
+}
+
+.lf-edge {
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.lf-edge path {
+	fill: none;
+	stroke: var(--lf-muted);
+	stroke-linecap: round;
+	stroke-width: 2.5;
+}
+
+.lf-edge text {
+	paint-order: stroke;
+	stroke: var(--lf-surface-soft);
+	stroke-width: 6px;
+	fill: var(--lf-ink);
+	font-size: 12px;
+	font-weight: 850;
+}
+
+.lf-edge--accept path {
+	stroke: var(--lf-accept);
+}
+
+.lf-edge--reject path {
+	stroke: var(--lf-reject);
+}
+
+.lf-edge--conditional path {
+	stroke: var(--lf-conditional);
+	stroke-dasharray: 8 6;
+}
+
+.lf-edge--fallback path {
+	stroke-dasharray: 3 6;
+}
+
+.lf-edge.is-selected path {
+	stroke-width: 4;
+}
+
+.lf-edge.has-warning path {
+	stroke: var(--lf-warn);
+}
+
+.lf-node {
+	position: absolute;
+	display: grid;
+	gap: 6px;
+	width: 220px;
+	min-height: 96px;
+	padding: 14px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+	color: var(--lf-ink);
+	text-align: left;
+	cursor: pointer;
+	box-shadow: 0 10px 28px color-mix(in oklch, var(--lf-ink) 7%, transparent);
+	transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.lf-node:hover,
+.lf-node.is-selected {
+	border-color: var(--lf-accent);
+	transform: translateY(-1px);
+}
+
+.lf-node.has-warning {
+	border-color: color-mix(in oklch, var(--lf-warn) 55%, var(--lf-border));
+}
+
+.lf-node__type {
+	color: var(--lf-accent-deep);
+	font-size: 11px;
+	font-weight: 850;
+	text-transform: uppercase;
+}
+
+.lf-node strong {
+	font-size: 16px;
+	line-height: 1.25;
+}
+
+.lf-node__meta {
+	color: var(--lf-muted);
+	font-size: 12px;
+}
+
+.lf-broken-edge {
+	position: absolute;
+	padding: 8px 10px;
+	border: 1px solid color-mix(in oklch, var(--lf-warn) 55%, var(--lf-border));
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-warn) 10%, var(--lf-surface));
+	color: var(--lf-warn);
+	font-weight: 850;
+	cursor: pointer;
+}
+
+.lf-inspector {
+	position: sticky;
+	top: 32px;
+	max-height: calc(100vh - 64px);
+	overflow: auto;
+}
+
+.lf-inspector p {
+	margin: 0;
+	color: var(--lf-muted);
+	line-height: 1.55;
+}
+
+.lf-field {
+	display: grid;
+	gap: 6px;
+}
+
+.lf-field span {
+	color: var(--lf-muted);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.lf-field input,
+.lf-field select,
+.lf-field textarea {
+	width: 100%;
+	min-height: 38px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
+	color: var(--lf-ink);
+}
+
+.lf-field textarea {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 12px;
+}
+
+.lf-action-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.lf-inspector__note,
+.lf-warnings,
+.lf-good {
+	display: grid;
+	gap: 6px;
+	padding: 12px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface-soft);
+}
+
+.lf-inspector__note span {
+	color: var(--lf-muted);
+}
+
+.lf-warnings {
+	border-color: color-mix(in oklch, var(--lf-warn) 45%, var(--lf-border));
+	background: color-mix(in oklch, var(--lf-warn) 8%, var(--lf-surface));
+}
+
+.lf-warnings p {
+	color: oklch(0.4 0.09 60);
+}
+
+.lf-field-error {
+	color: var(--lf-danger) !important;
+	font-weight: 750;
+}
+
+.lf-good {
+	color: var(--lf-accept) !important;
+	font-weight: 750;
+}
+
+@media (max-width: 1280px) {
+	.librefunnels-canvas-app {
+		grid-template-columns: 230px minmax(0, 1fr);
+	}
+
+	.lf-inspector {
+		grid-column: 1 / -1;
+		position: static;
+		max-height: none;
+	}
+}
+
+@media (max-width: 782px) {
+	.librefunnels-canvas-app {
+		grid-template-columns: 1fr;
+		margin-right: 10px;
+	}
+
+	.lf-canvas-header {
+		align-items: stretch;
+	}
+
+	.lf-header-actions {
+		width: 100%;
+	}
+}

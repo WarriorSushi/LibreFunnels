@@ -46,9 +46,18 @@
 - Conditional graph route resolution with edge rules
 - Conditional offers
 - Polished admin workspace shell
-- Visual canvas builder
+- First React visual canvas builder
+  - WordPress-native admin enqueueing
+  - `@wordpress/scripts` build pipeline
+  - Funnel list and create action
+  - Canvas nodes backed by funnel step records
+  - Route edges for `next`, `accept`, `reject`, `conditional`, and `fallback`
+  - Right-side inspector for funnel, step, and route editing
+  - Inline validation for missing start step, page assignment, broken routes, and conditional rule gaps
 - Smart routing
 - Validation UI
+
+Phase 4 is now the active product track. Backend work should continue where the canvas needs it, especially safer REST edit flows, page search, route creation controls, drag positioning, and store-owner-friendly rule builders.
 
 ## Phase 5: Payments
 - Gateway adapter API

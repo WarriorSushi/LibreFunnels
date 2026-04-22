@@ -51,11 +51,15 @@
 - Coupons
 - Taxes/shipping
 - Product variations
+- React admin assets enqueue only on the LibreFunnels admin screen
+- Built canvas assets load with the PHP fallback still present for no-build installs
 
 ## E2E Tests
 - Funnel creation
 - Admin workspace loading
 - Canvas editing
+- Canvas creates a funnel, adds steps, connects a route, and saves graph meta
+- Canvas shows validation for missing start step, missing page ID, broken route target, and invalid conditional route
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow
@@ -72,3 +76,11 @@
 - Sanitization
 - Escaping
 - Privacy consent
+
+## Local Checks
+Run these before commits that touch PHP, build tooling, or the admin app:
+- `composer lint`
+- `composer test`
+- `npm run build`
+
+When a local WordPress test site is available, add a browser check that confirms the React app mounts only on the LibreFunnels admin page and that the fallback shell is replaced without PHP notices.

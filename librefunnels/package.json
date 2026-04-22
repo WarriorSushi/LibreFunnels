@@ -1,0 +1,14 @@
+{
+  "name": "librefunnels-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LibreFunnels WordPress admin canvas app.",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.18.0"
+  }
+}

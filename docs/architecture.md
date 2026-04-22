@@ -185,4 +185,17 @@ Use a React admin app loaded only on plugin admin pages.
 Canvas nodes represent funnel steps and offer routes.
 Edges represent accept/reject/conditional paths.
 
-The current admin page is a server-rendered workspace shell with scoped assets. It is intentionally not the final builder, but it sets the visual direction: store-owner-first, calm SaaS, status clarity, and no generic WordPress notice-only screen. The React canvas can replace the inner workspace later without changing the menu entry or capability model.
+The current admin page keeps a server-rendered workspace fallback inside `#librefunnels-admin-app`, then replaces it with the React canvas when built assets are available. Assets are enqueued only on the LibreFunnels admin screen through WordPress admin enqueue APIs. The PHP layer passes REST endpoints, meta keys, route labels, step labels, and a `wp_rest` nonce to the app before the script runs.
+
+The first React canvas uses WordPress REST-enabled CPTs and registered meta as its persistence layer:
+- Create and list funnels.
+- Create basic steps owned by the selected funnel.
+- Store canvas nodes in `_librefunnels_graph`.
+- Store route edges for `next`, `accept`, `reject`, `conditional`, and `fallback`.
+- Assign the funnel start step through `_librefunnels_start_step_id`.
+- Edit step title, type, and page ID.
+- Store conditional edge rule objects.
+
+Validation is visible in the canvas and inspector. Missing start steps, missing page assignments, nodes that point to missing or foreign steps, broken edge source/target IDs, and incomplete conditional rules stay visible instead of being hidden. The design direction remains store-owner-first refined SaaS: calm, explicit, and powerful without becoming a WordPress meta-box maze.
+
+The JavaScript app is built with `@wordpress/scripts` from `librefunnels/src/index.js`. Built files under `librefunnels/build/` are committed so WordPress installs do not require Node tooling.
