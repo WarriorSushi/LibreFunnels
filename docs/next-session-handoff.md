@@ -59,6 +59,7 @@ Implemented so far:
 - Custom `librefunnels/v1` canvas REST endpoints for workspace loading, funnel creation, graph saves, step create/update/archive, page search, and draft page creation.
 - Canvas product search endpoint using WooCommerce product APIs with name/SKU lookup and compact serialization.
 - Draggable node positioning with persisted graph coordinates.
+- Empty funnels now offer a guided starter path that creates checkout and thank-you steps, connects the default continue route, and sets checkout as the start step.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Beginner setup guidance in the canvas header with the next useful task.
@@ -92,8 +93,8 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 
 ## Next Implementation Steps
 1. Expand Playwright coverage for drag persistence, route edits, rule builder, offer product controls, and product picker search behavior.
-2. Improve first-run funnel creation/onboarding so a beginner can create the initial checkout path with fewer manual steps.
-3. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
+2. Improve page creation/edit-page flow with clearer builder handoff and publish/preview status.
+3. Add stronger first-run publishing guidance after the starter path exists, including which pages still need content or publishing.
 4. Add REST/integration tests for canvas endpoints once a WP test runtime is available.
 5. Add revenue attribution events when WooCommerce order creation finalizes.
 6. Add dashboard reads from the local analytics table.

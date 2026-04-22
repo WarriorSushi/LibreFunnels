@@ -529,6 +529,95 @@ function App() {
 		}
 	}
 
+	async function createStarterPath() {
+		if ( ! selectedFunnel ) {
+			return;
+		}
+
+		setIsSaving( true );
+		setError( '' );
+		setNotice( __( 'Building starter path...', 'librefunnels' ) );
+
+		try {
+			const checkoutPayload = await apiFetch( {
+				path: `${ canvasPath }/funnels/${ selectedFunnel.id }/steps`,
+				method: 'POST',
+				data: {
+					title: stepTypes.checkout || __( 'Checkout', 'librefunnels' ),
+					type: 'checkout',
+					order: funnelSteps.length + 1,
+					page_id: 0,
+					position: {
+						x: 120,
+						y: 160,
+					},
+				},
+			} );
+			const checkoutWorkspace = checkoutPayload?.workspace || checkoutPayload;
+			const checkoutFunnel = checkoutWorkspace?.funnels?.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnel.id ) );
+			const checkoutNodes = checkoutFunnel ? getGraph( checkoutFunnel ).nodes : [];
+			const checkoutNode = checkoutNodes.length > 0 ? checkoutNodes[ checkoutNodes.length - 1 ] : null;
+
+			if ( ! checkoutNode ) {
+				throw new Error( __( 'LibreFunnels could not create the checkout step.', 'librefunnels' ) );
+			}
+
+			const thankYouPayload = await apiFetch( {
+				path: `${ canvasPath }/funnels/${ selectedFunnel.id }/steps`,
+				method: 'POST',
+				data: {
+					title: stepTypes.thank_you || __( 'Thank You', 'librefunnels' ),
+					type: 'thank_you',
+					order: funnelSteps.length + 2,
+					page_id: 0,
+					position: {
+						x: 440,
+						y: 160,
+					},
+				},
+			} );
+			const thankYouWorkspace = thankYouPayload?.workspace || thankYouPayload;
+			const thankYouFunnel = thankYouWorkspace?.funnels?.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnel.id ) );
+			const nextGraph = thankYouFunnel ? getGraph( thankYouFunnel ) : emptyGraph;
+			const latestCheckoutNode = nextGraph.nodes.find( ( node ) => Number( node.stepId ) === Number( checkoutNode.stepId ) );
+			const thankYouNode = nextGraph.nodes.find( ( node ) => 'thank_you' === node.type && Number( node.stepId ) !== Number( checkoutNode.stepId ) );
+
+			if ( ! latestCheckoutNode || ! thankYouNode ) {
+				throw new Error( __( 'LibreFunnels could not connect the starter path.', 'librefunnels' ) );
+			}
+
+			const savedWorkspace = await apiFetch( {
+				path: `${ canvasPath }/funnels/${ selectedFunnel.id }/graph`,
+				method: 'POST',
+				data: {
+					graph: {
+						...nextGraph,
+						edges: [
+							...nextGraph.edges,
+							{
+								id: `edge-${ Date.now() }`,
+								source: latestCheckoutNode.id,
+								target: thankYouNode.id,
+								route: 'next',
+								rule: {},
+							},
+						],
+					},
+					start_step_id: Number( latestCheckoutNode.stepId || 0 ),
+				},
+			} );
+
+			applyWorkspace( savedWorkspace, selectedFunnel.id );
+			setSelectedItem( { type: 'node', id: latestCheckoutNode.id } );
+			setNotice( __( 'Starter path created', 'librefunnels' ) );
+		} catch ( nextError ) {
+			setNotice( '' );
+			setError( nextError.message || __( 'LibreFunnels could not build the starter path.', 'librefunnels' ) );
+		} finally {
+			setIsSaving( false );
+		}
+	}
+
 	async function updateStep( step, fields ) {
 		return runSave(
 			() =>
@@ -705,6 +794,7 @@ function App() {
 					onStartDrag={ startNodeDrag }
 					onCreateFunnel={ createFunnel }
 					onCreateStep={ createStep }
+					onCreateStarterPath={ createStarterPath }
 					isSaving={ isSaving }
 				/>
 			</main>
@@ -818,7 +908,7 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 	);
 }
 
-function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, isSaving } ) {
+function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, onCreateStarterPath, isSaving } ) {
 	const nodes = graph.nodes.map( ( node, index ) => ( {
 		...node,
 		position: normalizeNodePosition( node, index ),
@@ -847,10 +937,15 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 		return (
 			<div className="lf-canvas lf-canvas--empty">
 				<h2>{ __( 'This funnel is ready for its first step.', 'librefunnels' ) }</h2>
-				<p>{ __( 'Start with checkout so LibreFunnels knows what shoppers buy. Then create the page and edit it in your preferred builder.', 'librefunnels' ) }</p>
-				<button className="lf-button lf-button--primary" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ isSaving }>
-					{ __( 'Add checkout step', 'librefunnels' ) }
-				</button>
+				<p>{ __( 'Build a simple checkout path now, then create each page and edit it in your preferred builder.', 'librefunnels' ) }</p>
+				<div className="lf-empty-actions">
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterPath } disabled={ isSaving }>
+						{ __( 'Build checkout path', 'librefunnels' ) }
+					</button>
+					<button className="lf-button" type="button" onClick={ () => onCreateStep( 'checkout' ) } disabled={ isSaving }>
+						{ __( 'Add one step', 'librefunnels' ) }
+					</button>
+				</div>
 			</div>
 		);
 	}

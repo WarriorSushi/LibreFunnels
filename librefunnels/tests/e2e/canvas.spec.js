@@ -29,8 +29,10 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Create funnel' } ).first().click();
 		await expect( page.getByText( 'Funnel created' ) ).toBeVisible();
 
-		await page.getByRole( 'button', { name: 'Add checkout', exact: true } ).click();
+		await page.getByRole( 'button', { name: 'Build checkout path' } ).click();
+		await expect( page.getByText( 'Starter path created' ) ).toBeVisible();
 		await expect( page.getByRole( 'heading', { name: 'Checkout', exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Thank You' ).first() ).toBeVisible();
 
 		const pageTitle = `Playwright checkout ${ Date.now() }`;
 		await page.getByLabel( 'Create page' ).fill( pageTitle );

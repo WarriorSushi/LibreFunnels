@@ -56,6 +56,7 @@
   - Inline validation for missing start step, page assignment, broken routes, and conditional rule gaps
   - Draggable node positioning saved to graph metadata
   - Atomic `librefunnels/v1` REST endpoints for canvas workspace actions
+  - Guided starter path for empty funnels that creates checkout and thank-you steps with a continue route
   - Page search and draft page creation for step assignment
   - Store-owner-friendly conditional rule builder
   - Recoverable step archive and route delete controls

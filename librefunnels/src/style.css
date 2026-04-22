@@ -287,6 +287,14 @@
 	line-height: 1.6;
 }
 
+.lf-empty-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+	margin-top: 6px;
+}
+
 .lf-edges {
 	position: absolute;
 	inset: 0;

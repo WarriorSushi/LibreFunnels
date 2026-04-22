@@ -67,12 +67,13 @@
 - Admin workspace loading
 - Canvas editing
 - Canvas creates a funnel, adds steps, connects a route, and saves graph meta
+- Canvas guided starter path creates checkout and thank-you steps and connects the default continue route
 - Canvas shows validation for missing start step, missing page ID, broken route target, and invalid conditional route
 - Canvas drags a node and persists the new position
 - Canvas creates and assigns a draft page without exposing raw page IDs
 - Canvas builds a conditional route without editing JSON
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
-- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a funnel page, saves multiple checkout products, and saves an order bump
+- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates the guided starter path, creates a funnel page, saves multiple checkout products, and saves an order bump
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow

@@ -206,6 +206,7 @@ Canvas interaction expectations:
 - Nodes can be dragged and saved back to graph position metadata.
 - Route source, target, and label are edited through explicit selectors.
 - Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
+- Empty funnels offer a guided starter path action that creates checkout and thank-you steps, connects them with a `next` route, and marks checkout as the start step.
 - Step page assignment uses page search and a draft page creation path that inserts the `[librefunnels_step]` shortcode.
 - Checkout steps can edit multiple WooCommerce product assignments from the inspector, including quantity, variation ID, and optional variation attributes. The same commerce panel can edit multiple order bumps with product, quantity, variation details, title, description, discount, and enabled state.
 - Checkout commerce panels show per-section dirty indicators and short save reminders so store owners know when local edits have not yet been persisted through the canvas REST endpoint.
