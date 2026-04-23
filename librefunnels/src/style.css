@@ -547,6 +547,24 @@
 	gap: 12px;
 }
 
+.lf-template-card__header {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.lf-hidden-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
 .lf-compact-list {
 	display: grid;
 	gap: 8px;

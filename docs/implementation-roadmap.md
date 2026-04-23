@@ -65,9 +65,12 @@
   - Per-section dirty indicators and save reminders in commerce controls
   - Derived setup progress checklist for missing pages, draft publish status, product readiness, routes, and validation
   - Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup
-  - Funnel workspace tabs for Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so the canvas does not carry every product surface
+  - Funnel workspace tabs for Overview, Canvas, Steps, Products, Offers, Rules, Analytics, and Settings so the canvas does not carry every product surface
   - Dedicated step planning surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom step creation visible
-  - Playwright canvas smoke for Docker WordPress admin mount, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
+  - Dedicated offers surface that keeps upsells, downsells, cross-sells, and pre-checkout offers out of the checkout products panel
+  - Real site-readiness data on Dashboard and Setup for permalinks, checkout page presence, gateways, currency, and product count
+  - Deterministic builder handoff with `funnel_id` deep-linking so starter/template flows reopen the correct funnel
+  - Playwright canvas smoke for Docker WordPress admin mount, submenu rendering, bundled template create/import/export, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
 - Smart routing
 - Validation UI
 
@@ -95,7 +98,9 @@ Phase 4 remains the active product track, with the commerce-aware inspector now 
 
 ## Phase 7: Templates and Integrations
 - Instant layouts
-- Template library
+- Bundled local template library
+- Template-to-funnel creation flow with draft page generation
+- JSON funnel import/export with schema validation
 - Gutenberg blocks
 - Shortcodes
 - Page-builder compatibility

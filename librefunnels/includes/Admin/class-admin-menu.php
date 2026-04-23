@@ -284,13 +284,18 @@ final class Admin_Menu {
 			'activeSection' => $this->get_current_section(),
 			'adminPages'    => $this->get_admin_pages(),
 			'rest'          => array(
-				'funnels'   => '/wp/v2/librefunnels-funnels',
-				'steps'     => '/wp/v2/librefunnels-steps',
-				'canvas'    => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
-				'pages'     => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/pages',
-				'products'  => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/products',
-				'analytics' => '/' . Analytics_REST_Controller::REST_NAMESPACE . '/analytics/summary',
+				'funnels'            => '/wp/v2/librefunnels-funnels',
+				'steps'              => '/wp/v2/librefunnels-steps',
+				'canvas'             => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas',
+				'pages'              => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/pages',
+				'products'           => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/products',
+				'templates'          => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/templates',
+				'templateCreateBase' => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/templates',
+				'import'             => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/import',
+				'exportBase'         => '/' . Canvas_REST_Controller::REST_NAMESPACE . '/canvas/funnels',
+				'analytics'          => '/' . Analytics_REST_Controller::REST_NAMESPACE . '/analytics/summary',
 			),
+			'siteReadiness' => $this->get_site_readiness(),
 			'metaKeys'      => array(
 				'graph'        => LIBREFUNNELS_FUNNEL_GRAPH_META,
 				'startStepId'  => LIBREFUNNELS_FUNNEL_START_STEP_META,
@@ -360,6 +365,45 @@ final class Admin_Menu {
 				return add_query_arg( 'page', $slug, admin_url( 'admin.php' ) );
 			},
 			$pages
+		);
+	}
+
+	/**
+	 * Gets store readiness facts for the admin app.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function get_site_readiness() {
+		$product_count       = 0;
+		$enabled_gateways    = 0;
+		$permalink_structure = (string) get_option( 'permalink_structure', '' );
+
+		if ( function_exists( 'wc_get_page_id' ) ) {
+			$checkout_page_id = absint( wc_get_page_id( 'checkout' ) );
+		} else {
+			$checkout_page_id = 0;
+		}
+
+		$product_posts = wp_count_posts( 'product' );
+
+		if ( $product_posts ) {
+			$product_count = absint( $product_posts->publish ) + absint( $product_posts->private );
+		}
+
+		if ( function_exists( 'WC' ) && WC()->payment_gateways() ) {
+			foreach ( WC()->payment_gateways()->payment_gateways() as $gateway ) {
+				if ( is_object( $gateway ) && method_exists( $gateway, 'is_available' ) && 'yes' === $gateway->enabled ) {
+					++$enabled_gateways;
+				}
+			}
+		}
+
+		return array(
+			'prettyPermalinks' => '' !== $permalink_structure,
+			'checkoutPageId'   => $checkout_page_id,
+			'productCount'     => $product_count,
+			'enabledGateways'  => $enabled_gateways,
+			'currency'         => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 		);
 	}
 }

@@ -86,23 +86,11 @@ final class Step_Renderer {
 			return $this->render_offer_step( $step, $step_type );
 		}
 
-		if ( 'thank_you' !== $step_type ) {
-			return $this->render_error( __( 'This LibreFunnels step type is not renderable yet.', 'librefunnels' ), 'step-type-not-renderable' );
+		if ( in_array( $step_type, array( 'landing', 'optin', 'thank_you', 'custom' ), true ) ) {
+			return $this->render_content_step( $step, $step_type );
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally render step content through WordPress' core content filters.
-		$content = apply_filters( 'the_content', $step->post_content );
-
-		return $this->template_loader->render(
-			'steps/thank-you.php',
-			array(
-				'step'      => $step,
-				'step_id'   => $step_id,
-				'step_type' => $step_type,
-				'title'     => get_the_title( $step ),
-				'content'   => $content,
-			)
-		);
+		return $this->render_error( __( 'This LibreFunnels step type is not renderable yet.', 'librefunnels' ), 'step-type-not-renderable' );
 	}
 
 	/**
@@ -175,6 +163,31 @@ final class Step_Renderer {
 				'offer'      => $offer,
 				'product'    => $product,
 				'price_html' => method_exists( $product, 'get_price_html' ) ? $product->get_price_html() : '',
+			)
+		);
+	}
+
+	/**
+	 * Renders a content-led step.
+	 *
+	 * @param \WP_Post $step      Step post.
+	 * @param string   $step_type Step type.
+	 * @return string
+	 */
+	private function render_content_step( $step, $step_type ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally render step content through WordPress core content filters.
+		$content = apply_filters( 'the_content', $step->post_content );
+
+		$template = 'thank_you' === $step_type ? 'steps/thank-you.php' : 'steps/content.php';
+
+		return $this->template_loader->render(
+			$template,
+			array(
+				'step'      => $step,
+				'step_id'   => absint( $step->ID ),
+				'step_type' => $step_type,
+				'title'     => get_the_title( $step ),
+				'content'   => $content,
 			)
 		);
 	}

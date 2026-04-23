@@ -14,16 +14,22 @@ const routes = settings.routes || {};
 const canvasPath = settings.rest?.canvas || '/librefunnels/v1/canvas';
 const pagesPath = settings.rest?.pages || '/librefunnels/v1/canvas/pages';
 const productsPath = settings.rest?.products || '/librefunnels/v1/canvas/products';
+const templatesPath = settings.rest?.templates || '/librefunnels/v1/canvas/templates';
+const templateCreateBasePath = settings.rest?.templateCreateBase || '/librefunnels/v1/canvas/templates';
+const importPath = settings.rest?.import || '/librefunnels/v1/canvas/import';
+const exportBasePath = settings.rest?.exportBase || '/librefunnels/v1/canvas/funnels';
 const analyticsPath = settings.rest?.analytics || '/librefunnels/v1/analytics/summary';
 const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
 const adminSection = settings.activeSection || 'dashboard';
 const adminPages = settings.adminPages || {};
+const siteReadiness = settings.siteReadiness || {};
 
 const workspaceTabs = [
 	{ id: 'overview', label: __( 'Overview', 'librefunnels' ) },
 	{ id: 'canvas', label: __( 'Canvas', 'librefunnels' ) },
 	{ id: 'steps', label: __( 'Steps', 'librefunnels' ) },
 	{ id: 'products', label: __( 'Products', 'librefunnels' ) },
+	{ id: 'offers', label: __( 'Offers', 'librefunnels' ) },
 	{ id: 'rules', label: __( 'Rules', 'librefunnels' ) },
 	{ id: 'analytics', label: __( 'Analytics', 'librefunnels' ) },
 	{ id: 'settings', label: __( 'Settings', 'librefunnels' ) },
@@ -47,14 +53,16 @@ const sectionLabels = {
 	setup: __( 'Setup', 'librefunnels' ),
 };
 
-const starterStepTypes = [ 'landing', 'optin', 'checkout', 'upsell', 'downsell', 'thank_you', 'custom' ];
+const starterStepTypes = [ 'landing', 'optin', 'checkout', 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell', 'thank_you', 'custom' ];
 
 const stepTypeDescriptions = {
 	landing: __( 'Introduce the offer before checkout.', 'librefunnels' ),
 	optin: __( 'Capture a lead before the purchase path.', 'librefunnels' ),
 	checkout: __( 'Prepare WooCommerce products and payment.', 'librefunnels' ),
+	pre_checkout_offer: __( 'Present one focused paid step before checkout.', 'librefunnels' ),
 	upsell: __( 'Offer a post-choice upgrade after checkout intent.', 'librefunnels' ),
 	downsell: __( 'Recover value when an upsell is declined.', 'librefunnels' ),
+	cross_sell: __( 'Add a complementary offer before the final confirmation.', 'librefunnels' ),
 	thank_you: __( 'Confirm the purchase and guide the next action.', 'librefunnels' ),
 	custom: __( 'Add a flexible page for any other funnel moment.', 'librefunnels' ),
 };
@@ -123,6 +131,15 @@ function getStepById( steps, stepId ) {
 function getStoredSelectedFunnelId() {
 	try {
 		return Number( window.localStorage?.getItem( selectedFunnelStorageKey ) || 0 );
+	} catch ( error ) {
+		return 0;
+	}
+}
+
+function getRequestedFunnelIdFromUrl() {
+	try {
+		const url = new window.URL( window.location.href );
+		return Number( url.searchParams.get( 'funnel_id' ) || 0 );
 	} catch ( error ) {
 		return 0;
 	}
@@ -242,6 +259,26 @@ function formatPercent( value ) {
 	return `${ formatPlainNumber( value, { maximumFractionDigits: 1 } ) }%`;
 }
 
+function slugifyFilename( value ) {
+	return String( value || 'librefunnels-export' )
+		.toLowerCase()
+		.replace( /[^a-z0-9]+/g, '-' )
+		.replace( /(^-|-$)/g, '' ) || 'librefunnels-export';
+}
+
+function downloadJsonFile( filename, data ) {
+	const blob = new window.Blob( [ JSON.stringify( data, null, 2 ) ], { type: 'application/json' } );
+	const url = window.URL.createObjectURL( blob );
+	const link = window.document.createElement( 'a' );
+
+	link.href = url;
+	link.download = filename;
+	window.document.body.appendChild( link );
+	link.click();
+	link.remove();
+	window.URL.revokeObjectURL( url );
+}
+
 function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 	if ( ! selectedFunnel ) {
 		return {
@@ -260,8 +297,11 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 		( step ) => Number( step.pageId || 0 ) > 0 && step.pageStatus !== 'publish'
 	);
 	const checkoutStep = canvasSteps.find( ( step ) => 'checkout' === step.type );
+	const offerSteps = canvasSteps.filter( ( step ) => [ 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ].includes( step.type ) );
+	const offerStepsMissingProduct = offerSteps.filter( ( step ) => ! Number( step.offer?.product_id || 0 ) );
 	const hasValidStartStep = startStepId > 0 && funnelSteps.some( ( step ) => Number( step.id ) === startStepId );
 	const hasCheckoutProducts = Boolean( checkoutStep?.checkoutProducts?.length );
+	const offersReady = offerStepsMissingProduct.length === 0;
 	const hasConnectedRoute = nodes.length < 2 || graph.edges.length > 0;
 	let publishDetail = __( 'All assigned pages are published.', 'librefunnels' );
 
@@ -310,10 +350,15 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 		{
 			id: 'products',
 			label: __( 'Products', 'librefunnels' ),
-			detail: hasCheckoutProducts
-				? __( 'Checkout products are selected.', 'librefunnels' )
-				: __( 'Choose at least one checkout product.', 'librefunnels' ),
-			done: hasCheckoutProducts,
+			detail: ! hasCheckoutProducts
+				? __( 'Choose at least one checkout product.', 'librefunnels' )
+				: offerStepsMissingProduct.length > 0
+					? sprintf(
+						_n( 'Add an offer product for %s.', 'Add offer products for %s.', offerStepsMissingProduct.length, 'librefunnels' ),
+						formatStepTitles( offerStepsMissingProduct, __( 'these offers', 'librefunnels' ) )
+					)
+					: __( 'Checkout and offer products are selected.', 'librefunnels' ),
+			done: hasCheckoutProducts && offersReady,
 		},
 		{
 			id: 'route',
@@ -389,6 +434,23 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 			status: 'next',
 			label: __( 'Next step', 'librefunnels' ),
 			message: __( 'Choose the product this checkout should sell so LibreFunnels can prepare the cart.', 'librefunnels' ),
+		};
+	}
+
+	if ( offerStepsMissingProduct.length > 0 ) {
+		return {
+			...baseGuide,
+			status: 'next',
+			label: __( 'Next step', 'librefunnels' ),
+			message: sprintf(
+				_n(
+					'Choose an offer product for %s before testing this funnel path.',
+					'Choose offer products for %s before testing this funnel path.',
+					offerStepsMissingProduct.length,
+					'librefunnels'
+				),
+				formatStepTitles( offerStepsMissingProduct, __( 'these offer steps', 'librefunnels' ) )
+			),
 		};
 	}
 
@@ -569,7 +631,7 @@ function App() {
 	const [ steps, setSteps ] = useState( [] );
 	const [ pages, setPages ] = useState( [] );
 	const [ products, setProducts ] = useState( [] );
-	const [ selectedFunnelId, setSelectedFunnelId ] = useState( () => getStoredSelectedFunnelId() );
+	const [ selectedFunnelId, setSelectedFunnelId ] = useState( () => getRequestedFunnelIdFromUrl() || getStoredSelectedFunnelId() );
 	const [ selectedItem, setSelectedItem ] = useState( { type: 'funnel' } );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSaving, setIsSaving ] = useState( false );
@@ -579,6 +641,8 @@ function App() {
 	const [ analyticsSummary, setAnalyticsSummary ] = useState( null );
 	const [ isAnalyticsLoading, setIsAnalyticsLoading ] = useState( false );
 	const [ analyticsError, setAnalyticsError ] = useState( '' );
+	const [ templateLibrary, setTemplateLibrary ] = useState( [] );
+	const [ isTemplatesLoading, setIsTemplatesLoading ] = useState( false );
 	const [ dragging, setDragging ] = useState( null );
 
 	const selectedFunnel = funnels.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnelId ) );
@@ -590,6 +654,7 @@ function App() {
 
 	useEffect( () => {
 		loadWorkspace();
+		loadTemplates();
 	}, [] );
 
 	useEffect( () => {
@@ -706,7 +771,7 @@ function App() {
 		}
 	}
 
-	async function loadWorkspace( preferredFunnelId = selectedFunnelId || getStoredSelectedFunnelId() ) {
+	async function loadWorkspace( preferredFunnelId = selectedFunnelId || getRequestedFunnelIdFromUrl() || getStoredSelectedFunnelId() ) {
 		setIsLoading( true );
 		setError( '' );
 
@@ -720,6 +785,21 @@ function App() {
 			setError( nextError.message || __( 'LibreFunnels could not load the workspace.', 'librefunnels' ) );
 		} finally {
 			setIsLoading( false );
+		}
+	}
+
+	async function loadTemplates() {
+		setIsTemplatesLoading( true );
+
+		try {
+			const response = await apiFetch( { path: templatesPath } );
+			const nextTemplates = Array.isArray( response?.templates ) ? response.templates : [];
+			setTemplateLibrary( nextTemplates );
+		} catch ( nextError ) {
+			setTemplateLibrary( [] );
+			setError( nextError.message || __( 'LibreFunnels could not load the bundled templates.', 'librefunnels' ) );
+		} finally {
+			setIsTemplatesLoading( false );
 		}
 	}
 
@@ -756,15 +836,102 @@ function App() {
 			__( 'Funnel created', 'librefunnels' )
 		);
 
-	const workspace = payload?.workspace || payload || {};
-	const nextFunnelId = Number( workspace.selectedFunnelId || 0 );
+		const workspace = payload?.workspace || payload || {};
+		const nextFunnelId = Number( workspace.selectedFunnelId || 0 );
 
-	if ( nextFunnelId > 0 ) {
-		applyWorkspace( payload, nextFunnelId );
-		selectFunnel( nextFunnelId );
-		setSelectedItem( { type: 'funnel' } );
+		if ( nextFunnelId > 0 ) {
+			applyWorkspace( payload, nextFunnelId );
+			selectFunnel( nextFunnelId );
+			setSelectedItem( { type: 'funnel' } );
+		}
 	}
-}
+
+	function openBuilderForFunnel( funnelId ) {
+		const nextFunnelId = Number( funnelId || 0 );
+
+		if ( nextFunnelId < 1 ) {
+			return;
+		}
+
+		const builderUrl = new window.URL(
+			adminPages.funnels || 'admin.php?page=librefunnels-funnels',
+			window.location.href
+		);
+
+		builderUrl.searchParams.set( 'funnel_id', String( nextFunnelId ) );
+		storeSelectedFunnelId( nextFunnelId );
+		window.location.assign( builderUrl.toString() );
+	}
+
+	async function createFromTemplate( templateSlug, options = {} ) {
+		const payload = await runSave(
+			() =>
+				apiFetch( {
+					path: `${ templateCreateBasePath }/${ encodeURIComponent( templateSlug ) }/create`,
+					method: 'POST',
+					data: {
+						title: options.title || '',
+					},
+				} ),
+			__( 'Template funnel created', 'librefunnels' )
+		);
+
+		const workspace = payload?.workspace || payload || {};
+		const nextFunnelId = Number( workspace.selectedFunnelId || 0 );
+
+		if ( nextFunnelId > 0 ) {
+			setSelectedItem( { type: 'funnel' } );
+		}
+
+		if ( options.redirectToBuilder && nextFunnelId > 0 ) {
+			openBuilderForFunnel( nextFunnelId );
+		}
+	}
+
+	async function importFunnelPackage( packageText, options = {} ) {
+		const payload = await runSave(
+			() =>
+				apiFetch( {
+					path: importPath,
+					method: 'POST',
+					data: {
+						package: packageText,
+						title: options.title || '',
+					},
+				} ),
+			__( 'Funnel imported', 'librefunnels' )
+		);
+
+		const workspace = payload?.workspace || payload || {};
+		const nextFunnelId = Number( workspace.selectedFunnelId || 0 );
+
+		if ( options.redirectToBuilder && nextFunnelId > 0 ) {
+			openBuilderForFunnel( nextFunnelId );
+		}
+	}
+
+	async function exportFunnelPackage( funnel ) {
+		if ( ! funnel?.id ) {
+			setError( __( 'Choose a funnel before exporting.', 'librefunnels' ) );
+			return;
+		}
+
+		setError( '' );
+		setNotice( __( 'Preparing export...', 'librefunnels' ) );
+
+		try {
+			const response = await apiFetch( {
+				path: `${ exportBasePath }/${ encodeURIComponent( funnel.id ) }/export`,
+			} );
+			const filename = response?.filename || `${ slugifyFilename( getPostTitle( funnel, 'librefunnels-export' ) ) }.json`;
+
+			downloadJsonFile( filename, response?.package || {} );
+			setNotice( __( 'Export downloaded', 'librefunnels' ) );
+		} catch ( nextError ) {
+			setNotice( '' );
+			setError( nextError.message || __( 'LibreFunnels could not export this funnel.', 'librefunnels' ) );
+		}
+	}
 
 	function updateLocalGraph( nextGraph ) {
 		if ( ! selectedFunnel ) {
@@ -1082,6 +1249,7 @@ function App() {
 					section={ adminSection }
 					funnels={ funnels }
 					steps={ steps }
+					templateLibrary={ templateLibrary }
 					selectedFunnel={ selectedFunnel }
 					graph={ graph }
 					funnelSteps={ funnelSteps }
@@ -1093,8 +1261,13 @@ function App() {
 					notice={ notice }
 					error={ error }
 					onCreateFunnel={ createFunnel }
+					onCreateStarterFunnel={ () => createFromTemplate( 'starter_checkout', { redirectToBuilder: true } ) }
+					onCreateTemplate={ createFromTemplate }
+					onImportFunnelPackage={ importFunnelPackage }
+					onExportFunnelPackage={ exportFunnelPackage }
 					onSelectFunnel={ selectFunnel }
 					isLoading={ isLoading }
+					isTemplatesLoading={ isTemplatesLoading }
 					isSaving={ isSaving }
 				/>
 			</div>
@@ -1149,6 +1322,7 @@ function App() {
 					onSelect={ setSelectedItem }
 					onStartDrag={ startNodeDrag }
 					onCreateFunnel={ createFunnel }
+					onCreateStarterFunnel={ () => createFromTemplate( 'starter_checkout', { redirectToBuilder: true } ) }
 					onCreateStep={ createStep }
 					onCreateStarterPath={ createStarterPathAndOpenCanvas }
 					onCreateEdge={ createEdge }
@@ -1171,6 +1345,7 @@ function SectionPage( {
 	section,
 	funnels,
 	steps,
+	templateLibrary,
 	selectedFunnel,
 	graph,
 	funnelSteps,
@@ -1182,8 +1357,13 @@ function SectionPage( {
 	notice,
 	error,
 	onCreateFunnel,
+	onCreateStarterFunnel,
+	onCreateTemplate,
+	onImportFunnelPackage,
+	onExportFunnelPackage,
 	onSelectFunnel,
 	isLoading,
+	isTemplatesLoading,
 	isSaving,
 } ) {
 	const title = sectionLabels[ section ] || sectionLabels.dashboard;
@@ -1208,7 +1388,19 @@ function SectionPage( {
 
 			{ error && <div className="lf-alert">{ error }</div> }
 
-			{ section === 'templates' && <TemplatesSection onCreateFunnel={ onCreateFunnel } isSaving={ isSaving } /> }
+			{ section === 'templates' && (
+				<TemplatesSection
+					templates={ templateLibrary }
+					selectedFunnel={ selectedFunnel }
+					onCreateFunnel={ onCreateFunnel }
+					onCreateStarterFunnel={ onCreateStarterFunnel }
+					onCreateTemplate={ onCreateTemplate }
+					onImportFunnelPackage={ onImportFunnelPackage }
+					onExportFunnelPackage={ onExportFunnelPackage }
+					isLoading={ isTemplatesLoading }
+					isSaving={ isSaving }
+				/>
+			) }
 			{ section === 'analytics' && (
 				<AnalyticsSection
 					funnels={ funnels }
@@ -1220,7 +1412,7 @@ function SectionPage( {
 				/>
 			) }
 			{ section === 'settings' && <SettingsSection selectedFunnel={ selectedFunnel } /> }
-			{ section === 'setup' && <SetupSection selectedFunnel={ selectedFunnel } setupGuide={ setupGuide } /> }
+			{ section === 'setup' && <SetupSection selectedFunnel={ selectedFunnel } setupGuide={ setupGuide } onCreateStarterFunnel={ onCreateStarterFunnel } isSaving={ isSaving } /> }
 			{ section === 'dashboard' && (
 				<DashboardSection
 					funnels={ funnels }
@@ -1234,6 +1426,7 @@ function SectionPage( {
 					isAnalyticsLoading={ isAnalyticsLoading }
 					onSelectFunnel={ onSelectFunnel }
 					onCreateFunnel={ onCreateFunnel }
+					onCreateStarterFunnel={ onCreateStarterFunnel }
 					isSaving={ isSaving }
 				/>
 			) }
@@ -1241,7 +1434,7 @@ function SectionPage( {
 	);
 }
 
-function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps, setupGuide, warnings, analyticsSummary, isAnalyticsLoading, onSelectFunnel, onCreateFunnel, isSaving } ) {
+function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps, setupGuide, warnings, analyticsSummary, isAnalyticsLoading, onSelectFunnel, onCreateFunnel, onCreateStarterFunnel, isSaving } ) {
 	const revenue = Number( analyticsSummary?.revenue || 0 );
 	const funnelIssues = funnels.reduce( ( count, funnel ) => count + Number( funnel.warnings?.length || 0 ), 0 );
 
@@ -1254,8 +1447,8 @@ function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps,
 					<p>{ __( 'Dashboard is for orientation: funnel health, setup progress, and quick jumps into the areas that should not crowd the canvas.', 'librefunnels' ) }</p>
 				</div>
 				<div className="lf-overview__actions">
-					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
-						{ __( 'Create funnel', 'librefunnels' ) }
+					<button className="lf-button lf-button--primary" type="button" onClick={ funnels.length === 0 ? onCreateStarterFunnel : onCreateFunnel } disabled={ isSaving }>
+						{ funnels.length === 0 ? __( 'Create first funnel', 'librefunnels' ) : __( 'Create funnel', 'librefunnels' ) }
 					</button>
 					<a className="lf-button" href={ adminPages.analytics || 'admin.php?page=librefunnels-analytics' }>
 						{ __( 'View analytics', 'librefunnels' ) }
@@ -1277,8 +1470,8 @@ function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps,
 					<p>{ setupGuide?.message || __( 'Create a funnel, then LibreFunnels will guide the next setup step.', 'librefunnels' ) }</p>
 					{ selectedFunnel && <SetupProgress setupGuide={ setupGuide } />}
 					{ ! selectedFunnel && (
-						<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
-							{ __( 'Create first funnel', 'librefunnels' ) }
+						<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterFunnel } disabled={ isSaving }>
+							{ __( 'Create starter funnel', 'librefunnels' ) }
 						</button>
 					) }
 				</section>
@@ -1344,24 +1537,31 @@ function RecentFunnels( { funnels, selectedFunnel, onSelectFunnel } ) {
 	);
 }
 
-function TemplatesSection( { onCreateFunnel, isSaving } ) {
-	const templates = [
-		{
-			title: __( 'Product Launch Funnel', 'librefunnels' ),
-			steps: __( 'Landing -> Checkout -> Upsell -> Thank You', 'librefunnels' ),
-			description: __( 'A simple launch path for one featured WooCommerce product with an optional upgrade.', 'librefunnels' ),
-		},
-		{
-			title: __( 'Lead Magnet to Checkout', 'librefunnels' ),
-			steps: __( 'Opt-in -> Offer -> Checkout -> Thank You', 'librefunnels' ),
-			description: __( 'Capture intent first, then route qualified shoppers toward a paid offer.', 'librefunnels' ),
-		},
-		{
-			title: __( 'Downsell Recovery', 'librefunnels' ),
-			steps: __( 'Checkout -> Upsell -> Downsell -> Thank You', 'librefunnels' ),
-			description: __( 'Add a lower-friction fallback offer when shoppers decline the main upsell.', 'librefunnels' ),
-		},
-	];
+function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreateStarterFunnel, onCreateTemplate, onImportFunnelPackage, onExportFunnelPackage, isLoading, isSaving } ) {
+	const [ importValue, setImportValue ] = useState( '' );
+	const [ importTitle, setImportTitle ] = useState( '' );
+
+	async function handleImport() {
+		if ( ! importValue.trim() ) {
+			return;
+		}
+
+		await onImportFunnelPackage( importValue, { title: importTitle } );
+		setImportValue( '' );
+		setImportTitle( '' );
+	}
+
+	async function handleImportFile( event ) {
+		const file = event.target.files?.[0];
+
+		if ( ! file ) {
+			return;
+		}
+
+		const text = await file.text();
+		setImportValue( text );
+		event.target.value = '';
+	}
 
 	return (
 		<div className="lf-section-stack">
@@ -1369,21 +1569,74 @@ function TemplatesSection( { onCreateFunnel, isSaving } ) {
 				<div>
 					<p className="lf-label">{ __( 'Template library', 'librefunnels' ) }</p>
 					<h2>{ __( 'Funnel shapes belong here, not inside the canvas.', 'librefunnels' ) }</h2>
-					<p>{ __( 'This page will become the local, free template library. For now it documents the launch shapes LibreFunnels should generate next.', 'librefunnels' ) }</p>
+					<p>{ __( 'Start from bundled funnel patterns, import a portable JSON package, or export the selected funnel without relying on any remote template service.', 'librefunnels' ) }</p>
 				</div>
-				<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
-					{ __( 'Create blank funnel', 'librefunnels' ) }
-				</button>
+				<div className="lf-overview__actions">
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterFunnel } disabled={ isSaving }>
+						{ __( 'Use starter funnel', 'librefunnels' ) }
+					</button>
+					<button className="lf-button" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+						{ __( 'Create blank funnel', 'librefunnels' ) }
+					</button>
+				</div>
 			</div>
 			<div className="lf-template-grid">
-				{ templates.map( ( template ) => (
-					<section className="lf-template-card" key={ template.title }>
-						<span className="lf-page-status">{ __( 'Planned', 'librefunnels' ) }</span>
-						<h3>{ template.title }</h3>
-						<p>{ template.description }</p>
-						<small>{ template.steps }</small>
-					</section>
-				) ) }
+				{ isLoading ? (
+					<div className="lf-empty-small">{ __( 'Loading bundled templates...', 'librefunnels' ) }</div>
+				) : (
+					templates.map( ( template ) => (
+						<section className="lf-template-card" key={ template.slug }>
+							<div className="lf-template-card__header">
+								<span className={ `lf-page-status ${ template.isRecommended ? 'is-publish' : '' }` }>
+									{ template.isRecommended ? __( 'Recommended', 'librefunnels' ) : template.category }
+								</span>
+								<small>{ sprintf( _n( '%d step', '%d steps', template.stepCount, 'librefunnels' ), template.stepCount ) }</small>
+							</div>
+							<h3>{ template.title }</h3>
+							<p>{ template.description }</p>
+							<small>{ template.stepSummary }</small>
+							<div className="lf-action-row">
+								<button className="lf-button lf-button--primary" type="button" onClick={ () => onCreateTemplate( template.slug, { redirectToBuilder: true } ) } disabled={ isSaving }>
+									{ __( 'Create funnel', 'librefunnels' ) }
+								</button>
+							</div>
+						</section>
+					) )
+				) }
+			</div>
+
+			<div className="lf-section-grid">
+				<section className="lf-section-card lf-section-card--wide">
+					<p className="lf-label">{ __( 'Import funnel JSON', 'librefunnels' ) }</p>
+					<h3>{ __( 'Bring a portable funnel package into this store', 'librefunnels' ) }</h3>
+					<p>{ __( 'LibreFunnels imports normalized JSON only. Imported funnels and pages are created as drafts so you can review them before publishing.', 'librefunnels' ) }</p>
+					<label className="lf-field">
+						<span>{ __( 'Imported funnel title (optional)', 'librefunnels' ) }</span>
+						<input value={ importTitle } onChange={ ( event ) => setImportTitle( event.target.value ) } placeholder={ __( 'Keep the package title', 'librefunnels' ) } />
+					</label>
+					<label className="lf-field">
+						<span>{ __( 'Paste funnel JSON', 'librefunnels' ) }</span>
+						<textarea rows="10" value={ importValue } onChange={ ( event ) => setImportValue( event.target.value ) } placeholder={ __( '{ \"format\": \"librefunnels.funnel\", ... }', 'librefunnels' ) } />
+					</label>
+					<div className="lf-action-row">
+						<label className="lf-button" htmlFor="lf-import-json-file">
+							{ __( 'Load file', 'librefunnels' ) }
+						</label>
+						<input id="lf-import-json-file" className="lf-hidden-input" type="file" accept=".json,application/json" onChange={ handleImportFile } />
+						<button className="lf-button lf-button--primary" type="button" onClick={ handleImport } disabled={ isSaving || ! importValue.trim() }>
+							{ __( 'Import funnel', 'librefunnels' ) }
+						</button>
+					</div>
+				</section>
+
+				<section className="lf-section-card">
+					<p className="lf-label">{ __( 'Export current funnel', 'librefunnels' ) }</p>
+					<h3>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'No funnel selected', 'librefunnels' ) }</h3>
+					<p>{ selectedFunnel ? __( 'Download the selected funnel as a reusable LibreFunnels JSON package.', 'librefunnels' ) : __( 'Select a funnel on Dashboard, Analytics, or the builder sidebar, then come back here to export it.', 'librefunnels' ) }</p>
+					<button className="lf-button lf-button--primary" type="button" onClick={ () => onExportFunnelPackage( selectedFunnel ) } disabled={ isSaving || ! selectedFunnel }>
+						{ __( 'Export funnel JSON', 'librefunnels' ) }
+					</button>
+				</section>
 			</div>
 		</div>
 	);
@@ -1458,12 +1711,43 @@ function SettingsCard( { title, status, text } ) {
 	);
 }
 
-function SetupSection( { selectedFunnel, setupGuide } ) {
+function SetupSection( { selectedFunnel, setupGuide, onCreateStarterFunnel, isSaving } ) {
 	const storeTasks = [
-		__( 'Confirm WooCommerce products are published and purchasable.', 'librefunnels' ),
-		__( 'Create funnel pages and publish them after page-builder design.', 'librefunnels' ),
-		__( 'Run a test order through the checkout path.', 'librefunnels' ),
-		__( 'Review analytics after the test order records revenue attribution.', 'librefunnels' ),
+		{
+			id: 'permalinks',
+			label: __( 'Permalinks', 'librefunnels' ),
+			detail: siteReadiness.prettyPermalinks
+				? __( 'Pretty permalinks are enabled.', 'librefunnels' )
+				: __( 'Switch permalinks away from Plain before sending traffic.', 'librefunnels' ),
+			done: Boolean( siteReadiness.prettyPermalinks ),
+		},
+		{
+			id: 'products',
+			label: __( 'Products', 'librefunnels' ),
+			detail:
+				Number( siteReadiness.productCount || 0 ) > 0
+					? sprintf( __( '%d WooCommerce product(s) are ready to assign.', 'librefunnels' ), Number( siteReadiness.productCount || 0 ) )
+					: __( 'Publish at least one WooCommerce product before testing funnel checkout.', 'librefunnels' ),
+			done: Number( siteReadiness.productCount || 0 ) > 0,
+		},
+		{
+			id: 'gateway',
+			label: __( 'Gateway', 'librefunnels' ),
+			detail:
+				Number( siteReadiness.enabledGateways || 0 ) > 0
+					? sprintf( __( '%d payment gateway(s) are enabled.', 'librefunnels' ), Number( siteReadiness.enabledGateways || 0 ) )
+					: __( 'Enable a payment gateway so test orders can complete.', 'librefunnels' ),
+			done: Number( siteReadiness.enabledGateways || 0 ) > 0,
+		},
+		{
+			id: 'checkout',
+			label: __( 'Woo checkout', 'librefunnels' ),
+			detail:
+				Number( siteReadiness.checkoutPageId || 0 ) > 0
+					? __( 'WooCommerce checkout page exists.', 'librefunnels' )
+					: __( 'WooCommerce still needs its core checkout page.', 'librefunnels' ),
+			done: Number( siteReadiness.checkoutPageId || 0 ) > 0,
+		},
 	];
 
 	return (
@@ -1474,6 +1758,16 @@ function SetupSection( { selectedFunnel, setupGuide } ) {
 					<h2>{ __( 'A guided setup page for beginners.', 'librefunnels' ) }</h2>
 					<p>{ __( 'Setup collects the operational checklist so the builder can stay focused on funnel structure.', 'librefunnels' ) }</p>
 				</div>
+				<div className="lf-overview__actions">
+					{ ! selectedFunnel && (
+						<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterFunnel } disabled={ isSaving }>
+							{ __( 'Create starter funnel', 'librefunnels' ) }
+						</button>
+					) }
+					<a className="lf-button" href={ adminPages.funnels || 'admin.php?page=librefunnels-funnels' }>
+						{ __( 'Open builder', 'librefunnels' ) }
+					</a>
+				</div>
 			</div>
 			<section className="lf-section-card">
 				<p className="lf-label">{ __( 'Selected funnel setup', 'librefunnels' ) }</p>
@@ -1483,11 +1777,17 @@ function SetupSection( { selectedFunnel, setupGuide } ) {
 			<section className="lf-section-card">
 				<p className="lf-label">{ __( 'Store checklist', 'librefunnels' ) }</p>
 				<h3>{ __( 'Before sending traffic', 'librefunnels' ) }</h3>
-				<ul className="lf-check-list">
+				<ol className="lf-setup-list">
 					{ storeTasks.map( ( task ) => (
-						<li key={ task }>{ task }</li>
+						<li key={ task.id } className={ `lf-setup-item ${ task.done ? 'is-done' : '' }` }>
+							<span className="lf-setup-item__mark" aria-hidden="true" />
+							<span>
+								<strong>{ task.label }</strong>
+								<small>{ task.detail }</small>
+							</span>
+						</li>
 					) ) }
-				</ul>
+				</ol>
 			</section>
 		</div>
 	);
@@ -1538,6 +1838,7 @@ function WorkspaceContent( {
 	onSelect,
 	onStartDrag,
 	onCreateFunnel,
+	onCreateStarterFunnel,
 	onCreateStep,
 	onCreateStarterPath,
 	onCreateEdge,
@@ -1563,6 +1864,7 @@ function WorkspaceContent( {
 					onSelect={ onSelect }
 					onStartDrag={ onStartDrag }
 					onCreateFunnel={ onCreateFunnel }
+					onCreateStarterFunnel={ onCreateStarterFunnel }
 					onCreateStep={ onCreateStep }
 					onCreateStarterPath={ onCreateStarterPath }
 					isSaving={ isSaving }
@@ -1585,6 +1887,7 @@ function WorkspaceContent( {
 						onSelect={ onSelect }
 						onStartDrag={ onStartDrag }
 						onCreateFunnel={ onCreateFunnel }
+						onCreateStarterFunnel={ onCreateStarterFunnel }
 						onCreateStep={ onCreateStep }
 						onCreateStarterPath={ onCreateStarterPath }
 						isSaving={ isSaving }
@@ -1629,6 +1932,10 @@ function WorkspaceContent( {
 
 	if ( activeTab === 'products' ) {
 		return <ProductsPanel funnelSteps={ funnelSteps } graph={ graph } onSelect={ onSelect } onOpenTab={ onOpenTab } />;
+	}
+
+	if ( activeTab === 'offers' ) {
+		return <OffersPanel funnelSteps={ funnelSteps } graph={ graph } onSelect={ onSelect } onOpenTab={ onOpenTab } />;
 	}
 
 	if ( activeTab === 'rules' ) {
@@ -1836,7 +2143,7 @@ function StepsPanel( { funnelSteps, graph, selectedFunnel, onCreateStep, onCreat
 }
 
 function ProductsPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
-	const commerceSteps = funnelSteps.filter( ( step ) => [ 'checkout', 'upsell', 'downsell', 'cross_sell', 'pre_checkout_offer' ].includes( step.type ) );
+	const commerceSteps = funnelSteps.filter( ( step ) => step.type === 'checkout' );
 	const nodesByStepId = new Map( graph.nodes.map( ( node ) => [ Number( node.stepId ), node ] ) );
 
 	return (
@@ -1845,20 +2152,19 @@ function ProductsPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
 				<div>
 					<p className="lf-label">{ __( 'Products', 'librefunnels' ) }</p>
 					<h2>{ __( 'Commerce configuration by step', 'librefunnels' ) }</h2>
-					<p>{ __( 'Checkout products, order bumps, and offer products are grouped here so the canvas does not become a product settings wall.', 'librefunnels' ) }</p>
+					<p>{ __( 'Keep checkout products and order bumps in one place so the canvas can stay focused on path shape and status.', 'librefunnels' ) }</p>
 				</div>
 			</div>
 			<div className="lf-step-table">
 				{ commerceSteps.length === 0 ? (
 					<div className="lf-empty-small">
-						{ __( 'Add a checkout or offer step, then product controls will appear in that step inspector.', 'librefunnels' ) }
+						{ __( 'Add a checkout step, then product and order bump controls will appear here.', 'librefunnels' ) }
 					</div>
 				) : (
 					commerceSteps.map( ( step ) => {
 						const node = nodesByStepId.get( Number( step.id ) );
 						const checkoutCount = Array.isArray( step.checkoutProducts ) ? step.checkoutProducts.length : 0;
 						const bumpCount = Array.isArray( step.orderBumps ) ? step.orderBumps.length : 0;
-						const hasOffer = Boolean( step.offer?.product_id );
 
 						return (
 							<div className="lf-step-row" key={ step.id }>
@@ -1866,11 +2172,7 @@ function ProductsPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
 									<span className="lf-node__type">{ stepTypes[ step.type ] || step.type }</span>
 									<strong>{ getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) }</strong>
 									<small>
-										{ step.type === 'checkout'
-											? sprintf( __( '%1$d checkout product(s), %2$d bump(s)', 'librefunnels' ), checkoutCount, bumpCount )
-											: hasOffer
-												? __( 'Offer product configured', 'librefunnels' )
-												: __( 'Offer product needed', 'librefunnels' ) }
+										{ sprintf( __( '%1$d checkout product(s), %2$d bump(s)', 'librefunnels' ), checkoutCount, bumpCount ) }
 									</small>
 								</div>
 								{ node && (
@@ -1883,6 +2185,57 @@ function ProductsPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
 										} }
 									>
 										{ __( 'Edit products', 'librefunnels' ) }
+									</button>
+								) }
+							</div>
+						);
+					} )
+				) }
+			</div>
+		</section>
+	);
+}
+
+function OffersPanel( { funnelSteps, graph, onSelect, onOpenTab } ) {
+	const offerSteps = funnelSteps.filter( ( step ) => [ 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ].includes( step.type ) );
+	const nodesByStepId = new Map( graph.nodes.map( ( node ) => [ Number( node.stepId ), node ] ) );
+
+	return (
+		<section className="lf-workspace-panel lf-products-panel">
+			<div className="lf-section-heading">
+				<div>
+					<p className="lf-label">{ __( 'Offers', 'librefunnels' ) }</p>
+					<h2>{ __( 'Upsells, downsells, and offer routing', 'librefunnels' ) }</h2>
+					<p>{ __( 'See post-checkout and pre-checkout offer steps together, then jump into the focused inspector to assign the product and copy.', 'librefunnels' ) }</p>
+				</div>
+			</div>
+			<div className="lf-step-table">
+				{ offerSteps.length === 0 ? (
+					<div className="lf-empty-small">
+						{ __( 'Add an upsell, downsell, cross-sell, or pre-checkout offer step to configure offer products here.', 'librefunnels' ) }
+					</div>
+				) : (
+					offerSteps.map( ( step ) => {
+						const node = nodesByStepId.get( Number( step.id ) );
+						const hasOffer = Boolean( step.offer?.product_id );
+
+						return (
+							<div className="lf-step-row" key={ step.id }>
+								<div>
+									<span className="lf-node__type">{ stepTypes[ step.type ] || step.type }</span>
+									<strong>{ getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) }</strong>
+									<small>{ hasOffer ? __( 'Offer product configured', 'librefunnels' ) : __( 'Offer product still needed', 'librefunnels' ) }</small>
+								</div>
+								{ node && (
+									<button
+										className="lf-button"
+										type="button"
+										onClick={ () => {
+											onSelect( { type: 'node', id: node.id } );
+											onOpenTab( 'canvas' );
+										} }
+									>
+										{ __( 'Edit offer', 'librefunnels' ) }
 									</button>
 								) }
 							</div>
@@ -2135,7 +2488,7 @@ function SetupProgress( { setupGuide, compact = false } ) {
 	);
 }
 
-function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, onCreateStarterPath, isSaving } ) {
+function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, onCreateStarterPath, onCreateStarterFunnel, isSaving } ) {
 	const nodes = graph.nodes.map( ( node, index ) => ( {
 		...node,
 		position: normalizeNodePosition( node, index ),
@@ -2152,10 +2505,15 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 		return (
 			<div className="lf-canvas lf-canvas--empty">
 				<h2>{ __( 'Start with one focused checkout journey.', 'librefunnels' ) }</h2>
-				<p>{ __( 'Create a funnel, add steps, then connect the route shoppers should follow.', 'librefunnels' ) }</p>
-				<button className="lf-button lf-button--primary" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
-					{ __( 'Create funnel', 'librefunnels' ) }
-				</button>
+				<p>{ __( 'Use the starter funnel to get landing, checkout, and thank-you steps with draft pages already created, or start from a blank funnel if you prefer.', 'librefunnels' ) }</p>
+				<div className="lf-empty-actions">
+					<button className="lf-button lf-button--primary" type="button" onClick={ onCreateStarterFunnel } disabled={ isSaving }>
+						{ __( 'Create starter funnel', 'librefunnels' ) }
+					</button>
+					<button className="lf-button" type="button" onClick={ onCreateFunnel } disabled={ isSaving }>
+						{ __( 'Create blank funnel', 'librefunnels' ) }
+					</button>
+				</div>
 			</div>
 		);
 	}

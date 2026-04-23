@@ -1,3 +1,44 @@
+.librefunnels-step--content,
+.librefunnels-step--thank-you {
+	--librefunnels-step-surface: oklch(0.988 0.006 174);
+	--librefunnels-step-ink: oklch(0.2 0.018 174);
+	--librefunnels-step-muted: oklch(0.44 0.018 174);
+	--librefunnels-step-border: oklch(0.84 0.018 174);
+	max-width: 52rem;
+	margin: clamp(1.5rem, 5vw, 4rem) auto;
+	padding: clamp(1.25rem, 4vw, 2.5rem);
+	border: 1px solid var(--librefunnels-step-border);
+	border-radius: 8px;
+	background: var(--librefunnels-step-surface);
+	color: var(--librefunnels-step-ink);
+}
+
+.librefunnels-step__header {
+	display: grid;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.librefunnels-step__title {
+	margin: 0;
+	font-size: clamp(2rem, 5vw, 3.5rem);
+	line-height: 1;
+}
+
+.librefunnels-step__content {
+	color: var(--librefunnels-step-muted);
+	font-size: 1rem;
+	line-height: 1.7;
+}
+
+.librefunnels-step__content > *:first-child {
+	margin-top: 0;
+}
+
+.librefunnels-step__content > *:last-child {
+	margin-bottom: 0;
+}
+
 .librefunnels-order-bumps {
 	--librefunnels-surface: oklch(0.985 0.006 174);
 	--librefunnels-surface-strong: oklch(0.955 0.012 174);

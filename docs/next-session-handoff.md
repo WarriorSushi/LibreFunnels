@@ -81,11 +81,19 @@ Implemented so far:
 - React canvas analytics summary panel for the selected funnel, showing last-30-days attributed revenue, order count, offer accept rate, offer decisions, and a clear empty state until shopper/test-order data exists.
 - Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup.
 - Dashboard, Templates, Analytics, Settings, and Setup now render distinct React section pages instead of all linking to the same builder screen.
-- Funnel workspace tabs for Overview, Canvas, Steps, Products, Rules, Analytics, and Settings so the visual map no longer carries analytics, commerce summaries, rules, and setup guidance all at once.
+- Funnel workspace tabs for Overview, Canvas, Steps, Products, Offers, Rules, Analytics, and Settings so the visual map no longer carries analytics, commerce summaries, rules, and setup guidance all at once.
 - Dedicated Steps surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom steps visible to beginners before they open the focused canvas inspector.
+- Dedicated Offers surface that separates upsell, downsell, cross-sell, and pre-checkout offer configuration from checkout product work.
+- Bundled local funnel template library with starter checkout, product launch, lead offer, and downsell recovery patterns.
+- REST endpoints for bundled template listing, template-to-funnel creation, JSON import, and JSON export.
+- Import service that creates funnel posts, step posts, graph routing, and draft WordPress pages from validated JSON packages.
+- Landing, opt-in, custom, and thank-you content steps now render safely through a shared content-step template instead of failing as unsupported public pages.
+- Dashboard and Setup now use real site-readiness data for permalinks, WooCommerce checkout page presence, enabled gateways, currency, and product count.
+- Starter-funnel creation from Dashboard, Setup, Templates, and empty canvas states now opens the exact funnel workspace via a deterministic `funnel_id` handoff instead of relying only on local storage.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, funnel creation, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, bundled template creation, JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
+- Unit coverage for bundled template library responses and normalization.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -103,12 +111,12 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add REST/integration tests for canvas and analytics endpoints once a WP test runtime is available.
-2. Add runtime WooCommerce facts to the public route resolver where conditional routing is needed.
-3. Add database import service with nonces/capabilities once the admin flow exists.
-4. Add integration tests for shortcode rendering, dynamic block rendering, template override loading, CPT/meta export, checkout cart preparation, and order bump cart sync once a WP test runtime is available.
-5. Expand analytics UI from summary cards into step-level trends, conversion rates, and revenue attribution drilldowns.
-6. Continue decomposing the product console into real submenu-specific screens: dashboard summaries, templates, setup checklist, settings, and a richer analytics dashboard.
+1. Add REST/integration coverage for template create/import/export endpoints and page-creation side effects once a WP integration runtime is available.
+2. Expand the builder-first onboarding flow so a new starter funnel can optionally preselect products, create a landing page, and guide the user into page editing without crowding the workspace.
+3. Extend public route/runtime facts with cart, customer, and order context needed for safer conditional offer routing.
+4. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
+5. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
+6. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

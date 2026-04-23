@@ -9,6 +9,9 @@ namespace LibreFunnels\Admin;
 
 use LibreFunnels\Domain\Registered_Meta;
 use LibreFunnels\Domain\Step_Post_Type;
+use LibreFunnels\ImportExport\Bundled_Template_Library;
+use LibreFunnels\ImportExport\Funnel_Exporter;
+use LibreFunnels\ImportExport\Funnel_Importer;
 use LibreFunnels\Routing\Graph_Validator;
 use WP_Error;
 use WP_REST_Request;
@@ -127,6 +130,72 @@ final class Canvas_REST_Controller {
 							'type'              => 'integer',
 							'sanitize_callback' => 'absint',
 						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/canvas/templates',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_templates' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/canvas/templates/(?P<template_slug>[a-z0-9_-]+)/create',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'create_from_template' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'template_slug' => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_key',
+					),
+					'title'         => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/canvas/import',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'import_funnel' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'package' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'title'   => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/canvas/funnels/(?P<funnel_id>\d+)/export',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'export_funnel' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'funnel_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
 					),
 				),
 			)
@@ -466,6 +535,107 @@ final class Canvas_REST_Controller {
 	 */
 	public function search_products( WP_REST_Request $request ) {
 		return rest_ensure_response( $this->get_products( (string) $request->get_param( 'search' ) ) );
+	}
+
+	/**
+	 * Returns bundled template summaries.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_templates() {
+		$library = new Bundled_Template_Library();
+
+		return rest_ensure_response(
+			array(
+				'templates' => $library->get_templates(),
+			)
+		);
+	}
+
+	/**
+	 * Creates a new funnel from a bundled template.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_from_template( WP_REST_Request $request ) {
+		$template_slug = sanitize_key( (string) $request->get_param( 'template_slug' ) );
+		$library       = new Bundled_Template_Library();
+		$package       = $library->get_template_package( $template_slug );
+
+		if ( is_wp_error( $package ) ) {
+			return $package;
+		}
+
+		$importer = new Funnel_Importer();
+		$result   = $importer->import(
+			$package,
+			array(
+				'title'       => $request->get_param( 'title' ),
+				'createPages' => true,
+				'forceDraft'  => true,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $this->get_workspace_payload( absint( $result['funnelId'] ) ) );
+	}
+
+	/**
+	 * Imports a funnel package.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function import_funnel( WP_REST_Request $request ) {
+		$package  = (string) $request->get_param( 'package' );
+		$importer = new Funnel_Importer();
+		$result   = $importer->import(
+			$package,
+			array(
+				'title'       => $request->get_param( 'title' ),
+				'createPages' => true,
+				'forceDraft'  => true,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $this->get_workspace_payload( absint( $result['funnelId'] ) ) );
+	}
+
+	/**
+	 * Exports a funnel as a portable package.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function export_funnel( WP_REST_Request $request ) {
+		$funnel_id = absint( $request['funnel_id'] );
+		$funnel    = $this->get_funnel_post( $funnel_id );
+
+		if ( ! $funnel ) {
+			return $this->not_found( __( 'This funnel could not be found.', 'librefunnels' ) );
+		}
+
+		$exporter = new Funnel_Exporter();
+		$package  = $exporter->export( $funnel_id );
+
+		if ( is_wp_error( $package ) ) {
+			return $package;
+		}
+
+		return rest_ensure_response(
+			array(
+				'package'  => $package,
+				'filename' => sanitize_title( get_the_title( $funnel ) ) . '.json',
+			)
+		);
 	}
 
 	/**
