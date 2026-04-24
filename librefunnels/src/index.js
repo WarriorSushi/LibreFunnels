@@ -2899,6 +2899,10 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, connec
 				className="lf-canvas-stage"
 				style={ { '--lf-canvas-width': `${ canvasWidth }px`, '--lf-canvas-height': `${ canvasHeight }px` } }
 			>
+				<div className="lf-canvas-connect-tip">
+					<strong>{ __( 'Wire the shopper path', 'librefunnels' ) }</strong>
+					<span>{ __( 'Drag from the right dot on one step to the left dot on the next step.', 'librefunnels' ) }</span>
+				</div>
 				<svg className="lf-edges" viewBox={ `0 0 ${ canvasWidth } ${ canvasHeight }` } role="img" aria-label={ __( 'Funnel route map', 'librefunnels' ) }>
 					{ graph.edges.map( ( edge ) => {
 						const source = nodeMap.get( edge.source );

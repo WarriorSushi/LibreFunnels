@@ -68,6 +68,7 @@ Implemented so far:
 - Empty funnels now offer a guided starter path that creates checkout and thank-you steps, connects the default continue route, and sets checkout as the start step.
 - Canvas route edges now expose accessible route names, focus states, and keyboard activation.
 - Canvas nodes expose visible input/output connection handles; dragging from a step's output handle to another step's input handle creates and saves a route.
+- Canvas now includes a compact route-wiring cue above the stage so beginners can see that shopper paths are connected by dragging from the right handle of one step to the left handle of the next step.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Beginner setup guidance in the canvas header with the next useful task.
@@ -100,6 +101,7 @@ Implemented so far:
 - Template-to-funnel creation accepts sanitized product selections and only applies existing WooCommerce products to the first matching checkout/offer step during import.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
 - Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, handle-based route creation, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics, public offer reject routing, and public offer accept cart mutation.
+- Local Docker Playwright runs now clean up known LibreFunnels smoke-test funnels, draft pages, step posts, and smoke products before and after the suite so the admin UI starts from a readable state and test artifacts do not pile up across sessions.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
 - Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.
@@ -122,11 +124,12 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
-2. Continue analytics into dashboard snapshots, date comparison, and step trend history after the current revenue-source and step-signal panels.
-3. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
-4. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
-5. Extend the visual rule builder with clearer grouping, labels, and previews before exposing more condition types to beginners.
+1. Continue the UI clarity pass in the funnel workspace: reduce cramped copy, make inspector panels feel lighter, and keep advanced commerce/rule controls in their own tabs instead of crowding the canvas.
+2. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
+3. Continue analytics into dashboard snapshots, date comparison, and step trend history after the current revenue-source and step-signal panels.
+4. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
+5. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
+6. Extend the visual rule builder with clearer grouping, labels, and previews before exposing more condition types to beginners.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

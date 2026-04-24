@@ -1,4 +1,5 @@
 const { test, expect } = require( '@playwright/test' );
+const { cleanupLibreFunnelsTestArtifacts } = require( './cleanup-test-artifacts' );
 
 const adminUser = process.env.LIBREFUNNELS_WP_ADMIN_USER || 'admin';
 const adminPassword = process.env.LIBREFUNNELS_WP_ADMIN_PASSWORD || 'password';
@@ -275,6 +276,14 @@ async function fillCheckoutBillingDetails( page, stamp = Date.now() ) {
 }
 
 test.describe( 'LibreFunnels canvas smoke', () => {
+	test.beforeAll( () => {
+		cleanupLibreFunnelsTestArtifacts();
+	} );
+
+	test.afterAll( () => {
+		cleanupLibreFunnelsTestArtifacts();
+	} );
+
 	test.beforeEach( async ( { page } ) => {
 		await loginToWordPress( page );
 		await page.goto( '/wp-admin/admin.php?page=librefunnels-funnels' );

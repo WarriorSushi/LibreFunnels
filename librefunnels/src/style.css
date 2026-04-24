@@ -1031,6 +1031,34 @@
 	pointer-events: none;
 }
 
+.lf-canvas-connect-tip {
+	position: sticky;
+	top: 14px;
+	left: 14px;
+	z-index: 3;
+	display: inline-grid;
+	gap: 2px;
+	max-width: min(360px, calc(100vw - 80px));
+	margin: 14px;
+	padding: 10px 12px;
+	border: 1px solid color-mix(in oklch, var(--lf-accent) 32%, var(--lf-border));
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-surface) 92%, var(--lf-accent) 8%);
+	box-shadow: 0 12px 28px color-mix(in oklch, var(--lf-ink) 8%, transparent);
+	pointer-events: none;
+}
+
+.lf-canvas-connect-tip strong {
+	color: var(--lf-ink);
+	font-size: 12px;
+}
+
+.lf-canvas-connect-tip span {
+	color: var(--lf-muted);
+	font-size: 12px;
+	line-height: 1.35;
+}
+
 .lf-edge {
 	cursor: pointer;
 	pointer-events: auto;
