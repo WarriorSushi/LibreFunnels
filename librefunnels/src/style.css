@@ -797,8 +797,9 @@
 
 .lf-canvas-workspace {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 340px;
-	gap: 16px;
+	grid-template-columns: minmax(620px, 1fr) minmax(360px, 390px);
+	gap: 18px;
+	align-items: start;
 	min-width: 0;
 	padding: 18px;
 }
@@ -1229,14 +1230,69 @@
 .lf-inspector {
 	position: sticky;
 	top: 32px;
+	display: grid;
+	gap: 14px;
+	width: 100%;
+	padding: 18px;
+	box-sizing: border-box;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface);
 	max-height: calc(100vh - 64px);
 	overflow: auto;
+}
+
+.lf-inspector h2 {
+	margin: -2px 0 0;
+	color: var(--lf-ink);
+	font-size: 26px;
+	line-height: 1.12;
 }
 
 .lf-inspector p {
 	margin: 0;
 	color: var(--lf-muted);
 	line-height: 1.55;
+}
+
+.lf-inspector-tabs {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+	gap: 6px;
+	padding: 4px;
+	border: 1px solid var(--lf-border);
+	border-radius: 8px;
+	background: var(--lf-surface-soft);
+}
+
+.lf-inspector-tab {
+	min-height: 34px;
+	padding: 7px 10px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--lf-muted);
+	font-size: 12px;
+	font-weight: 850;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.lf-inspector-tab:hover,
+.lf-inspector-tab:focus-visible {
+	color: var(--lf-ink);
+}
+
+.lf-inspector-tab.is-active {
+	border-color: color-mix(in oklch, var(--lf-accent) 28%, var(--lf-border));
+	background: var(--lf-surface);
+	color: var(--lf-accent-deep);
+	box-shadow: 0 6px 18px color-mix(in oklch, var(--lf-ink) 6%, transparent);
+}
+
+.lf-inspector-section {
+	display: grid;
+	gap: 12px;
 }
 
 .lf-field {
@@ -1254,7 +1310,7 @@
 .lf-field select,
 .lf-field textarea {
 	width: 100%;
-	min-height: 38px;
+	min-height: 40px;
 	border: 1px solid var(--lf-border);
 	border-radius: 8px;
 	background: var(--lf-surface);
@@ -1268,11 +1324,11 @@
 
 .lf-panellet {
 	display: grid;
-	gap: 12px;
-	padding: 12px;
+	gap: 14px;
+	padding: 14px;
 	border: 1px solid var(--lf-border);
 	border-radius: 8px;
-	background: var(--lf-surface-soft);
+	background: color-mix(in oklch, var(--lf-surface) 88%, var(--lf-surface-soft) 12%);
 }
 
 .lf-panellet select {
@@ -1312,7 +1368,7 @@
 	padding: 12px;
 	border: 1px solid color-mix(in oklch, var(--lf-border) 78%, var(--lf-accent) 22%);
 	border-radius: 8px;
-	background: color-mix(in oklch, var(--lf-surface) 86%, var(--lf-surface-soft) 14%);
+	background: var(--lf-surface);
 }
 
 .lf-commerce-card__header {

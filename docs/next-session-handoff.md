@@ -74,6 +74,8 @@ Implemented so far:
 - Beginner setup guidance in the canvas header with the next useful task.
 - Setup progress checklist in the canvas header now names missing pages, draft pages that still need publishing, checkout product readiness, route readiness, and validation state from derived funnel data.
 - Assigned pages now expose status-aware draft/published labels, edit-design links, and preview/view actions so store owners can create a funnel page and continue in their preferred page builder with clear publishing guidance.
+- Step inspector is now sectioned into Details, Page, and Products/Offer tabs so page-builder handoff, basic step settings, and commerce controls do not crowd one long panel.
+- Draft or missing pages keep the Page inspector tab active until the page is published; published checkout/offer steps can lead with commerce controls.
 - Store-owner-friendly conditional rule builder for supported rule types.
 - Product pickers in checkout, order bump, offer, and product-rule inspector controls.
 - Commerce inspector panels for multiple checkout product assignments, multiple order bumps, and primary offer configuration.
@@ -102,6 +104,7 @@ Implemented so far:
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
 - Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, handle-based route creation, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics, public offer reject routing, and public offer accept cart mutation.
 - Local Docker Playwright runs now clean up known LibreFunnels smoke-test funnels, draft pages, step posts, and smoke products before and after the suite so the admin UI starts from a readable state and test artifacts do not pile up across sessions.
+- Playwright coverage now exercises the tabbed step inspector path by keeping page edit/preview controls visible for draft pages and moving checkout products/order bumps behind the Products inspector tab.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
 - Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.
@@ -124,12 +127,11 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Continue the UI clarity pass in the funnel workspace: reduce cramped copy, make inspector panels feel lighter, and keep advanced commerce/rule controls in their own tabs instead of crowding the canvas.
+1. Extend the visual rule builder with clearer grouping, labels, and previews before exposing more condition types to beginners.
 2. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
 3. Continue analytics into dashboard snapshots, date comparison, and step trend history after the current revenue-source and step-signal panels.
 4. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
 5. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
-6. Extend the visual rule builder with clearer grouping, labels, and previews before exposing more condition types to beginners.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

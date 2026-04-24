@@ -82,6 +82,7 @@
 - Canvas drags a node and persists the new position
 - Canvas creates a new route by dragging from one node's output handle to another node's input handle
 - Canvas creates and assigns a draft page without exposing raw page IDs, then confirms the draft status plus edit-design and preview links
+- Canvas keeps draft-page controls in the Page inspector tab, then switches to the Products inspector tab for checkout products and order bumps
 - Canvas builds a conditional route without editing JSON
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
 - Admin workspace smoke verifies the sectioned funnel workspace rather than assuming analytics lives inside the canvas view

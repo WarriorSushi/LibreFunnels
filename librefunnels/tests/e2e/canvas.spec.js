@@ -391,6 +391,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Canvas', exact: true } ).click();
 		await expect( page.getByRole( 'link', { name: 'Edit page design' } ) ).toBeVisible();
 		await expect( page.getByRole( 'link', { name: 'Preview page' } ) ).toBeVisible();
+		await page.getByRole( 'tab', { name: 'Products' } ).click();
 
 		const checkoutList = page.locator( '.lf-commerce-list--checkout-products' );
 		const firstCheckoutCard = checkoutList.locator( '.lf-commerce-card' ).first();
@@ -450,6 +451,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 
 		await page.getByRole( 'button', { name: 'Add Upsell' } ).click();
 		await expect( page.getByRole( 'heading', { name: 'Upsell' } ) ).toBeVisible();
+		await page.getByRole( 'tab', { name: 'Offer' } ).click();
 		const offerPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Offer product' } );
 		await offerPanel.getByLabel( 'Find product' ).fill( 'Digital' );
 		await expect( offerPanel.locator( 'select' ).first() ).toContainText( 'Digital' );

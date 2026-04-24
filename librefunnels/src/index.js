@@ -3097,11 +3097,23 @@ function NodeInspector( {
 } ) {
 	const [ title, setTitle ] = useState( step ? getPostTitle( step, '' ) : '' );
 	const [ stepType, setStepType ] = useState( step?.type || node?.type || 'custom' );
+	const [ activeInspectorSection, setActiveInspectorSection ] = useState( 'details' );
+	const hasCommerceControls = step?.type === 'checkout' || [ 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ].includes( step?.type );
 
 	useEffect( () => {
 		setTitle( step ? getPostTitle( step, '' ) : '' );
 		setStepType( step?.type || node?.type || 'custom' );
-	}, [ step?.id, node?.id ] );
+
+		if ( ! step ) {
+			setActiveInspectorSection( 'details' );
+		} else if ( Number( step.pageId || 0 ) < 1 || ( step.pageStatus && step.pageStatus !== 'publish' ) ) {
+			setActiveInspectorSection( 'page' );
+		} else if ( step.type === 'checkout' || [ 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ].includes( step.type ) ) {
+			setActiveInspectorSection( 'commerce' );
+		} else {
+			setActiveInspectorSection( 'details' );
+		}
+	}, [ step?.id, step?.pageId, step?.pageStatus, node?.id ] );
 
 	if ( ! node || ! step ) {
 		return (
@@ -3119,57 +3131,93 @@ function NodeInspector( {
 			<h2>{ getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) }</h2>
 			<Warnings warnings={ warnings } />
 
-			<label className="lf-field">
-				<span>{ __( 'Step title', 'librefunnels' ) }</span>
-				<input value={ title } onChange={ ( event ) => setTitle( event.target.value ) } />
-			</label>
-
-			<label className="lf-field">
-				<span>{ __( 'Step type', 'librefunnels' ) }</span>
-				<select value={ stepType } onChange={ ( event ) => setStepType( event.target.value ) }>
-					{ Object.entries( stepTypes ).map( ( [ value, label ] ) => (
-						<option key={ value } value={ value }>
-							{ label }
-						</option>
-					) ) }
-				</select>
-			</label>
-
-			<PagePicker
-				step={ step }
-				pages={ pages }
-				onSearch={ onSearchPages }
-				onAssign={ ( pageId ) => onUpdateStep( step, { page_id: Number( pageId ) } ) }
-				onCreate={ ( pageTitle ) => onCreatePageForStep( step, pageTitle ) }
-				isSaving={ isSaving }
-			/>
-
-			<CommercePanel step={ step } products={ products } onSearchProducts={ onSearchProducts } onUpdateStep={ onUpdateStep } isSaving={ isSaving } />
-
-			<div className="lf-action-row">
-				<button
-					className="lf-button lf-button--primary"
-					type="button"
-					disabled={ isSaving }
-					onClick={ () =>
-						onUpdateStep( step, {
-							title,
-							type: stepType,
-							page_id: Number( step.pageId || 0 ),
-						} )
-					}
-				>
-					{ __( 'Save step', 'librefunnels' ) }
-				</button>
-				<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => onSetStartStep( step.id ) }>
-					{ Number( selectedFunnel.startStepId ) === Number( step.id ) ? __( 'Start step', 'librefunnels' ) : __( 'Make start', 'librefunnels' ) }
-				</button>
+			<div className="lf-inspector-tabs" role="tablist" aria-label={ __( 'Step inspector sections', 'librefunnels' ) }>
+				<InspectorTabButton section="details" activeSection={ activeInspectorSection } onSelect={ setActiveInspectorSection }>
+					{ __( 'Details', 'librefunnels' ) }
+				</InspectorTabButton>
+				<InspectorTabButton section="page" activeSection={ activeInspectorSection } onSelect={ setActiveInspectorSection }>
+					{ __( 'Page', 'librefunnels' ) }
+				</InspectorTabButton>
+				{ hasCommerceControls && (
+					<InspectorTabButton section="commerce" activeSection={ activeInspectorSection } onSelect={ setActiveInspectorSection }>
+						{ step.type === 'checkout' ? __( 'Products', 'librefunnels' ) : __( 'Offer', 'librefunnels' ) }
+					</InspectorTabButton>
+				) }
 			</div>
 
-			<button className="lf-button lf-button--danger" type="button" disabled={ isSaving } onClick={ () => onDeleteStep( step ) }>
-				{ __( 'Archive step', 'librefunnels' ) }
-			</button>
+			{ activeInspectorSection === 'details' && (
+				<div className="lf-inspector-section">
+					<label className="lf-field">
+						<span>{ __( 'Step title', 'librefunnels' ) }</span>
+						<input value={ title } onChange={ ( event ) => setTitle( event.target.value ) } />
+					</label>
+
+					<label className="lf-field">
+						<span>{ __( 'Step type', 'librefunnels' ) }</span>
+						<select value={ stepType } onChange={ ( event ) => setStepType( event.target.value ) }>
+							{ Object.entries( stepTypes ).map( ( [ value, label ] ) => (
+								<option key={ value } value={ value }>
+									{ label }
+								</option>
+							) ) }
+						</select>
+					</label>
+
+					<div className="lf-action-row">
+						<button
+							className="lf-button lf-button--primary"
+							type="button"
+							disabled={ isSaving }
+							onClick={ () =>
+								onUpdateStep( step, {
+									title,
+									type: stepType,
+									page_id: Number( step.pageId || 0 ),
+								} )
+							}
+						>
+							{ __( 'Save step', 'librefunnels' ) }
+						</button>
+						<button className="lf-button" type="button" disabled={ isSaving } onClick={ () => onSetStartStep( step.id ) }>
+							{ Number( selectedFunnel.startStepId ) === Number( step.id ) ? __( 'Start step', 'librefunnels' ) : __( 'Make start', 'librefunnels' ) }
+						</button>
+					</div>
+
+					<button className="lf-button lf-button--danger" type="button" disabled={ isSaving } onClick={ () => onDeleteStep( step ) }>
+						{ __( 'Archive step', 'librefunnels' ) }
+					</button>
+				</div>
+			) }
+
+			{ activeInspectorSection === 'page' && (
+				<PagePicker
+					step={ step }
+					pages={ pages }
+					onSearch={ onSearchPages }
+					onAssign={ ( pageId ) => onUpdateStep( step, { page_id: Number( pageId ) } ) }
+					onCreate={ ( pageTitle ) => onCreatePageForStep( step, pageTitle ) }
+					isSaving={ isSaving }
+				/>
+			) }
+
+			{ activeInspectorSection === 'commerce' && hasCommerceControls && (
+				<CommercePanel step={ step } products={ products } onSearchProducts={ onSearchProducts } onUpdateStep={ onUpdateStep } isSaving={ isSaving } />
+			) }
 		</aside>
+	);
+}
+
+function InspectorTabButton( { section, activeSection, onSelect, children } ) {
+	return (
+		<button
+			className={ `lf-inspector-tab ${ activeSection === section ? 'is-active' : '' }` }
+			type="button"
+			role="tab"
+			aria-selected={ activeSection === section }
+			onClick={ () => onSelect( section ) }
+		>
+			{ children }
+		</button>
 	);
 }
 
