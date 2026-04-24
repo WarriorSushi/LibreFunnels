@@ -90,8 +90,10 @@ Implemented so far:
 - Landing, opt-in, custom, and thank-you content steps now render safely through a shared content-step template instead of failing as unsupported public pages.
 - Dashboard and Setup now use real site-readiness data for permalinks, WooCommerce checkout page presence, enabled gateways, currency, and product count.
 - Starter-funnel creation from Dashboard, Setup, Templates, and empty canvas states now opens the exact funnel workspace via a deterministic `funnel_id` handoff instead of relying only on local storage.
+- Templates and Setup include a guided starter panel that can preselect a WooCommerce checkout product, optionally preselect an offer product, create the bundled starter funnel with draft pages, and deep-link the user into the Steps workspace tab for edit-design and preview actions.
+- Template-to-funnel creation accepts sanitized product selections and only applies existing WooCommerce products to the first matching checkout/offer step during import.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, bundled template creation, JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
 
@@ -111,12 +113,11 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add REST/integration coverage for template create/import/export endpoints and page-creation side effects once a WP integration runtime is available.
-2. Expand the builder-first onboarding flow so a new starter funnel can optionally preselect products, create a landing page, and guide the user into page editing without crowding the workspace.
-3. Extend public route/runtime facts with cart, customer, and order context needed for safer conditional offer routing.
-4. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
-5. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
-6. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
+1. Add REST/integration coverage for template create/import/export endpoints, product-option sanitization, and page-creation side effects once a WP integration runtime is available.
+2. Extend public route/runtime facts with cart, customer, and order context needed for safer conditional offer routing.
+3. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
+4. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
+5. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

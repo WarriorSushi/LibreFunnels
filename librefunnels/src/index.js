@@ -145,6 +145,17 @@ function getRequestedFunnelIdFromUrl() {
 	}
 }
 
+function getRequestedWorkspaceTabFromUrl() {
+	try {
+		const url = new window.URL( window.location.href );
+		const requestedTab = url.searchParams.get( 'tab' ) || '';
+
+		return workspaceTabs.some( ( tab ) => tab.id === requestedTab ) ? requestedTab : '';
+	} catch ( error ) {
+		return '';
+	}
+}
+
 function storeSelectedFunnelId( funnelId ) {
 	try {
 		if ( Number( funnelId ) > 0 ) {
@@ -637,7 +648,7 @@ function App() {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ activeWorkspaceTab, setActiveWorkspaceTab ] = useState( sectionDefaultTabs[ adminSection ] || 'overview' );
+	const [ activeWorkspaceTab, setActiveWorkspaceTab ] = useState( () => getRequestedWorkspaceTabFromUrl() || sectionDefaultTabs[ adminSection ] || 'overview' );
 	const [ analyticsSummary, setAnalyticsSummary ] = useState( null );
 	const [ isAnalyticsLoading, setIsAnalyticsLoading ] = useState( false );
 	const [ analyticsError, setAnalyticsError ] = useState( '' );
@@ -846,7 +857,7 @@ function App() {
 		}
 	}
 
-	function openBuilderForFunnel( funnelId ) {
+	function openBuilderForFunnel( funnelId, options = {} ) {
 		const nextFunnelId = Number( funnelId || 0 );
 
 		if ( nextFunnelId < 1 ) {
@@ -859,6 +870,9 @@ function App() {
 		);
 
 		builderUrl.searchParams.set( 'funnel_id', String( nextFunnelId ) );
+		if ( options.tab ) {
+			builderUrl.searchParams.set( 'tab', options.tab );
+		}
 		storeSelectedFunnelId( nextFunnelId );
 		window.location.assign( builderUrl.toString() );
 	}
@@ -871,6 +885,8 @@ function App() {
 					method: 'POST',
 					data: {
 						title: options.title || '',
+						checkout_product_id: Number( options.checkoutProductId || 0 ),
+						offer_product_id: Number( options.offerProductId || 0 ),
 					},
 				} ),
 			__( 'Template funnel created', 'librefunnels' )
@@ -884,8 +900,18 @@ function App() {
 		}
 
 		if ( options.redirectToBuilder && nextFunnelId > 0 ) {
-			openBuilderForFunnel( nextFunnelId );
+			openBuilderForFunnel( nextFunnelId, { tab: options.redirectTab || '' } );
 		}
+	}
+
+	function createGuidedStarterFunnel( options = {} ) {
+		const starterOptions = typeof options?.preventDefault === 'function' ? {} : options;
+
+		return createFromTemplate( 'starter_checkout', {
+			...starterOptions,
+			redirectToBuilder: true,
+			redirectTab: starterOptions.redirectTab || 'steps',
+		} );
 	}
 
 	async function importFunnelPackage( packageText, options = {} ) {
@@ -1258,14 +1284,16 @@ function App() {
 					analyticsSummary={ analyticsSummary }
 					isAnalyticsLoading={ isAnalyticsLoading }
 					analyticsError={ analyticsError }
+					products={ products }
 					notice={ notice }
 					error={ error }
 					onCreateFunnel={ createFunnel }
-					onCreateStarterFunnel={ () => createFromTemplate( 'starter_checkout', { redirectToBuilder: true } ) }
+					onCreateStarterFunnel={ createGuidedStarterFunnel }
 					onCreateTemplate={ createFromTemplate }
 					onImportFunnelPackage={ importFunnelPackage }
 					onExportFunnelPackage={ exportFunnelPackage }
 					onSelectFunnel={ selectFunnel }
+					onSearchProducts={ searchProducts }
 					isLoading={ isLoading }
 					isTemplatesLoading={ isTemplatesLoading }
 					isSaving={ isSaving }
@@ -1322,7 +1350,7 @@ function App() {
 					onSelect={ setSelectedItem }
 					onStartDrag={ startNodeDrag }
 					onCreateFunnel={ createFunnel }
-					onCreateStarterFunnel={ () => createFromTemplate( 'starter_checkout', { redirectToBuilder: true } ) }
+					onCreateStarterFunnel={ createGuidedStarterFunnel }
 					onCreateStep={ createStep }
 					onCreateStarterPath={ createStarterPathAndOpenCanvas }
 					onCreateEdge={ createEdge }
@@ -1354,6 +1382,7 @@ function SectionPage( {
 	analyticsSummary,
 	isAnalyticsLoading,
 	analyticsError,
+	products,
 	notice,
 	error,
 	onCreateFunnel,
@@ -1362,6 +1391,7 @@ function SectionPage( {
 	onImportFunnelPackage,
 	onExportFunnelPackage,
 	onSelectFunnel,
+	onSearchProducts,
 	isLoading,
 	isTemplatesLoading,
 	isSaving,
@@ -1397,6 +1427,8 @@ function SectionPage( {
 					onCreateTemplate={ onCreateTemplate }
 					onImportFunnelPackage={ onImportFunnelPackage }
 					onExportFunnelPackage={ onExportFunnelPackage }
+					products={ products }
+					onSearchProducts={ onSearchProducts }
 					isLoading={ isTemplatesLoading }
 					isSaving={ isSaving }
 				/>
@@ -1412,7 +1444,16 @@ function SectionPage( {
 				/>
 			) }
 			{ section === 'settings' && <SettingsSection selectedFunnel={ selectedFunnel } /> }
-			{ section === 'setup' && <SetupSection selectedFunnel={ selectedFunnel } setupGuide={ setupGuide } onCreateStarterFunnel={ onCreateStarterFunnel } isSaving={ isSaving } /> }
+			{ section === 'setup' && (
+				<SetupSection
+					selectedFunnel={ selectedFunnel }
+					setupGuide={ setupGuide }
+					products={ products }
+					onSearchProducts={ onSearchProducts }
+					onCreateStarterFunnel={ onCreateStarterFunnel }
+					isSaving={ isSaving }
+				/>
+			) }
 			{ section === 'dashboard' && (
 				<DashboardSection
 					funnels={ funnels }
@@ -1537,7 +1578,7 @@ function RecentFunnels( { funnels, selectedFunnel, onSelectFunnel } ) {
 	);
 }
 
-function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreateStarterFunnel, onCreateTemplate, onImportFunnelPackage, onExportFunnelPackage, isLoading, isSaving } ) {
+function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreateStarterFunnel, onCreateTemplate, onImportFunnelPackage, onExportFunnelPackage, products, onSearchProducts, isLoading, isSaving } ) {
 	const [ importValue, setImportValue ] = useState( '' );
 	const [ importTitle, setImportTitle ] = useState( '' );
 
@@ -1580,6 +1621,14 @@ function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreate
 					</button>
 				</div>
 			</div>
+
+			<GuidedStarterPanel
+				products={ products }
+				onSearchProducts={ onSearchProducts }
+				onCreate={ onCreateStarterFunnel }
+				isSaving={ isSaving }
+			/>
+
 			<div className="lf-template-grid">
 				{ isLoading ? (
 					<div className="lf-empty-small">{ __( 'Loading bundled templates...', 'librefunnels' ) }</div>
@@ -1596,7 +1645,7 @@ function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreate
 							<p>{ template.description }</p>
 							<small>{ template.stepSummary }</small>
 							<div className="lf-action-row">
-								<button className="lf-button lf-button--primary" type="button" onClick={ () => onCreateTemplate( template.slug, { redirectToBuilder: true } ) } disabled={ isSaving }>
+								<button className="lf-button lf-button--primary" type="button" onClick={ () => onCreateTemplate( template.slug, { redirectToBuilder: true, redirectTab: 'steps' } ) } disabled={ isSaving }>
 									{ __( 'Create funnel', 'librefunnels' ) }
 								</button>
 							</div>
@@ -1639,6 +1688,62 @@ function TemplatesSection( { templates, selectedFunnel, onCreateFunnel, onCreate
 				</section>
 			</div>
 		</div>
+	);
+}
+
+function GuidedStarterPanel( { products = [], onSearchProducts, onCreate, isSaving } ) {
+	const [ title, setTitle ] = useState( '' );
+	const [ checkoutProductId, setCheckoutProductId ] = useState( 0 );
+	const [ offerProductId, setOfferProductId ] = useState( 0 );
+
+	function handleCreate() {
+		onCreate( {
+			title,
+			checkoutProductId,
+			offerProductId,
+			redirectToBuilder: true,
+			redirectTab: 'steps',
+		} );
+	}
+
+	return (
+		<section className="lf-section-card lf-guided-starter">
+			<div className="lf-guided-starter__header">
+				<div>
+					<p className="lf-label">{ __( 'Guided starter', 'librefunnels' ) }</p>
+					<h3>{ __( 'Create the pages and connect the first product for me', 'librefunnels' ) }</h3>
+					<p>{ __( 'LibreFunnels will create landing, checkout, and thank-you draft pages, assign the checkout product, then open the Steps view so you can edit each page design in WordPress.', 'librefunnels' ) }</p>
+				</div>
+				<button className="lf-button lf-button--primary" type="button" onClick={ handleCreate } disabled={ isSaving }>
+					{ __( 'Create guided starter', 'librefunnels' ) }
+				</button>
+			</div>
+
+			<div className="lf-guided-starter__grid">
+				<label className="lf-field">
+					<span>{ __( 'Starter funnel title (optional)', 'librefunnels' ) }</span>
+					<input value={ title } onChange={ ( event ) => setTitle( event.target.value ) } placeholder={ __( 'Starter Checkout Funnel', 'librefunnels' ) } />
+				</label>
+
+				<ProductPicker
+					value={ checkoutProductId }
+					products={ products }
+					onSearch={ onSearchProducts }
+					onChange={ setCheckoutProductId }
+					label={ __( 'Checkout product', 'librefunnels' ) }
+					placeholder={ __( 'Search for the product shoppers will buy...', 'librefunnels' ) }
+				/>
+
+				<ProductPicker
+					value={ offerProductId }
+					products={ products }
+					onSearch={ onSearchProducts }
+					onChange={ setOfferProductId }
+					label={ __( 'Optional offer product', 'librefunnels' ) }
+					placeholder={ __( 'Search for an upsell or downsell product...', 'librefunnels' ) }
+				/>
+			</div>
+		</section>
 	);
 }
 
@@ -1711,7 +1816,7 @@ function SettingsCard( { title, status, text } ) {
 	);
 }
 
-function SetupSection( { selectedFunnel, setupGuide, onCreateStarterFunnel, isSaving } ) {
+function SetupSection( { selectedFunnel, setupGuide, products, onSearchProducts, onCreateStarterFunnel, isSaving } ) {
 	const storeTasks = [
 		{
 			id: 'permalinks',
@@ -1769,6 +1874,14 @@ function SetupSection( { selectedFunnel, setupGuide, onCreateStarterFunnel, isSa
 					</a>
 				</div>
 			</div>
+			{ ! selectedFunnel && (
+				<GuidedStarterPanel
+					products={ products }
+					onSearchProducts={ onSearchProducts }
+					onCreate={ onCreateStarterFunnel }
+					isSaving={ isSaving }
+				/>
+			) }
 			<section className="lf-section-card">
 				<p className="lf-label">{ __( 'Selected funnel setup', 'librefunnels' ) }</p>
 				<h3>{ selectedFunnel ? getPostTitle( selectedFunnel, __( 'Untitled funnel', 'librefunnels' ) ) : __( 'No funnel selected', 'librefunnels' ) }</h3>
@@ -3066,7 +3179,7 @@ function OfferFields( { offer, products, onSearchProducts, onChange } ) {
 	);
 }
 
-function ProductPicker( { value, products, onSearch, onChange } ) {
+function ProductPicker( { value, products = [], onSearch, onChange, label, placeholder } ) {
 	const [ search, setSearch ] = useState( '' );
 	const searchTimer = useRef( null );
 	const selectedProduct = getProductById( products, value );
@@ -3074,14 +3187,18 @@ function ProductPicker( { value, products, onSearch, onChange } ) {
 	function handleSearch( nextSearch ) {
 		setSearch( nextSearch );
 		window.clearTimeout( searchTimer.current );
-		searchTimer.current = window.setTimeout( () => onSearch( nextSearch ), 250 );
+		searchTimer.current = window.setTimeout( () => {
+			if ( onSearch ) {
+				onSearch( nextSearch );
+			}
+		}, 250 );
 	}
 
 	return (
 		<div className="lf-product-picker">
 			<label className="lf-field">
-				<span>{ __( 'Find product', 'librefunnels' ) }</span>
-				<input value={ search } placeholder={ __( 'Search products by name or SKU...', 'librefunnels' ) } onChange={ ( event ) => handleSearch( event.target.value ) } />
+				<span>{ label || __( 'Find product', 'librefunnels' ) }</span>
+				<input value={ search } placeholder={ placeholder || __( 'Search products by name or SKU...', 'librefunnels' ) } onChange={ ( event ) => handleSearch( event.target.value ) } />
 			</label>
 
 			<select value={ Number( value || 0 ) } onChange={ ( event ) => onChange( Number( event.target.value ) ) }>

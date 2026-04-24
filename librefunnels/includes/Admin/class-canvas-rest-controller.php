@@ -153,13 +153,21 @@ final class Canvas_REST_Controller {
 				'callback'            => array( $this, 'create_from_template' ),
 				'permission_callback' => array( $this, 'can_manage' ),
 				'args'                => array(
-					'template_slug' => array(
+					'template_slug'       => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_key',
 					),
-					'title'         => array(
+					'title'               => array(
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'checkout_product_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'offer_product_id'    => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
 					),
 				),
 			)
@@ -571,9 +579,11 @@ final class Canvas_REST_Controller {
 		$result   = $importer->import(
 			$package,
 			array(
-				'title'       => $request->get_param( 'title' ),
-				'createPages' => true,
-				'forceDraft'  => true,
+				'title'             => $request->get_param( 'title' ),
+				'createPages'       => true,
+				'forceDraft'        => true,
+				'checkoutProductId' => absint( $request->get_param( 'checkout_product_id' ) ),
+				'offerProductId'    => absint( $request->get_param( 'offer_product_id' ) ),
 			)
 		);
 

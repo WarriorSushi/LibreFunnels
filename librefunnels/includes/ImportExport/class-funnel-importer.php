@@ -48,13 +48,19 @@ final class Funnel_Importer {
 		$options = wp_parse_args(
 			$options,
 			array(
-				'title'       => '',
-				'createPages' => true,
-				'forceDraft'  => true,
+				'title'             => '',
+				'createPages'       => true,
+				'forceDraft'        => true,
+				'checkoutProductId' => 0,
+				'offerProductId'    => 0,
 			)
 		);
 
-		$funnel_title = isset( $options['title'] ) && '' !== trim( (string) $options['title'] )
+		$checkout_product_id       = $this->get_existing_product_id( $options['checkoutProductId'] );
+		$offer_product_id          = $this->get_existing_product_id( $options['offerProductId'] );
+		$checkout_product_assigned = false;
+		$offer_product_assigned    = false;
+		$funnel_title              = isset( $options['title'] ) && '' !== trim( (string) $options['title'] )
 			? sanitize_text_field( (string) $options['title'] )
 			: sanitize_text_field( (string) $package['funnel']['title'] );
 
@@ -100,11 +106,24 @@ final class Funnel_Importer {
 			update_post_meta( $step_id, LIBREFUNNELS_STEP_TYPE_META, Registered_Meta::sanitize_step_type( $step_package['type'] ) );
 			update_post_meta( $step_id, LIBREFUNNELS_STEP_ORDER_META, absint( $step_package['order'] ) );
 			update_post_meta( $step_id, LIBREFUNNELS_STEP_TEMPLATE_META, sanitize_key( (string) $step_package['template'] ) );
-			update_post_meta( $step_id, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, Registered_Meta::sanitize_checkout_products( $step_package['checkoutProducts'] ) );
+
+			$checkout_products = $step_package['checkoutProducts'];
+			if ( $checkout_product_id > 0 && ! $checkout_product_assigned && 'checkout' === Registered_Meta::sanitize_step_type( $step_package['type'] ) ) {
+				$checkout_products         = array( $this->create_product_assignment( $checkout_product_id ) );
+				$checkout_product_assigned = true;
+			}
+
+			$offer = $step_package['offer'];
+			if ( $offer_product_id > 0 && ! $offer_product_assigned && in_array( Registered_Meta::sanitize_step_type( $step_package['type'] ), array( 'pre_checkout_offer', 'upsell', 'downsell', 'cross_sell' ), true ) ) {
+				$offer                  = $this->apply_product_to_offer( $offer, $offer_product_id );
+				$offer_product_assigned = true;
+			}
+
+			update_post_meta( $step_id, LIBREFUNNELS_CHECKOUT_PRODUCTS_META, Registered_Meta::sanitize_checkout_products( $checkout_products ) );
 			update_post_meta( $step_id, LIBREFUNNELS_CHECKOUT_COUPONS_META, Registered_Meta::sanitize_coupon_codes( $step_package['checkoutCoupons'] ) );
 			update_post_meta( $step_id, LIBREFUNNELS_CHECKOUT_FIELDS_META, Registered_Meta::sanitize_checkout_fields( $step_package['checkoutFields'] ) );
 			update_post_meta( $step_id, LIBREFUNNELS_ORDER_BUMPS_META, Registered_Meta::sanitize_order_bumps( $step_package['orderBumps'] ) );
-			update_post_meta( $step_id, LIBREFUNNELS_STEP_OFFER_META, Registered_Meta::sanitize_step_offer( $step_package['offer'] ) );
+			update_post_meta( $step_id, LIBREFUNNELS_STEP_OFFER_META, Registered_Meta::sanitize_step_offer( $offer ) );
 			update_post_meta( $step_id, LIBREFUNNELS_STEP_PAGE_ID_META, 0 );
 
 			if ( ! empty( $options['createPages'] ) ) {
@@ -156,6 +175,65 @@ final class Funnel_Importer {
 				'post_content' => '[librefunnels_step id="' . absint( $step_id ) . '"]',
 			),
 			true
+		);
+	}
+
+	/**
+	 * Gets an existing product ID from import options.
+	 *
+	 * @param mixed $product_id Product ID.
+	 * @return int
+	 */
+	private function get_existing_product_id( $product_id ) {
+		$product_id = absint( $product_id );
+
+		if ( $product_id < 1 || ! function_exists( 'wc_get_product' ) ) {
+			return 0;
+		}
+
+		$product = wc_get_product( $product_id );
+
+		return $product ? $product_id : 0;
+	}
+
+	/**
+	 * Creates a default checkout product assignment.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return array<string,mixed>
+	 */
+	private function create_product_assignment( $product_id ) {
+		return array(
+			'product_id'   => absint( $product_id ),
+			'variation_id' => 0,
+			'quantity'     => 1,
+			'variation'    => array(),
+		);
+	}
+
+	/**
+	 * Applies a product to an offer definition.
+	 *
+	 * @param mixed $offer      Offer data.
+	 * @param int   $product_id Product ID.
+	 * @return array<string,mixed>
+	 */
+	private function apply_product_to_offer( $offer, $product_id ) {
+		if ( is_object( $offer ) ) {
+			$offer = (array) $offer;
+		}
+
+		$offer = is_array( $offer ) ? $offer : array();
+
+		return array_merge(
+			$offer,
+			array(
+				'product_id'   => absint( $product_id ),
+				'variation_id' => 0,
+				'quantity'     => isset( $offer['quantity'] ) ? max( 1, absint( $offer['quantity'] ) ) : 1,
+				'variation'    => array(),
+				'enabled'      => true,
+			)
 		);
 	}
 

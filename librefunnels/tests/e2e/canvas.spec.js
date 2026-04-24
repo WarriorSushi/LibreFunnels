@@ -309,14 +309,24 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 	test( 'creates starter funnels from templates and imports exported JSON', async ( { page } ) => {
 		await page.goto( '/wp-admin/admin.php?page=librefunnels-templates' );
 
-		const starterCard = page.locator( '.lf-template-card' ).filter( { hasText: 'Starter Checkout Funnel' } ).first();
-		await starterCard.getByRole( 'button', { name: 'Create funnel' } ).click();
+		const guidedStarter = page.locator( '.lf-guided-starter' );
+		await guidedStarter.getByLabel( 'Starter funnel title (optional)' ).fill( 'Guided starter funnel' );
+		await guidedStarter.getByLabel( 'Checkout product' ).fill( 'Digital' );
+		await expect( guidedStarter.locator( '.lf-product-picker' ).first().locator( 'select' ) ).toContainText( 'Digital' );
+		await guidedStarter.locator( '.lf-product-picker' ).first().locator( 'select' ).selectOption( { index: 1 } );
+		const selectedCheckoutProductId = Number(
+			await guidedStarter.locator( '.lf-product-picker' ).first().locator( 'select' ).inputValue()
+		);
 
-		await expect( page ).toHaveURL( /librefunnels-funnels/, { timeout: 30000 } );
-		await expect( page.getByRole( 'heading', { level: 1, name: 'Starter Checkout Funnel', exact: true } ) ).toBeVisible();
-		await page.getByRole( 'button', { name: 'Steps', exact: true } ).click();
+		expect( selectedCheckoutProductId ).toBeGreaterThan( 0 );
+		await guidedStarter.getByRole( 'button', { name: 'Create guided starter' } ).click();
+
+		await expect( page ).toHaveURL( /librefunnels-funnels.*tab=steps/, { timeout: 30000 } );
+		await expect( page.getByRole( 'heading', { level: 1, name: 'Guided starter funnel', exact: true } ) ).toBeVisible();
 		const starterStepTypes = await page.locator( '.lf-step-table .lf-node__type' ).allTextContents();
 		expect( starterStepTypes ).toEqual( expect.arrayContaining( [ 'Landing', 'Checkout', 'Thank You' ] ) );
+		await expect( page.getByRole( 'link', { name: 'Edit page design' } ).first() ).toBeVisible();
+		await expect( page.getByRole( 'link', { name: 'Preview page' } ).first() ).toBeVisible();
 
 		const exportedPackage = await page.evaluate( async () => {
 			const selectedFunnelId = Number( window.localStorage.getItem( 'librefunnels.selectedFunnelId' ) || 0 );
@@ -327,6 +337,8 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		} );
 
 		expect( exportedPackage.package.format ).toBe( 'librefunnels.funnel' );
+		const exportedCheckoutStep = exportedPackage.package.steps.find( ( step ) => step.type === 'checkout' );
+		expect( Number( exportedCheckoutStep.checkoutProducts[ 0 ].product_id ) ).toBe( selectedCheckoutProductId );
 
 		await page.goto( '/wp-admin/admin.php?page=librefunnels-templates' );
 		await page.getByLabel( 'Imported funnel title (optional)' ).fill( 'Imported starter funnel' );

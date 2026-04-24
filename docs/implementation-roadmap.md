@@ -69,12 +69,13 @@
   - Dedicated step planning surface that makes landing, opt-in, checkout, upsell, downsell, thank-you, and custom step creation visible
   - Dedicated offers surface that keeps upsells, downsells, cross-sells, and pre-checkout offers out of the checkout products panel
   - Real site-readiness data on Dashboard and Setup for permalinks, checkout page presence, gateways, currency, and product count
-  - Deterministic builder handoff with `funnel_id` deep-linking so starter/template flows reopen the correct funnel
-  - Playwright canvas smoke for Docker WordPress admin mount, submenu rendering, bundled template create/import/export, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
+  - Deterministic builder handoff with `funnel_id` and workspace `tab` deep-linking so starter/template flows reopen the correct funnel in the right surface
+  - Guided starter panel on Templates and Setup that can preselect an existing WooCommerce checkout product, optionally preselect an offer product, create starter draft pages, and send the user to the Steps tab for page-builder handoff links
+  - Playwright canvas smoke for Docker WordPress admin mount, submenu rendering, guided template starter product preselection, bundled template create/import/export, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
 - Smart routing
 - Validation UI
 
-Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the page assignment flow showing draft/published state plus builder handoff actions, setup progress naming the remaining launch tasks, and the selected funnel opening into a sectioned workspace instead of one crowded canvas. Backend work should continue where the canvas needs it, especially extending public routing/runtime facts and building deeper analytics drilldowns.
+Phase 4 remains the active product track, with the commerce-aware inspector now editing real product and bump arrays, the guided starter flow creating product-aware draft-page funnels, the page assignment flow showing draft/published state plus builder handoff actions, setup progress naming the remaining launch tasks, and the selected funnel opening into a sectioned workspace instead of one crowded canvas. Backend work should continue where the canvas needs it, especially extending public routing/runtime facts and building deeper analytics drilldowns.
 
 ## Phase 5: Payments
 - Gateway adapter API
