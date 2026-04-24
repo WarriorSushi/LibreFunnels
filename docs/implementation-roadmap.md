@@ -56,6 +56,8 @@
   - Right-side inspector for funnel, step, and route editing
   - Inline validation for missing start step, page assignment, broken routes, and conditional rule gaps
   - Draggable node positioning saved to graph metadata
+  - Scrollable canvas stage that keeps the inspector from covering graph content
+  - Visible node connection handles for drag-to-connect route creation
   - Atomic `librefunnels/v1` REST endpoints for canvas workspace actions
   - Guided starter path for empty funnels that creates checkout and thank-you steps with a continue route
   - Page search and draft page creation for step assignment
@@ -73,7 +75,7 @@
   - Deterministic builder handoff with `funnel_id` and workspace `tab` deep-linking so starter/template flows reopen the correct funnel in the right surface
   - Guided starter panel on Templates and Setup that can preselect an existing WooCommerce checkout product, optionally preselect an offer product, create starter draft pages, and send the user to the Steps tab for page-builder handoff links
   - Public routing facts now include WooCommerce cart, customer, and HPOS-safe order context, with order product and order total conditional rule support
-  - Playwright canvas smoke for Docker WordPress admin mount, submenu rendering, guided template starter product preselection, bundled template create/import/export, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
+  - Playwright canvas smoke for Docker WordPress admin mount, submenu rendering, guided template starter product preselection, bundled template create/import/export, funnel creation, draft page status and edit/preview handoff, checkout products, order bump saving, handle-based route creation, imported broken-route recovery, public checkout rendering, public offer reject routing, and public offer accept cart mutation
 - Smart routing
 - Validation UI
 

@@ -223,7 +223,9 @@ The JavaScript app is built with `@wordpress/scripts` from `librefunnels/src/ind
 
 Canvas interaction expectations:
 - Nodes can be dragged and saved back to graph position metadata.
+- The canvas renders as a scrollable stage inside the canvas column. Large graphs should scroll within that stage instead of overflowing underneath the inspector.
 - Route edges expose accessible names, focus states, and keyboard activation so they can be selected without relying on precise SVG pointer hit testing. Route source, target, and label are edited through explicit selectors.
+- Nodes expose visible input/output connection handles. Dragging from an output handle to another node's input handle creates a persisted `next` route and selects the route inspector so the store owner can adjust the route label or condition.
 - Conditional routes use a rule builder backed by the existing rule schema instead of raw JSON.
 - Empty funnels offer a guided starter path action that creates checkout and thank-you steps, connects them with a `next` route, and marks checkout as the start step.
 - The canvas header derives a setup progress checklist from funnel, graph, page, product, route, and validation state. It names missing pages, draft pages that still need editing/publishing, checkout product readiness, route readiness, and validation issues without storing redundant UI state.

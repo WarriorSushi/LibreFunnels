@@ -23,6 +23,8 @@ const selectedFunnelStorageKey = 'librefunnels.selectedFunnelId';
 const adminSection = settings.activeSection || 'dashboard';
 const adminPages = settings.adminPages || {};
 const siteReadiness = settings.siteReadiness || {};
+const canvasNodeWidth = 220;
+const canvasNodeHeight = 96;
 
 const workspaceTabs = [
 	{ id: 'overview', label: __( 'Overview', 'librefunnels' ) },
@@ -124,6 +126,23 @@ function normalizeNodePosition( node, index ) {
 	return {
 		x: Number.isFinite( Number( position.x ) ) ? Number( position.x ) : 120 + index * 260,
 		y: Number.isFinite( Number( position.y ) ) ? Number( position.y ) : 120 + ( index % 2 ) * 140,
+	};
+}
+
+function getNodeConnectionPoint( node, side = 'out' ) {
+	const position = normalizeNodePosition( node, 0 );
+	const y = position.y + canvasNodeHeight / 2;
+
+	if ( side === 'in' ) {
+		return {
+			x: position.x,
+			y,
+		};
+	}
+
+	return {
+		x: position.x + canvasNodeWidth,
+		y,
 	};
 }
 
@@ -658,6 +677,7 @@ function App() {
 	const [ templateLibrary, setTemplateLibrary ] = useState( [] );
 	const [ isTemplatesLoading, setIsTemplatesLoading ] = useState( false );
 	const [ dragging, setDragging ] = useState( null );
+	const [ connectionDraft, setConnectionDraft ] = useState( null );
 
 	const selectedFunnel = funnels.find( ( funnel ) => Number( funnel.id ) === Number( selectedFunnelId ) );
 	const graph = selectedFunnel ? getGraph( selectedFunnel ) : emptyGraph;
@@ -757,6 +777,54 @@ function App() {
 			window.removeEventListener( 'pointerup', handleUp );
 		};
 	}, [ dragging, selectedFunnel?.startStepId ] );
+
+	useEffect( () => {
+		if ( ! connectionDraft ) {
+			return undefined;
+		}
+
+		function getPointerPosition( event ) {
+			return {
+				x: Math.max( 0, event.clientX - connectionDraft.stageRect.left ),
+				y: Math.max( 0, event.clientY - connectionDraft.stageRect.top ),
+			};
+		}
+
+		function handleMove( event ) {
+			setConnectionDraft( ( current ) =>
+				current
+					? {
+							...current,
+							pointer: getPointerPosition( event ),
+					  }
+					: current
+			);
+		}
+
+		function handleUp( event ) {
+			const targetElement = window.document
+				.elementsFromPoint( event.clientX, event.clientY )
+				.map( ( element ) => element.closest?.( '[data-lf-connect-target]' ) )
+				.find( Boolean );
+			const targetNodeId = targetElement?.getAttribute( 'data-lf-connect-target' ) || '';
+
+			setConnectionDraft( null );
+
+			if ( targetNodeId && targetNodeId !== connectionDraft.sourceNodeId ) {
+				void createEdgeBetween( connectionDraft.sourceNodeId, targetNodeId );
+			}
+		}
+
+		window.addEventListener( 'pointermove', handleMove );
+		window.addEventListener( 'pointerup', handleUp, { once: true } );
+		window.addEventListener( 'pointercancel', handleUp, { once: true } );
+
+		return () => {
+			window.removeEventListener( 'pointermove', handleMove );
+			window.removeEventListener( 'pointerup', handleUp );
+			window.removeEventListener( 'pointercancel', handleUp );
+		};
+	}, [ connectionDraft, graph ] );
 
 	function selectFunnel( funnelId ) {
 		const nextFunnelId = Number( funnelId || 0 );
@@ -1162,6 +1230,28 @@ function App() {
 
 		const source = graph.nodes[ graph.nodes.length - 2 ];
 		const target = graph.nodes[ graph.nodes.length - 1 ];
+		await createEdgeBetween( source.id, target.id );
+	}
+
+	async function createEdgeBetween( sourceNodeId, targetNodeId ) {
+		const source = graph.nodes.find( ( node ) => node.id === sourceNodeId );
+		const target = graph.nodes.find( ( node ) => node.id === targetNodeId );
+
+		if ( ! source || ! target ) {
+			setError( __( 'LibreFunnels could not connect those steps because one of them is missing.', 'librefunnels' ) );
+			return;
+		}
+
+		const existingEdge = graph.edges.find(
+			( item ) => item.source === source.id && item.target === target.id && item.route === 'next'
+		);
+
+		if ( existingEdge ) {
+			setSelectedItem( { type: 'edge', id: existingEdge.id } );
+			setNotice( __( 'Route already exists', 'librefunnels' ) );
+			return;
+		}
+
 		const edge = {
 			id: `edge-${ Date.now() }`,
 			source: source.id,
@@ -1250,6 +1340,10 @@ function App() {
 			return;
 		}
 
+		if ( event.target.closest?.( '.lf-node-handle' ) ) {
+			return;
+		}
+
 		event.preventDefault();
 		setSelectedItem( { type: 'node', id: node.id } );
 		setDragging( {
@@ -1260,6 +1354,29 @@ function App() {
 				y: event.clientY,
 			},
 			origin: normalizeNodePosition( node, graph.nodes.findIndex( ( item ) => item.id === node.id ) ),
+		} );
+	}
+
+	function startConnectionDrag( event, node, stageElement ) {
+		if ( event.button !== 0 || ! stageElement ) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		const sourcePoint = getNodeConnectionPoint( node, 'out' );
+		const stageRect = stageElement.getBoundingClientRect();
+
+		setSelectedItem( { type: 'node', id: node.id } );
+		setConnectionDraft( {
+			sourceNodeId: node.id,
+			stageRect,
+			source: sourcePoint,
+			pointer: {
+				x: Math.max( 0, event.clientX - stageRect.left ),
+				y: Math.max( 0, event.clientY - stageRect.top ),
+			},
 		} );
 	}
 
@@ -1344,6 +1461,7 @@ function App() {
 					products={ products }
 					selectedFunnel={ selectedFunnel }
 					selectedItem={ selectedItem }
+					connectionDraft={ connectionDraft }
 					setupGuide={ setupGuide }
 					warnings={ validationSummary }
 					analyticsSummary={ analyticsSummary }
@@ -1352,6 +1470,7 @@ function App() {
 					funnelSteps={ funnelSteps }
 					onSelect={ setSelectedItem }
 					onStartDrag={ startNodeDrag }
+					onStartConnection={ startConnectionDrag }
 					onCreateFunnel={ createFunnel }
 					onCreateStarterFunnel={ createGuidedStarterFunnel }
 					onCreateStep={ createStep }
@@ -1946,6 +2065,7 @@ function WorkspaceContent( {
 	products,
 	selectedFunnel,
 	selectedItem,
+	connectionDraft,
 	setupGuide,
 	warnings,
 	analyticsSummary,
@@ -1954,6 +2074,7 @@ function WorkspaceContent( {
 	funnelSteps,
 	onSelect,
 	onStartDrag,
+	onStartConnection,
 	onCreateFunnel,
 	onCreateStarterFunnel,
 	onCreateStep,
@@ -1978,8 +2099,10 @@ function WorkspaceContent( {
 					steps={ steps }
 					selectedFunnel={ selectedFunnel }
 					selectedItem={ selectedItem }
+					connectionDraft={ connectionDraft }
 					onSelect={ onSelect }
 					onStartDrag={ onStartDrag }
+					onStartConnection={ onStartConnection }
 					onCreateFunnel={ onCreateFunnel }
 					onCreateStarterFunnel={ onCreateStarterFunnel }
 					onCreateStep={ onCreateStep }
@@ -2001,8 +2124,10 @@ function WorkspaceContent( {
 						steps={ steps }
 						selectedFunnel={ selectedFunnel }
 						selectedItem={ selectedItem }
+						connectionDraft={ connectionDraft }
 						onSelect={ onSelect }
 						onStartDrag={ onStartDrag }
+						onStartConnection={ onStartConnection }
 						onCreateFunnel={ onCreateFunnel }
 						onCreateStarterFunnel={ onCreateStarterFunnel }
 						onCreateStep={ onCreateStep }
@@ -2719,14 +2844,15 @@ function SetupProgress( { setupGuide, compact = false } ) {
 	);
 }
 
-function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSelect, onStartDrag, onCreateFunnel, onCreateStep, onCreateStarterPath, onCreateStarterFunnel, isSaving } ) {
+function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, connectionDraft, onSelect, onStartDrag, onStartConnection, onCreateFunnel, onCreateStep, onCreateStarterPath, onCreateStarterFunnel, isSaving } ) {
+	const stageRef = useRef( null );
 	const nodes = graph.nodes.map( ( node, index ) => ( {
 		...node,
 		position: normalizeNodePosition( node, index ),
 	} ) );
 	const nodeMap = new Map( nodes.map( ( node ) => [ node.id, node ] ) );
-	const canvasWidth = Math.max( 960, ...nodes.map( ( node ) => node.position.x + 250 ), 960 );
-	const canvasHeight = Math.max( 580, ...nodes.map( ( node ) => node.position.y + 160 ), 580 );
+	const canvasWidth = Math.max( 960, ...nodes.map( ( node ) => node.position.x + canvasNodeWidth + 96 ), 960 );
+	const canvasHeight = Math.max( 580, ...nodes.map( ( node ) => node.position.y + canvasNodeHeight + 96 ), 580 );
 
 	if ( isLoading ) {
 		return <div className="lf-canvas lf-canvas--empty">{ __( 'Loading your funnel workspace...', 'librefunnels' ) }</div>;
@@ -2767,93 +2893,129 @@ function Canvas( { isLoading, graph, steps, selectedFunnel, selectedItem, onSele
 	}
 
 	return (
-		<div className="lf-canvas" style={ { '--lf-canvas-width': `${ canvasWidth }px`, '--lf-canvas-height': `${ canvasHeight }px` } }>
-			<svg className="lf-edges" viewBox={ `0 0 ${ canvasWidth } ${ canvasHeight }` } role="img" aria-label={ __( 'Funnel route map', 'librefunnels' ) }>
-				{ graph.edges.map( ( edge ) => {
-					const source = nodeMap.get( edge.source );
-					const target = nodeMap.get( edge.target );
-					const warnings = getEdgeWarnings( edge, nodes );
+		<div className={ `lf-canvas ${ connectionDraft ? 'is-connecting' : '' }` }>
+			<div
+				ref={ stageRef }
+				className="lf-canvas-stage"
+				style={ { '--lf-canvas-width': `${ canvasWidth }px`, '--lf-canvas-height': `${ canvasHeight }px` } }
+			>
+				<svg className="lf-edges" viewBox={ `0 0 ${ canvasWidth } ${ canvasHeight }` } role="img" aria-label={ __( 'Funnel route map', 'librefunnels' ) }>
+					{ graph.edges.map( ( edge ) => {
+						const source = nodeMap.get( edge.source );
+						const target = nodeMap.get( edge.target );
+						const warnings = getEdgeWarnings( edge, nodes );
 
-					if ( ! source || ! target ) {
-						return null;
-					}
+						if ( ! source || ! target ) {
+							return null;
+						}
 
-					const startX = source.position.x + 220;
-					const startY = source.position.y + 48;
-					const endX = target.position.x;
-					const endY = target.position.y + 48;
-					const midX = startX + ( endX - startX ) / 2;
-					const routeClass = routeClassNames[ edge.route ] || 'continue';
-					const sourceStep = getStepById( steps, source.stepId );
-					const targetStep = getStepById( steps, target.stepId );
-					const routeLabel = routes[ edge.route ] || edge.route;
-					const edgeLabel = sprintf(
-						__( 'Route %1$s from %2$s to %3$s', 'librefunnels' ),
-						routeLabel,
-						sourceStep ? getPostTitle( sourceStep, __( 'source step', 'librefunnels' ) ) : __( 'source step', 'librefunnels' ),
-						targetStep ? getPostTitle( targetStep, __( 'target step', 'librefunnels' ) ) : __( 'target step', 'librefunnels' )
-					);
+						const start = getNodeConnectionPoint( source, 'out' );
+						const end = getNodeConnectionPoint( target, 'in' );
+						const midX = start.x + ( end.x - start.x ) / 2;
+						const routeClass = routeClassNames[ edge.route ] || 'continue';
+						const sourceStep = getStepById( steps, source.stepId );
+						const targetStep = getStepById( steps, target.stepId );
+						const routeLabel = routes[ edge.route ] || edge.route;
+						const edgeLabel = sprintf(
+							__( 'Route %1$s from %2$s to %3$s', 'librefunnels' ),
+							routeLabel,
+							sourceStep ? getPostTitle( sourceStep, __( 'source step', 'librefunnels' ) ) : __( 'source step', 'librefunnels' ),
+							targetStep ? getPostTitle( targetStep, __( 'target step', 'librefunnels' ) ) : __( 'target step', 'librefunnels' )
+						);
+
+						return (
+							<g
+								key={ edge.id }
+								className={ `lf-edge lf-edge--${ routeClass } ${ selectedItem.type === 'edge' && selectedItem.id === edge.id ? 'is-selected' : '' } ${ warnings.length ? 'has-warning' : '' }` }
+								role="button"
+								tabIndex="0"
+								aria-label={ edgeLabel }
+								onClick={ () => onSelect( { type: 'edge', id: edge.id } ) }
+								onKeyDown={ ( event ) => {
+									if ( event.key === 'Enter' || event.key === ' ' ) {
+										event.preventDefault();
+										onSelect( { type: 'edge', id: edge.id } );
+									}
+								} }
+							>
+								<path d={ `M ${ start.x } ${ start.y } C ${ midX } ${ start.y }, ${ midX } ${ end.y }, ${ end.x } ${ end.y }` } />
+								<text x={ midX } y={ ( start.y + end.y ) / 2 - 8 }>{ routeLabel }</text>
+							</g>
+						);
+					} ) }
+					{ connectionDraft && (
+						<path
+							className="lf-edge-draft"
+							d={ `M ${ connectionDraft.source.x } ${ connectionDraft.source.y } C ${ connectionDraft.source.x + 130 } ${ connectionDraft.source.y }, ${ connectionDraft.pointer.x - 130 } ${ connectionDraft.pointer.y }, ${ connectionDraft.pointer.x } ${ connectionDraft.pointer.y }` }
+						/>
+					) }
+				</svg>
+
+				{ graph.edges
+					.filter( ( edge ) => getEdgeWarnings( edge, nodes ).length > 0 )
+					.map( ( edge, index ) => (
+						<button
+							key={ edge.id }
+							className="lf-broken-edge"
+							type="button"
+							style={ { left: `${ 32 + index * 220 }px`, top: '24px' } }
+							onClick={ () => onSelect( { type: 'edge', id: edge.id } ) }
+						>
+							{ __( 'Broken route', 'librefunnels' ) }: { edge.id }
+						</button>
+					) ) }
+
+				{ nodes.map( ( node ) => {
+					const step = getStepById( steps, node.stepId );
+					const warnings = step ? getNodeWarnings( node, steps, selectedFunnel ) : [ __( 'Missing step', 'librefunnels' ) ];
+					const type = step?.type || node.type || 'custom';
+					const isStart = Number( selectedFunnel.startStepId || 0 ) === Number( node.stepId );
+					const isConnectionSource = connectionDraft?.sourceNodeId === node.id;
 
 					return (
-						<g
-							key={ edge.id }
-							className={ `lf-edge lf-edge--${ routeClass } ${ selectedItem.type === 'edge' && selectedItem.id === edge.id ? 'is-selected' : '' } ${ warnings.length ? 'has-warning' : '' }` }
+						<div
+							key={ node.id }
+							className={ `lf-node ${ selectedItem.type === 'node' && selectedItem.id === node.id ? 'is-selected' : '' } ${ warnings.length ? 'has-warning' : '' } ${ isConnectionSource ? 'is-connection-source' : '' }` }
 							role="button"
 							tabIndex="0"
-							aria-label={ edgeLabel }
-							onClick={ () => onSelect( { type: 'edge', id: edge.id } ) }
+							style={ { left: `${ node.position.x }px`, top: `${ node.position.y }px` } }
+							onClick={ () => onSelect( { type: 'node', id: node.id } ) }
 							onKeyDown={ ( event ) => {
 								if ( event.key === 'Enter' || event.key === ' ' ) {
 									event.preventDefault();
-									onSelect( { type: 'edge', id: edge.id } );
+									onSelect( { type: 'node', id: node.id } );
 								}
 							} }
+							onPointerDown={ ( event ) => onStartDrag( event, node ) }
 						>
-							<path d={ `M ${ startX } ${ startY } C ${ midX } ${ startY }, ${ midX } ${ endY }, ${ endX } ${ endY }` } />
-							<text x={ midX } y={ ( startY + endY ) / 2 - 8 }>{ routeLabel }</text>
-						</g>
+							<button
+								className="lf-node-handle lf-node-handle--in"
+								type="button"
+								data-lf-connect-target={ node.id }
+								aria-label={ sprintf( __( 'Connect route to %s', 'librefunnels' ), step ? getPostTitle( step, __( 'this step', 'librefunnels' ) ) : __( 'this step', 'librefunnels' ) ) }
+								onPointerDown={ ( event ) => event.stopPropagation() }
+								onClick={ ( event ) => {
+									event.stopPropagation();
+									onSelect( { type: 'node', id: node.id } );
+								} }
+							/>
+							<span className="lf-node__type">{ stepTypes[ type ] || type }</span>
+							<strong>{ step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' ) }</strong>
+							<span className="lf-node__meta">
+								{ getNodePageMeta( step, isStart ) }
+								{ warnings.length > 0 ? ` · ${ __( 'Needs attention', 'librefunnels' ) }` : '' }
+							</span>
+							<button
+								className="lf-node-handle lf-node-handle--out"
+								type="button"
+								aria-label={ sprintf( __( 'Drag to connect from %s', 'librefunnels' ), step ? getPostTitle( step, __( 'this step', 'librefunnels' ) ) : __( 'this step', 'librefunnels' ) ) }
+								onPointerDown={ ( event ) => onStartConnection( event, node, stageRef.current ) }
+								onClick={ ( event ) => event.stopPropagation() }
+							/>
+						</div>
 					);
 				} ) }
-			</svg>
-
-			{ graph.edges
-				.filter( ( edge ) => getEdgeWarnings( edge, nodes ).length > 0 )
-				.map( ( edge, index ) => (
-					<button
-						key={ edge.id }
-						className="lf-broken-edge"
-						type="button"
-						style={ { left: `${ 32 + index * 220 }px`, top: '24px' } }
-						onClick={ () => onSelect( { type: 'edge', id: edge.id } ) }
-					>
-						{ __( 'Broken route', 'librefunnels' ) }: { edge.id }
-					</button>
-				) ) }
-
-			{ nodes.map( ( node ) => {
-				const step = getStepById( steps, node.stepId );
-				const warnings = step ? getNodeWarnings( node, steps, selectedFunnel ) : [ __( 'Missing step', 'librefunnels' ) ];
-				const type = step?.type || node.type || 'custom';
-				const isStart = Number( selectedFunnel.startStepId || 0 ) === Number( node.stepId );
-
-				return (
-					<button
-						key={ node.id }
-						className={ `lf-node ${ selectedItem.type === 'node' && selectedItem.id === node.id ? 'is-selected' : '' } ${ warnings.length ? 'has-warning' : '' }` }
-						type="button"
-						style={ { left: `${ node.position.x }px`, top: `${ node.position.y }px` } }
-						onClick={ () => onSelect( { type: 'node', id: node.id } ) }
-						onPointerDown={ ( event ) => onStartDrag( event, node ) }
-					>
-						<span className="lf-node__type">{ stepTypes[ type ] || type }</span>
-						<strong>{ step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : __( 'Missing step', 'librefunnels' ) }</strong>
-						<span className="lf-node__meta">
-							{ getNodePageMeta( step, isStart ) }
-							{ warnings.length > 0 ? ` · ${ __( 'Needs attention', 'librefunnels' ) }` : '' }
-						</span>
-					</button>
-				);
-			} ) }
+			</div>
 		</div>
 	);
 }

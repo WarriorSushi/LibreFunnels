@@ -64,8 +64,10 @@ Implemented so far:
 - Canvas workspace payloads always include every step for the selected funnel, preventing large or long-running sites from showing newly-created selected-funnel nodes as missing steps when the global recent-step list is capped.
 - Canvas product search endpoint using WooCommerce product APIs with name/SKU lookup and compact serialization.
 - Draggable node positioning with persisted graph coordinates.
+- Canvas layout now uses a scrollable stage so the step inspector stays in its own column instead of covering nodes and routes.
 - Empty funnels now offer a guided starter path that creates checkout and thank-you steps, connects the default continue route, and sets checkout as the start step.
 - Canvas route edges now expose accessible route names, focus states, and keyboard activation.
+- Canvas nodes expose visible input/output connection handles; dragging from a step's output handle to another step's input handle creates and saves a route.
 - Explicit route source/target/label selectors and route delete control.
 - Page search/create-and-assign controls instead of raw page ID entry.
 - Beginner setup guidance in the canvas header with the next useful task.
@@ -97,7 +99,7 @@ Implemented so far:
 - Templates and Setup include a guided starter panel that can preselect a WooCommerce checkout product, optionally preselect an offer product, create the bundled starter funnel with draft pages, and deep-link the user into the Steps workspace tab for edit-design and preview actions.
 - Template-to-funnel creation accepts sanitized product selections and only applies existing WooCommerce products to the first matching checkout/offer step during import.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, handle-based route creation, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
 - Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.

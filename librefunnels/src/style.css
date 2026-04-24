@@ -970,8 +970,9 @@
 
 .lf-canvas {
 	position: relative;
-	min-width: var(--lf-canvas-width, 880px);
-	min-height: var(--lf-canvas-height, 540px);
+	width: 100%;
+	min-width: 0;
+	min-height: 580px;
 	overflow: auto;
 	border: 1px solid var(--lf-border);
 	border-radius: 8px;
@@ -980,6 +981,14 @@
 		linear-gradient(90deg, color-mix(in oklch, var(--lf-border) 28%, transparent) 1px, transparent 1px),
 		var(--lf-surface-soft);
 	background-size: 28px 28px;
+}
+
+.lf-canvas-stage {
+	position: relative;
+	width: var(--lf-canvas-width, 960px);
+	min-width: 100%;
+	height: var(--lf-canvas-height, 580px);
+	min-height: 100%;
 }
 
 .lf-canvas--empty {
@@ -1072,6 +1081,15 @@
 	stroke: var(--lf-warn);
 }
 
+.lf-edge-draft {
+	fill: none;
+	stroke: var(--lf-accent);
+	stroke-dasharray: 9 7;
+	stroke-linecap: round;
+	stroke-width: 3;
+	pointer-events: none;
+}
+
 .lf-node {
 	position: absolute;
 	display: grid;
@@ -1079,6 +1097,7 @@
 	width: 220px;
 	min-height: 96px;
 	padding: 14px;
+	box-sizing: border-box;
 	border: 1px solid var(--lf-border);
 	border-radius: 8px;
 	background: var(--lf-surface);
@@ -1099,6 +1118,56 @@
 
 .lf-node.has-warning {
 	border-color: color-mix(in oklch, var(--lf-warn) 55%, var(--lf-border));
+}
+
+.lf-node.is-connection-source {
+	border-color: var(--lf-accent);
+	box-shadow: 0 12px 30px color-mix(in oklch, var(--lf-accent) 18%, transparent);
+}
+
+.lf-node-handle {
+	position: absolute;
+	top: 50%;
+	z-index: 4;
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid color-mix(in oklch, var(--lf-accent) 50%, var(--lf-border));
+	border-radius: 999px;
+	background: var(--lf-surface);
+	color: var(--lf-accent-deep);
+	cursor: crosshair;
+	transform: translateY(-50%);
+}
+
+.lf-node-handle::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	background: currentColor;
+}
+
+.lf-node-handle--in {
+	left: -13px;
+}
+
+.lf-node-handle--out {
+	right: -13px;
+}
+
+.lf-node-handle:hover,
+.lf-node-handle:focus-visible,
+.lf-canvas.is-connecting .lf-node-handle--in {
+	border-color: var(--lf-accent);
+	background: color-mix(in oklch, var(--lf-accent) 12%, var(--lf-surface));
+	transform: translateY(-50%) scale(1.08);
+}
+
+.lf-canvas.is-connecting .lf-node-handle--out {
+	opacity: 0.55;
 }
 
 .lf-node__type {

@@ -448,6 +448,21 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await offerPanel.getByLabel( 'Offer title' ).fill( 'Setup boost' );
 		await page.getByRole( 'button', { name: 'Save offer' } ).click();
 		await expect( page.getByText( 'Step saved' ) ).toBeVisible();
+
+		const sourceHandle = page.getByLabel( /Drag to connect from Checkout/ ).first();
+		const targetHandle = page.getByLabel( /Connect route to Upsell/ ).first();
+		await sourceHandle.scrollIntoViewIfNeeded();
+		await targetHandle.scrollIntoViewIfNeeded();
+		const sourceBox = await sourceHandle.boundingBox();
+		const targetBox = await targetHandle.boundingBox();
+		expect( sourceBox ).not.toBeNull();
+		expect( targetBox ).not.toBeNull();
+		await page.mouse.move( sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2 );
+		await page.mouse.down();
+		await page.mouse.move( targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 10 } );
+		await page.mouse.up();
+		await expect( page.getByText( 'Route saved' ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: 'Continue' } ) ).toBeVisible();
 	} );
 
 	test( 'keeps imported broken routes visible and selectable', async ( { page } ) => {
