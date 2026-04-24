@@ -115,21 +115,91 @@ final class Event_Store {
 	 * @return array<string,mixed>
 	 */
 	public function get_dashboard_summary( array $args = array() ) {
-		global $wpdb;
+		$days            = isset( $args['days'] ) ? max( 1, min( 365, absint( $args['days'] ) ) ) : 30;
+		$funnel_id       = isset( $args['funnel_id'] ) ? absint( $args['funnel_id'] ) : 0;
+		$now             = time();
+		$since           = gmdate( 'Y-m-d H:i:s', $now - ( $days * DAY_IN_SECONDS ) );
+		$until           = gmdate( 'Y-m-d H:i:s', $now + 1 );
+		$previous        = array(
+			'since' => gmdate( 'Y-m-d H:i:s', $now - ( $days * 2 * DAY_IN_SECONDS ) ),
+			'until' => $since,
+		);
+		$table_name      = self::get_table_name();
+		$current_period  = $this->get_period_where_sql( $funnel_id, $since, $until );
+		$previous_period = $this->get_period_where_sql( $funnel_id, $previous['since'], $previous['until'] );
+		$events          = $this->get_dashboard_event_counts( $table_name, $current_period['where'], $current_period['params'] );
+		$previous_events = $this->get_dashboard_event_counts( $table_name, $previous_period['where'], $previous_period['params'] );
 
-		$days      = isset( $args['days'] ) ? max( 1, min( 365, absint( $args['days'] ) ) ) : 30;
-		$funnel_id = isset( $args['funnel_id'] ) ? absint( $args['funnel_id'] ) : 0;
-		$since     = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
-		$where     = array( 'created_at >= %s' );
-		$params    = array( $since );
+		$accept_count               = $events['offer_accept']['count'];
+		$impression_count           = $events['offer_impression']['count'];
+		$previous_accept_count      = $previous_events['offer_accept']['count'];
+		$previous_impression_count  = $previous_events['offer_impression']['count'];
+		$offer_accept_rate          = $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0;
+		$previous_offer_accept_rate = $previous_impression_count > 0 ? round( ( $previous_accept_count / $previous_impression_count ) * 100, 2 ) : 0.0;
+		$breakdowns                 = $this->get_dashboard_breakdowns( $table_name, $current_period['where'], $current_period['params'] );
+
+		return array_merge(
+			array(
+				'period'          => array(
+					'days'  => $days,
+					'since' => $since,
+					'until' => $until,
+				),
+				'funnelId'        => $funnel_id,
+				'events'          => $events,
+				'revenue'         => $events['order_revenue']['value'],
+				'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+				'orders'          => $events['order_revenue']['count'],
+				'offerAcceptRate' => $offer_accept_rate,
+				'comparison'      => array(
+					'period'           => array(
+						'days'  => $days,
+						'since' => $previous['since'],
+						'until' => $previous['until'],
+					),
+					'revenue'          => $this->build_metric_comparison( $events['order_revenue']['value'], $previous_events['order_revenue']['value'] ),
+					'orders'           => $this->build_metric_comparison( $events['order_revenue']['count'], $previous_events['order_revenue']['count'] ),
+					'offerAcceptRate'  => $this->build_metric_comparison( $offer_accept_rate, $previous_offer_accept_rate ),
+					'offerImpressions' => $this->build_metric_comparison( $events['offer_impression']['count'], $previous_events['offer_impression']['count'] ),
+				),
+			),
+			$breakdowns
+		);
+	}
+
+	/**
+	 * Gets WHERE SQL and params for a bounded analytics period.
+	 *
+	 * @param int    $funnel_id Funnel ID.
+	 * @param string $since     Period start.
+	 * @param string $until     Period end.
+	 * @return array{where:string,params:array<int,mixed>}
+	 */
+	private function get_period_where_sql( $funnel_id, $since, $until ) {
+		$where  = array( 'created_at >= %s', 'created_at < %s' );
+		$params = array( $since, $until );
 
 		if ( $funnel_id > 0 ) {
 			$where[]  = 'funnel_id = %d';
 			$params[] = $funnel_id;
 		}
 
-		$where_sql  = implode( ' AND ', $where );
-		$table_name = self::get_table_name();
+		return array(
+			'where'  => implode( ' AND ', $where ),
+			'params' => $params,
+		);
+	}
+
+	/**
+	 * Gets event counts and values for a bounded analytics period.
+	 *
+	 * @param string       $table_name Events table name.
+	 * @param string       $where_sql  Prepared WHERE SQL fragment.
+	 * @param array<mixed> $params     Prepared query params.
+	 * @return array<string,array{count:int,value:float}>
+	 */
+	private function get_dashboard_event_counts( $table_name, $where_sql, array $params ) {
+		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated from $wpdb->prefix and static suffix.
 		$counts_sql = "SELECT event_type, COUNT(*) AS event_count, COALESCE(SUM(value), 0) AS event_value FROM {$table_name} WHERE {$where_sql} GROUP BY event_type";
@@ -139,25 +209,7 @@ final class Event_Store {
 			$wpdb->prepare( $counts_sql, $params ),
 			ARRAY_A
 		);
-
-		$events = array(
-			'offer_impression' => array(
-				'count' => 0,
-				'value' => 0.0,
-			),
-			'offer_accept'     => array(
-				'count' => 0,
-				'value' => 0.0,
-			),
-			'offer_reject'     => array(
-				'count' => 0,
-				'value' => 0.0,
-			),
-			'order_revenue'    => array(
-				'count' => 0,
-				'value' => 0.0,
-			),
-		);
+		$events = $this->get_empty_dashboard_events();
 
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 			$event_type = isset( $row['event_type'] ) ? sanitize_key( (string) $row['event_type'] ) : '';
@@ -175,24 +227,52 @@ final class Event_Store {
 			);
 		}
 
-		$accept_count     = $events['offer_accept']['count'];
-		$impression_count = $events['offer_impression']['count'];
-		$breakdowns       = $this->get_dashboard_breakdowns( $table_name, $where_sql, $params );
+		return $events;
+	}
 
-		return array_merge(
-			array(
-				'period'          => array(
-					'days'  => $days,
-					'since' => $since,
-				),
-				'funnelId'        => $funnel_id,
-				'events'          => $events,
-				'revenue'         => $events['order_revenue']['value'],
-				'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
-				'orders'          => $events['order_revenue']['count'],
-				'offerAcceptRate' => $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0,
+	/**
+	 * Gets the empty dashboard event map.
+	 *
+	 * @return array<string,array{count:int,value:float}>
+	 */
+	private function get_empty_dashboard_events() {
+		return array(
+			'offer_impression' => array(
+				'count' => 0,
+				'value' => 0.0,
 			),
-			$breakdowns
+			'offer_accept'     => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+			'offer_reject'     => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+			'order_revenue'    => array(
+				'count' => 0,
+				'value' => 0.0,
+			),
+		);
+	}
+
+	/**
+	 * Builds a current-vs-previous metric comparison.
+	 *
+	 * @param float|int $current  Current value.
+	 * @param float|int $previous Previous value.
+	 * @return array<string,float>
+	 */
+	private function build_metric_comparison( $current, $previous ) {
+		$current  = (float) $current;
+		$previous = (float) $previous;
+		$delta    = $current - $previous;
+
+		return array(
+			'current'      => $current,
+			'previous'     => $previous,
+			'delta'        => $delta,
+			'deltaPercent' => $previous > 0 ? round( ( $delta / $previous ) * 100, 2 ) : 0.0,
 		);
 	}
 

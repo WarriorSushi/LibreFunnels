@@ -108,6 +108,23 @@ namespace LibreFunnels\Tests\Unit {
 							),
 						)
 					),
+				),
+				array(
+					array(
+						'event_type'  => 'offer_impression',
+						'event_count' => 2,
+						'event_value' => 0,
+					),
+					array(
+						'event_type'  => 'offer_accept',
+						'event_count' => 1,
+						'event_value' => 0,
+					),
+					array(
+						'event_type'  => 'order_revenue',
+						'event_count' => 1,
+						'event_value' => 100,
+					),
 				)
 			);
 
@@ -122,6 +139,11 @@ namespace LibreFunnels\Tests\Unit {
 			$this->assertSame( 5, $summary['funnelId'] );
 			$this->assertSame( 165.0, $summary['revenue'] );
 			$this->assertSame( 25.0, $summary['offerAcceptRate'] );
+			$this->assertSame( 100.0, $summary['comparison']['revenue']['previous'] );
+			$this->assertSame( 65.0, $summary['comparison']['revenue']['delta'] );
+			$this->assertSame( 65.0, $summary['comparison']['revenue']['deltaPercent'] );
+			$this->assertSame( 50.0, $summary['comparison']['offerAcceptRate']['previous'] );
+			$this->assertSame( -25.0, $summary['comparison']['offerAcceptRate']['delta'] );
 			$this->assertSame( 100.0, $summary['sourceRevenue']['checkout_product'] );
 			$this->assertSame( 25.0, $summary['sourceRevenue']['order_bump'] );
 			$this->assertSame( 40.0, $summary['sourceRevenue']['offer'] );
@@ -182,12 +204,28 @@ namespace LibreFunnels\Tests\Unit {
 		private $detail_rows;
 
 		/**
-		 * @param array<int,array<string,mixed>> $count_rows  Count rows.
-		 * @param array<int,array<string,mixed>> $detail_rows Detail rows.
+		 * Previous period count rows.
+		 *
+		 * @var array<int,array<string,mixed>>
 		 */
-		public function __construct( array $count_rows, array $detail_rows ) {
-			$this->count_rows  = $count_rows;
-			$this->detail_rows = $detail_rows;
+		private $previous_count_rows;
+
+		/**
+		 * Count query call index.
+		 *
+		 * @var int
+		 */
+		private $count_query_index = 0;
+
+		/**
+		 * @param array<int,array<string,mixed>> $count_rows          Count rows.
+		 * @param array<int,array<string,mixed>> $detail_rows         Detail rows.
+		 * @param array<int,array<string,mixed>> $previous_count_rows Previous period count rows.
+		 */
+		public function __construct( array $count_rows, array $detail_rows, array $previous_count_rows = array() ) {
+			$this->count_rows          = $count_rows;
+			$this->detail_rows         = $detail_rows;
+			$this->previous_count_rows = $previous_count_rows;
 		}
 
 		/**
@@ -210,7 +248,9 @@ namespace LibreFunnels\Tests\Unit {
 			unset( $output );
 
 			if ( false !== strpos( $query, 'GROUP BY event_type' ) ) {
-				return $this->count_rows;
+				++$this->count_query_index;
+
+				return 1 === $this->count_query_index ? $this->count_rows : $this->previous_count_rows;
 			}
 
 			return $this->detail_rows;

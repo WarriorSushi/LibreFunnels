@@ -436,6 +436,18 @@
 	line-height: 1.35;
 }
 
+.lf-metric-trend {
+	justify-self: start;
+	padding: 4px 8px;
+	border: 1px solid color-mix(in oklch, var(--lf-accent) 24%, var(--lf-border));
+	border-radius: 999px;
+	background: color-mix(in oklch, var(--lf-accent) 6%, var(--lf-surface));
+	color: var(--lf-accent-deep);
+	font-size: 11px;
+	font-weight: 850;
+	line-height: 1.2;
+}
+
 .lf-analytics__details {
 	display: grid;
 	grid-template-columns: minmax(250px, 0.8fr) minmax(360px, 1.2fr);

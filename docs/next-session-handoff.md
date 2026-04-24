@@ -88,7 +88,9 @@ Implemented so far:
 - WooCommerce checkout order revenue attribution that groups marked order lines by funnel, records `order_revenue` events, and marks orders through WooCommerce CRUD metadata for HPOS-safe idempotency.
 - Capability-guarded analytics summary REST endpoint for local dashboard reads.
 - Analytics summary REST responses now include bounded local revenue-source and step-level breakdowns derived from stored event rows and order line context.
+- Analytics summary REST responses now include current-vs-previous period comparisons for revenue, orders, offer accept rate, and offer impressions.
 - React analytics panels for the selected funnel show last-30-days attributed revenue, order count, offer accept rate, offer decisions, revenue mix, step signals, and a clear empty state until shopper/test-order data exists.
+- Dashboard and analytics metric cards now show plain trend labels such as new revenue, flat activity, or the current delta versus the previous period.
 - Sectioned LibreFunnels admin IA with WordPress submenus for Dashboard, Funnels, Templates, Analytics, Settings, and Setup.
 - Dashboard, Templates, Analytics, Settings, and Setup now render distinct React section pages instead of all linking to the same builder screen.
 - Funnel workspace tabs for Overview, Canvas, Steps, Products, Offers, Rules, Analytics, and Settings so the visual map no longer carries analytics, commerce summaries, rules, and setup guidance all at once.
@@ -103,14 +105,14 @@ Implemented so far:
 - Templates and Setup include a guided starter panel that can preselect a WooCommerce checkout product, optionally preselect an offer product, create the bundled starter funnel with draft pages, and deep-link the user into the Steps workspace tab for edit-design and preview actions.
 - Template-to-funnel creation accepts sanitized product selections and only applies existing WooCommerce products to the first matching checkout/offer step during import.
 - Docker Compose local WordPress/WooCommerce rig with WP-CLI bootstrap and sample products.
-- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, handle-based route creation, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics, public offer reject routing, and public offer accept cart mutation.
+- Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, handle-based route creation, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step analytics and visible period comparison, public offer reject routing, and public offer accept cart mutation.
 - Local Docker Playwright runs now clean up known LibreFunnels smoke-test funnels, draft pages, step posts, and smoke products before and after the suite so the admin UI starts from a readable state and test artifacts do not pile up across sessions.
 - Playwright coverage now exercises the tabbed step inspector path by keeping page edit/preview controls visible for draft pages and moving checkout products/order bumps behind the Products inspector tab.
 - Playwright coverage now also verifies conditional-route rule previews for the always, missing-product, and selected-product states.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
 - Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.
-- Unit coverage for analytics summary source-revenue and step-breakdown shaping.
+- Unit coverage for analytics summary source-revenue, step-breakdown, and previous-period comparison shaping.
 - Unit coverage for WooCommerce order fact collection and order-aware rule evaluation.
 
 ## User Intent
@@ -130,7 +132,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 
 ## Next Implementation Steps
 1. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
-2. Continue analytics into dashboard snapshots, date comparison, and step trend history after the current revenue-source and step-signal panels.
+2. Continue analytics into dashboard snapshots, selectable date ranges, and step trend history after the current period-comparison, revenue-source, and step-signal panels.
 3. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
 4. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
 5. Continue UI polish on the workspace list/sidebar and dashboard so large local datasets remain readable.

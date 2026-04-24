@@ -564,9 +564,12 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 
 		expect( summary.events.order_revenue.count ).toBeGreaterThan( 0 );
 		expect( Number( summary.revenue ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
+		expect( Number( summary.comparison.revenue.current ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
+		expect( Number( summary.comparison.revenue.delta ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
 		expect( Number( summary.sourceRevenue.checkout_product ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
 		expect( summary.stepBreakdown.some( ( row ) => Number( row.stepId ) === Number( setup.checkoutStepId ) ) ).toBe( true );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Local funnel signals' );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'New vs previous period' );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Revenue mix' );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Step signals' );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( setup.checkoutTitle );

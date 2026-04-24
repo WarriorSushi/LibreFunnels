@@ -307,6 +307,33 @@ function formatPercent( value ) {
 	return `${ formatPlainNumber( value, { maximumFractionDigits: 1 } ) }%`;
 }
 
+function formatMetricComparison( comparison, formatter = formatPlainNumber ) {
+	if ( ! comparison ) {
+		return '';
+	}
+
+	const current = Number( comparison.current || 0 );
+	const previous = Number( comparison.previous || 0 );
+	const delta = Number( comparison.delta || 0 );
+
+	if ( current === 0 && previous === 0 ) {
+		return __( 'No change vs previous period', 'librefunnels' );
+	}
+
+	if ( previous === 0 && current > 0 ) {
+		return __( 'New vs previous period', 'librefunnels' );
+	}
+
+	if ( delta === 0 ) {
+		return __( 'Flat vs previous period', 'librefunnels' );
+	}
+
+	return sprintf(
+		__( '%s vs previous period', 'librefunnels' ),
+		`${ delta > 0 ? '+' : '' }${ formatter( delta ) }`
+	);
+}
+
 function slugifyFilename( value ) {
 	return String( value || 'librefunnels-export' )
 		.toLowerCase()
@@ -1661,6 +1688,8 @@ function SectionPage( {
 function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps, setupGuide, warnings, analyticsSummary, isAnalyticsLoading, onSelectFunnel, onCreateFunnel, onCreateStarterFunnel, isSaving } ) {
 	const revenue = Number( analyticsSummary?.revenue || 0 );
 	const funnelIssues = funnels.reduce( ( count, funnel ) => count + Number( funnel.warnings?.length || 0 ), 0 );
+	const currency = analyticsSummary?.currency || 'USD';
+	const revenueComparison = formatMetricComparison( analyticsSummary?.comparison?.revenue, ( value ) => formatCurrency( value, currency ) );
 
 	return (
 		<div className="lf-section-stack">
@@ -1684,7 +1713,11 @@ function DashboardSection( { funnels, steps, selectedFunnel, graph, funnelSteps,
 				<OverviewStat label={ __( 'Funnels', 'librefunnels' ) } value={ formatPlainNumber( funnels.length ) } detail={ __( 'Draft and active funnel workspaces.', 'librefunnels' ) } />
 				<OverviewStat label={ __( 'Steps', 'librefunnels' ) } value={ formatPlainNumber( steps.length ) } detail={ __( 'Pages, offers, checkouts, and thank-you steps.', 'librefunnels' ) } />
 				<OverviewStat label={ __( 'Open issues', 'librefunnels' ) } value={ formatPlainNumber( funnelIssues ) } detail={ __( 'Validation warnings across loaded funnels.', 'librefunnels' ) } />
-				<OverviewStat label={ __( 'Selected revenue', 'librefunnels' ) } value={ isAnalyticsLoading ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, analyticsSummary?.currency || 'USD' ) } detail={ __( 'Attributed revenue for the selected funnel.', 'librefunnels' ) } />
+				<OverviewStat
+					label={ __( 'Selected revenue', 'librefunnels' ) }
+					value={ isAnalyticsLoading ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, currency ) }
+					detail={ revenueComparison || __( 'Attributed revenue for the selected funnel.', 'librefunnels' ) }
+				/>
 			</div>
 
 			<div className="lf-section-grid">
@@ -2711,6 +2744,7 @@ function AnalyticsSummary( { selectedFunnel, funnelSteps = [], summary, isLoadin
 	const orders = Number( summary?.orders || 0 );
 	const revenue = Number( summary?.revenue || 0 );
 	const hasData = revenue > 0 || orders > 0 || impressionCount > 0 || acceptCount > 0 || rejectCount > 0;
+	const comparison = summary?.comparison || {};
 	const sourceRevenue = summary?.sourceRevenue || {};
 	const sourceRows = [
 		{
@@ -2760,21 +2794,25 @@ function AnalyticsSummary( { selectedFunnel, funnelSteps = [], summary, isLoadin
 					label={ __( 'Attributed revenue', 'librefunnels' ) }
 					value={ isLoading && ! summary ? __( 'Loading', 'librefunnels' ) : formatCurrency( revenue, currency ) }
 					detail={ __( 'From marked checkout, bump, and offer order lines.', 'librefunnels' ) }
+					trend={ formatMetricComparison( comparison.revenue, ( value ) => formatCurrency( value, currency ) ) }
 				/>
 				<AnalyticsMetric
 					label={ __( 'Orders', 'librefunnels' ) }
 					value={ isLoading && ! summary ? '-' : formatPlainNumber( orders ) }
 					detail={ __( 'Recorded once per WooCommerce order and funnel.', 'librefunnels' ) }
+					trend={ formatMetricComparison( comparison.orders ) }
 				/>
 				<AnalyticsMetric
 					label={ __( 'Offer accept rate', 'librefunnels' ) }
 					value={ isLoading && ! summary ? '-' : formatPercent( summary?.offerAcceptRate || 0 ) }
 					detail={ sprintf( __( '%d offer view(s) tracked locally.', 'librefunnels' ), impressionCount ) }
+					trend={ formatMetricComparison( comparison.offerAcceptRate, formatPercent ) }
 				/>
 				<AnalyticsMetric
 					label={ __( 'Offer decisions', 'librefunnels' ) }
 					value={ isLoading && ! summary ? '-' : offerDecisionText }
 					detail={ __( 'Accept and reject clicks from public offer steps.', 'librefunnels' ) }
+					trend={ formatMetricComparison( comparison.offerImpressions ) }
 				/>
 			</div>
 
@@ -2858,12 +2896,13 @@ function AnalyticsSummary( { selectedFunnel, funnelSteps = [], summary, isLoadin
 	);
 }
 
-function AnalyticsMetric( { label, value, detail } ) {
+function AnalyticsMetric( { label, value, detail, trend = '' } ) {
 	return (
 		<div className="lf-analytics-card">
 			<span>{ label }</span>
 			<strong>{ value }</strong>
 			<p>{ detail }</p>
+			{ trend && <small className="lf-metric-trend">{ trend }</small> }
 		</div>
 	);
 }
