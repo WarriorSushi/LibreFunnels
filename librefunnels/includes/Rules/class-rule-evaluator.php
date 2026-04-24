@@ -92,11 +92,20 @@ final class Rule_Evaluator {
 			case 'cart_contains_product':
 				return $this->evaluate_cart_contains_product( $rule, $facts );
 
+			case 'order_contains_product':
+				return $this->evaluate_product_list_contains( $rule, $facts, 'order_product_ids', 'order_contains_product_matched', 'order_contains_product_not_matched' );
+
 			case 'cart_subtotal_gte':
 				return $this->evaluate_number_comparison( $rule, $facts, 'cart_subtotal', '>=', 'cart_subtotal_gte_matched', 'cart_subtotal_gte_not_matched' );
 
 			case 'cart_subtotal_lte':
 				return $this->evaluate_number_comparison( $rule, $facts, 'cart_subtotal', '<=', 'cart_subtotal_lte_matched', 'cart_subtotal_lte_not_matched' );
+
+			case 'order_total_gte':
+				return $this->evaluate_number_comparison( $rule, $facts, 'order_total', '>=', 'order_total_gte_matched', 'order_total_gte_not_matched' );
+
+			case 'order_total_lte':
+				return $this->evaluate_number_comparison( $rule, $facts, 'order_total', '<=', 'order_total_lte_matched', 'order_total_lte_not_matched' );
 
 			case 'customer_logged_in':
 				return ! empty( $facts['customer_logged_in'] )
@@ -115,18 +124,32 @@ final class Rule_Evaluator {
 	 * @return Rule_Result
 	 */
 	private function evaluate_cart_contains_product( array $rule, array $facts ) {
+		return $this->evaluate_product_list_contains( $rule, $facts, 'cart_product_ids', 'cart_contains_product_matched', 'cart_contains_product_not_matched' );
+	}
+
+	/**
+	 * Evaluates whether a product ID is present in a fact list.
+	 *
+	 * @param array<string,mixed> $rule       Rule.
+	 * @param array<string,mixed> $facts      Facts.
+	 * @param string              $fact_key   Fact key.
+	 * @param string              $match_code Match code.
+	 * @param string              $fail_code  Failure code.
+	 * @return Rule_Result
+	 */
+	private function evaluate_product_list_contains( array $rule, array $facts, $fact_key, $match_code, $fail_code ) {
 		$product_id = isset( $rule['product_id'] ) ? absint( $rule['product_id'] ) : 0;
-		$products   = isset( $facts['cart_product_ids'] ) && is_array( $facts['cart_product_ids'] ) ? array_map( 'absint', $facts['cart_product_ids'] ) : array();
+		$products   = isset( $facts[ $fact_key ] ) && is_array( $facts[ $fact_key ] ) ? array_map( 'absint', $facts[ $fact_key ] ) : array();
 
 		if ( 0 === $product_id ) {
 			return Rule_Result::no_match( 'rule_product_missing', __( 'The rule is missing a product ID.', 'librefunnels' ) );
 		}
 
 		if ( in_array( $product_id, $products, true ) ) {
-			return Rule_Result::match( 'cart_contains_product_matched', __( 'The cart contains the product.', 'librefunnels' ) );
+			return Rule_Result::match( $match_code, __( 'The product is present in the selected facts.', 'librefunnels' ) );
 		}
 
-		return Rule_Result::no_match( 'cart_contains_product_not_matched', __( 'The cart does not contain the product.', 'librefunnels' ) );
+		return Rule_Result::no_match( $fail_code, __( 'The product is not present in the selected facts.', 'librefunnels' ) );
 	}
 
 	/**

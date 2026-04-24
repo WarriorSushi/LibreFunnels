@@ -16,7 +16,8 @@
   - Cart product facts
   - Cart subtotal thresholds
   - Customer logged-in facts
-  - WooCommerce fact collection
+  - WooCommerce cart, customer, and order fact collection from injectable runtime objects
+  - Order product and order total facts
 - Conditional graph route rule matching and fallback
 - A/B assignment
 - Analytics attribution

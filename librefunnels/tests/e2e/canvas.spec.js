@@ -441,8 +441,8 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await page.getByRole( 'button', { name: 'Add Upsell' } ).click();
 		await expect( page.getByRole( 'heading', { name: 'Upsell' } ) ).toBeVisible();
 		const offerPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Offer product' } );
-		await offerPanel.getByLabel( 'Find product' ).fill( 'Setup' );
-		await expect( offerPanel.locator( 'select' ).first() ).toContainText( 'Setup' );
+		await offerPanel.getByLabel( 'Find product' ).fill( 'Digital' );
+		await expect( offerPanel.locator( 'select' ).first() ).toContainText( 'Digital' );
 		await offerPanel.locator( 'select' ).first().selectOption( { index: 1 } );
 		await offerPanel.getByLabel( 'Offer title' ).fill( 'Setup boost' );
 		await page.getByRole( 'button', { name: 'Save offer' } ).click();

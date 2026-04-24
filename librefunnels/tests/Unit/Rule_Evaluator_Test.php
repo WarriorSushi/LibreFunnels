@@ -104,4 +104,47 @@ final class Rule_Evaluator_Test extends TestCase {
 			)->is_match()
 		);
 	}
+
+	/**
+	 * @return void
+	 */
+	public function test_order_product_and_total_rules_read_order_facts(): void {
+		$evaluator = new Rule_Evaluator();
+
+		$this->assertTrue(
+			$evaluator->evaluate(
+				array(
+					'type'       => 'order_contains_product',
+					'product_id' => 321,
+				),
+				array(
+					'order_product_ids' => array( 123, 321 ),
+				)
+			)->is_match()
+		);
+
+		$this->assertTrue(
+			$evaluator->evaluate(
+				array(
+					'type'   => 'order_total_gte',
+					'amount' => 49,
+				),
+				array(
+					'order_total' => 50,
+				)
+			)->is_match()
+		);
+
+		$this->assertTrue(
+			$evaluator->evaluate(
+				array(
+					'type'   => 'order_total_lte',
+					'amount' => 50,
+				),
+				array(
+					'order_total' => 50,
+				)
+			)->is_match()
+		);
+	}
 }

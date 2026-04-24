@@ -7,6 +7,7 @@
 
 namespace LibreFunnels\Offers;
 
+use LibreFunnels\Rules\WooCommerce_Fact_Collector;
 use LibreFunnels\Routing\Funnel_Router;
 
 defined( 'ABSPATH' ) || exit;
@@ -44,18 +45,27 @@ final class Offer_Action_Handler {
 	private $offer_state;
 
 	/**
+	 * WooCommerce fact collector.
+	 *
+	 * @var WooCommerce_Fact_Collector
+	 */
+	private $fact_collector;
+
+	/**
 	 * Creates the handler.
 	 *
-	 * @param Step_Offer_Repository|null $repository  Optional repository.
-	 * @param Offer_Eligibility|null     $eligibility Optional eligibility checker.
-	 * @param Funnel_Router|null         $router      Optional router.
-	 * @param Offer_State|null           $offer_state Optional offer state store.
+	 * @param Step_Offer_Repository|null      $repository     Optional repository.
+	 * @param Offer_Eligibility|null          $eligibility    Optional eligibility checker.
+	 * @param Funnel_Router|null              $router         Optional router.
+	 * @param Offer_State|null                $offer_state    Optional offer state store.
+	 * @param WooCommerce_Fact_Collector|null $fact_collector Optional fact collector.
 	 */
-	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null, Offer_State $offer_state = null ) {
-		$this->repository  = $repository ? $repository : new Step_Offer_Repository();
-		$this->eligibility = $eligibility ? $eligibility : new Offer_Eligibility();
-		$this->router      = $router ? $router : new Funnel_Router();
-		$this->offer_state = $offer_state ? $offer_state : new Offer_State();
+	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null, Offer_State $offer_state = null, WooCommerce_Fact_Collector $fact_collector = null ) {
+		$this->repository     = $repository ? $repository : new Step_Offer_Repository();
+		$this->eligibility    = $eligibility ? $eligibility : new Offer_Eligibility();
+		$this->router         = $router ? $router : new Funnel_Router();
+		$this->offer_state    = $offer_state ? $offer_state : new Offer_State();
+		$this->fact_collector = $fact_collector ? $fact_collector : new WooCommerce_Fact_Collector();
 	}
 
 	/**
@@ -188,7 +198,7 @@ final class Offer_Action_Handler {
 	 * @return void
 	 */
 	private function redirect_to_route( $funnel_id, $step_id, $route ) {
-		$result = $this->router->get_next_step( $funnel_id, $step_id, $route );
+		$result = $this->router->get_next_step_with_facts( $funnel_id, $step_id, $route, $this->fact_collector->collect() );
 
 		if ( ! $result->is_success() ) {
 			$this->add_notice( $result->get_message() );

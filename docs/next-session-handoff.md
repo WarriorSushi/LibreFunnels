@@ -48,9 +48,12 @@ Implemented so far:
 - Order bump attribution copied onto WooCommerce order line item metadata through WooCommerce item objects.
 - Pre-checkout offer step metadata, import/export normalization, frontend template, accept/reject POST handler, route redirects, cart add, discount support, and line item attribution.
 - Customer-scoped offer accept/reject state stored in WooCommerce session for replay protection and future analytics.
+- Offer accept/reject routing now passes collected WooCommerce facts into the router so future conditional offer paths can use cart/order/customer context safely.
 - Checkout product line item attribution copied from LibreFunnels-added cart items onto WooCommerce order items.
 - Pure rule evaluator with `all`, `any`, cart product, cart subtotal, customer login, and always rules.
 - WooCommerce fact collector for cart product IDs, variation IDs, subtotal, item count, and logged-in state.
+- WooCommerce fact collector now also exposes HPOS-safe order facts from WooCommerce CRUD objects: order ID, product IDs, variation IDs, totals, item count, status, payment method, currency, and customer ID.
+- Rule evaluator supports order-aware conditional rules for order product containment and order total thresholds.
 - Conditional graph route resolution using edge rule objects and existing fallback behavior.
 - Polished, scoped admin workspace shell for LibreFunnels status and next build areas.
 - WordPress-native React admin canvas app loaded only on the LibreFunnels admin screen.
@@ -96,6 +99,7 @@ Implemented so far:
 - Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
+- Unit coverage for WooCommerce order fact collection and order-aware rule evaluation.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -114,10 +118,10 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 
 ## Next Implementation Steps
 1. Add REST/integration coverage for template create/import/export endpoints, product-option sanitization, and page-creation side effects once a WP integration runtime is available.
-2. Extend public route/runtime facts with cart, customer, and order context needed for safer conditional offer routing.
-3. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
-4. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
-5. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
+2. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
+3. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
+4. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
+5. Extend the visual rule builder with clearer grouping, labels, and previews before exposing more condition types to beginners.
 
 ## Open User Decision
 Brand personality and visual tone are now captured in `.impeccable.md`: store-owner-first, refined SaaS, top notch, and not confusing.

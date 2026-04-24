@@ -162,6 +162,8 @@ Checkout products added by LibreFunnels are also marked in the cart and copied o
 ## Rule Core
 The first rule engine is pure PHP and evaluates structured rule trees against supplied facts. WooCommerce state is collected by a separate fact collector so conditional routing stays testable and prevents hidden cart/order mutation inside rule evaluation.
 
+Offer accept/reject handlers pass collected facts into the router before resolving the next step. Facts are read from WooCommerce cart/session objects and order CRUD APIs such as `wc_get_order()`/`WC_Order` methods so conditional offer paths can use cart, customer, and order context while remaining HPOS-compatible.
+
 Initial rule types:
 - `always`
 - `all`
@@ -169,6 +171,9 @@ Initial rule types:
 - `cart_contains_product`
 - `cart_subtotal_gte`
 - `cart_subtotal_lte`
+- `order_contains_product`
+- `order_total_gte`
+- `order_total_lte`
 - `customer_logged_in`
 
 Initial facts:
@@ -176,6 +181,16 @@ Initial facts:
 - `cart_variation_ids`
 - `cart_subtotal`
 - `cart_item_count`
+- `order_id`
+- `order_product_ids`
+- `order_variation_ids`
+- `order_total`
+- `order_subtotal`
+- `order_item_count`
+- `order_status`
+- `order_payment_method`
+- `order_currency`
+- `customer_id`
 - `customer_logged_in`
 
 Graph edge rule shape is intentionally the same structured rule tree used by the rule evaluator. Import/export and REST meta sanitization preserve supported rule fields while dropping invalid rule data.

@@ -86,6 +86,9 @@ const ruleLabels = {
 	cart_contains_product: __( 'Cart contains product', 'librefunnels' ),
 	cart_subtotal_gte: __( 'Cart subtotal is at least', 'librefunnels' ),
 	cart_subtotal_lte: __( 'Cart subtotal is at most', 'librefunnels' ),
+	order_contains_product: __( 'Order contains product', 'librefunnels' ),
+	order_total_gte: __( 'Order total is at least', 'librefunnels' ),
+	order_total_lte: __( 'Order total is at most', 'librefunnels' ),
 	customer_logged_in: __( 'Customer is logged in', 'librefunnels' ),
 };
 
@@ -492,14 +495,14 @@ function getSetupGuide( selectedFunnel, graph, funnelSteps, warnings ) {
 }
 
 function createRuleFromType( type, previous = {} ) {
-	if ( type === 'cart_contains_product' ) {
+	if ( type === 'cart_contains_product' || type === 'order_contains_product' ) {
 		return {
 			type,
 			product_id: Number( previous.product_id || 0 ),
 		};
 	}
 
-	if ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' ) {
+	if ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' || type === 'order_total_gte' || type === 'order_total_lte' ) {
 		return {
 			type,
 			amount: Number( previous.amount || 0 ),
@@ -3438,13 +3441,13 @@ function RuleBuilder( { rule, products, onSearchProducts, onChange } ) {
 				</select>
 			</label>
 
-			{ type === 'cart_contains_product' && (
+			{ ( type === 'cart_contains_product' || type === 'order_contains_product' ) && (
 				<ProductPicker value={ Number( rule.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { ...rule, product_id: Number( productId ) } ) } />
 			) }
 
-			{ ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' ) && (
+			{ ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' || type === 'order_total_gte' || type === 'order_total_lte' ) && (
 				<label className="lf-field">
-					<span>{ __( 'Cart subtotal', 'librefunnels' ) }</span>
+					<span>{ type.startsWith( 'order_' ) ? __( 'Order total', 'librefunnels' ) : __( 'Cart subtotal', 'librefunnels' ) }</span>
 					<input type="number" min="0" step="0.01" value={ Number( rule.amount || 0 ) } onChange={ ( event ) => onChange( { ...rule, amount: Number( event.target.value ) } ) } />
 				</label>
 			) }
