@@ -99,6 +99,7 @@ Implemented so far:
 - Playwright canvas smoke test for Docker WordPress admin mount, submenu screen rendering, guided template starter creation with checkout product preselection and Steps-tab handoff, bundled template JSON import/export, guided starter path, workspace tab switching, setup progress checks, analytics empty-state guidance, draft page creation with edit/preview handoff, multi-product checkout assignment, order bump saving, drag persistence, route/rule editing, imported broken-route recovery, product search, offer saving, published checkout rendering, full WooCommerce checkout order creation with attributed revenue analytics, public offer reject routing, and public offer accept cart mutation.
 - Unit coverage for multiple checkout product and order bump metadata sanitization.
 - Unit coverage for bundled template library responses and normalization.
+- Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.
 - Unit coverage for WooCommerce order fact collection and order-aware rule evaluation.
 
 ## User Intent
@@ -117,7 +118,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 - Use Impeccable for UI work.
 
 ## Next Implementation Steps
-1. Add REST/integration coverage for template create/import/export endpoints, product-option sanitization, and page-creation side effects once a WP integration runtime is available.
+1. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
 2. Expand analytics UI from summary cards into step-level trends, conversion rates, offer/bump revenue drilldowns, and dashboard snapshots.
 3. Start the payment-adapter layer for post-purchase upsell/downsell handling, beginning with a mock/test adapter and explicit fallback states.
 4. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.

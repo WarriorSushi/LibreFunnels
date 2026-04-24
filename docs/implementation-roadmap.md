@@ -17,6 +17,7 @@
 - Thank-you step: default plugin template with theme override support
 - Block rendering: dynamic server-rendered funnel and step blocks
 - Import/export foundation: versioned JSON export and import package validation
+- Funnel importer unit coverage for draft page creation, graph remapping, invalid package failure, and product-option sanitization
 
 ## Phase 2: Checkout Core
 - Funnel checkout page: checkout step rendering through WooCommerce checkout

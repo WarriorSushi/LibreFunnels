@@ -22,6 +22,7 @@
 - A/B assignment
 - Analytics attribution
 - Import/export package normalization
+- Funnel importer page-creation side effects, graph remapping, and existing-product-only template option overrides
 - Checkout product assignment sanitization
 - Checkout coupon sanitization
 - Checkout field rule sanitization
@@ -32,7 +33,7 @@
 - Dynamic block rendering
 - Theme template override loading
 - Funnel export from CPT/meta records
-- Funnel import with nonces and capabilities
+- Funnel import/export REST endpoints with nonces and capabilities
 - WooCommerce checkout
 - Checkout step product cart preparation
 - Checkout step coupon application
