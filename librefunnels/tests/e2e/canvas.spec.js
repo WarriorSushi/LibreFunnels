@@ -583,7 +583,9 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 		await expect( page.locator( '.librefunnels-step--offer' ) ).toBeVisible();
 		await expect( page.getByRole( 'heading', { name: setup.offerHeadline } ) ).toBeVisible();
 		await expect( page.getByText( 'A focused implementation boost before checkout.' ) ).toBeVisible();
-		await expect( page.getByRole( 'button', { name: 'Add offer and continue' } ) ).toBeVisible();
+		await expect( page.getByText( 'Secure checkout confirmation' ) ).toBeVisible();
+		await expect( page.getByText( 'Accepting this offer sends the product through WooCommerce checkout confirmation' ) ).toBeVisible();
+		await expect( page.getByRole( 'button', { name: 'Add offer and confirm' } ) ).toBeVisible();
 		await page.getByRole( 'button', { name: 'No thanks, continue' } ).click();
 
 		await expect( page ).toHaveURL( setup.thankYouUrl );
@@ -596,7 +598,7 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 
 		await page.goto( setup.offerUrl );
 		await expect( page.locator( '.librefunnels-step--offer' ) ).toBeVisible();
-		await page.getByRole( 'button', { name: 'Add offer and continue' } ).click();
+		await page.getByRole( 'button', { name: 'Add offer and confirm' } ).click();
 
 		await expect( page ).toHaveURL( setup.thankYouUrl );
 		await expect( page.locator( '.librefunnels-step--thank-you' ) ).toBeVisible();

@@ -22,6 +22,7 @@
 - A/B assignment
 - Analytics attribution
 - Analytics summary source-revenue, step-breakdown, and previous-period comparison shaping
+- Payment adapter resolution, fallback confirmation, mock gateway charge success/failure, refund support, and order-key validation
 - Import/export package normalization
 - Funnel importer page-creation side effects, graph remapping, and existing-product-only template option overrides
 - Checkout product assignment sanitization
@@ -54,6 +55,7 @@
 - HPOS on/off
 - Order bump order creation
 - Upsell/downsell order mutation
+- Post-purchase payment adapter child-order creation and safe failure recovery
 - Coupons
 - Taxes/shipping
 - Product variations
@@ -89,7 +91,7 @@
 - Admin workspace smoke verifies the sectioned funnel workspace rather than assuming analytics lives inside the canvas view
 - Admin submenu smoke verifies Dashboard, Templates, Analytics, Settings, and Setup render different section pages
 - Canvas smoke switches between Overview, Canvas, and Analytics workspace tabs where those surfaces are intentionally separated
-- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a guided template starter with checkout product preselection and Steps-tab page-builder handoff, creates the guided starter path, checks setup progress, creates a funnel page, confirms draft publish guidance, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, saves an upsell offer through product search, creates a route by dragging between node handles, checks imported broken-route recovery, renders a published checkout page, verifies attributed revenue/source/step analytics and visible current-vs-previous comparison after checkout, renders an offer page with reject routing to the next public step, and verifies offer accept adds the product to the WooCommerce cart before routing forward
+- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a guided template starter with checkout product preselection and Steps-tab page-builder handoff, creates the guided starter path, checks setup progress, creates a funnel page, confirms draft publish guidance, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, saves an upsell offer through product search, creates a route by dragging between node handles, checks imported broken-route recovery, renders a published checkout page, verifies attributed revenue/source/step analytics and visible current-vs-previous comparison after checkout, renders an offer page with safe payment fallback copy and reject routing to the next public step, and verifies offer accept adds the product to the WooCommerce cart before routing forward
 - Docker admin canvas smoke cleans known LibreFunnels test funnels, draft pages, owned steps, and smoke products before and after the suite through a local WP-CLI helper so repeated runs do not leave the admin in a cluttered state.
 - Checkout flow
 - Multiple order bumps
@@ -122,4 +124,4 @@ Run these before commits that touch PHP, build tooling, or the admin app:
 - `npm run build`
 - `npm run test:e2e:canvas` when Docker WordPress is running and the admin app changes
 
-The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner workspace path, guided template product preselection, Steps-tab page-builder handoff, setup progress guidance, separated analytics tab guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, handle-based route creation, route/rule editing, broken-route recovery, public checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step summary reads and current-vs-previous trend labels, public offer rendering, offer reject routing, offer accept cart mutation, and cleanup of its own generated artifacts. Expand it next toward REST/integration endpoint coverage, analytics trend history, and deeper visual regression checks for the admin workspace.
+The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner workspace path, guided template product preselection, Steps-tab page-builder handoff, setup progress guidance, separated analytics tab guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, handle-based route creation, route/rule editing, broken-route recovery, public checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step summary reads and current-vs-previous trend labels, public offer rendering with payment fallback messaging, offer reject routing, offer accept cart mutation, and cleanup of its own generated artifacts. Expand it next toward REST/integration endpoint coverage, analytics trend history, gateway adapter child-order tests, and deeper visual regression checks for the admin workspace.

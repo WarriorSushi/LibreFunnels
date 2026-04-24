@@ -305,6 +305,18 @@
 	color: var(--librefunnels-offer-accent-deep);
 }
 
+.librefunnels-offer-step__payment-note {
+	max-width: 58ch;
+	margin: 0.25rem 0 0;
+	padding: 0.75rem 0.875rem;
+	border: 1px solid color-mix(in oklch, var(--librefunnels-offer-accent) 24%, var(--librefunnels-offer-border));
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--librefunnels-offer-accent) 8%, transparent);
+	color: var(--librefunnels-offer-muted);
+	font-size: 0.9rem;
+	line-height: 1.55;
+}
+
 .librefunnels-offer-step__actions {
 	display: flex;
 	flex-wrap: wrap;

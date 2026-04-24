@@ -23,6 +23,19 @@ Create a payment adapter interface for:
 - Payment confirmation fallback
 - Refund/void support where available
 
+## Current Implementation
+- `LibreFunnels\Payments\Payment_Adapter_Interface` defines the adapter contract for capability checks, offer charging, refunds, and fallback behavior.
+- `LibreFunnels\Payments\Adapter_Registry` resolves adapters from the WooCommerce order payment method and exposes the `librefunnels_payment_adapters` filter for future gateway integrations.
+- `LibreFunnels\Payments\Fallback_Adapter` is the default for unknown gateways. It reports no one-click support and requires WooCommerce checkout confirmation instead of attempting a risky post-purchase charge.
+- `LibreFunnels\Payments\Mock_Adapter` supports deterministic unit tests for one-click success, failure, and refund behavior without depending on a live gateway.
+- Public upsell, downsell, and cross-sell steps now show whether the offer can be one-click charged or needs secure checkout confirmation. Current production behavior remains conservative for unsupported gateways.
+
+## Next Gateway Work
+1. Create child orders through WooCommerce CRUD APIs for accepted post-purchase offers.
+2. Record adapter charge attempts and failures as local analytics events.
+3. Add WooPayments and Stripe adapters that only enable one-click when a reusable/tokenized payment method is available.
+4. Add explicit recovery screens for failed post-purchase charges so the original order stays unchanged.
+
 ## First-Class Gateway Targets
 Plan first-class adapters for:
 - WooPayments

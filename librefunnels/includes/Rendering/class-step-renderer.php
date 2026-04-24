@@ -12,6 +12,7 @@ use LibreFunnels\Checkout\Cart_Preparer;
 use LibreFunnels\Offers\Offer_Eligibility;
 use LibreFunnels\Offers\Order_Bump_Display;
 use LibreFunnels\Offers\Step_Offer_Repository;
+use LibreFunnels\Payments\Offer_Payment_Service;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -48,18 +49,27 @@ final class Step_Renderer {
 	private $offer_eligibility;
 
 	/**
+	 * Offer payment service.
+	 *
+	 * @var Offer_Payment_Service
+	 */
+	private $payment_service;
+
+	/**
 	 * Creates the renderer.
 	 *
 	 * @param Template_Loader|null       $template_loader    Optional template loader.
 	 * @param Cart_Preparer|null         $cart_preparer      Optional cart preparer.
 	 * @param Step_Offer_Repository|null $offer_repository  Optional offer repository.
 	 * @param Offer_Eligibility|null     $offer_eligibility  Optional offer eligibility checker.
+	 * @param Offer_Payment_Service|null $payment_service    Optional payment service.
 	 */
-	public function __construct( Template_Loader $template_loader = null, Cart_Preparer $cart_preparer = null, Step_Offer_Repository $offer_repository = null, Offer_Eligibility $offer_eligibility = null ) {
+	public function __construct( Template_Loader $template_loader = null, Cart_Preparer $cart_preparer = null, Step_Offer_Repository $offer_repository = null, Offer_Eligibility $offer_eligibility = null, Offer_Payment_Service $payment_service = null ) {
 		$this->template_loader   = $template_loader ? $template_loader : new Template_Loader();
 		$this->cart_preparer     = $cart_preparer ? $cart_preparer : new Cart_Preparer();
 		$this->offer_repository  = $offer_repository ? $offer_repository : new Step_Offer_Repository();
 		$this->offer_eligibility = $offer_eligibility ? $offer_eligibility : new Offer_Eligibility();
+		$this->payment_service   = $payment_service ? $payment_service : new Offer_Payment_Service();
 	}
 
 	/**
@@ -163,8 +173,21 @@ final class Step_Renderer {
 				'offer'      => $offer,
 				'product'    => $product,
 				'price_html' => method_exists( $product, 'get_price_html' ) ? $product->get_price_html() : '',
+				'payment'    => $this->payment_service->get_strategy_for_step( $step_type, $this->get_request_order() ),
 			)
 		);
+	}
+
+	/**
+	 * Gets an order from the current request when one is explicitly carried forward.
+	 *
+	 * @return object|null
+	 */
+	private function get_request_order() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only order context used only with an order key check.
+		$data = isset( $_GET ) && is_array( $_GET ) ? wp_unslash( $_GET ) : array();
+
+		return $this->payment_service->get_order_from_request_data( $data );
 	}
 
 	/**

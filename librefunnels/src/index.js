@@ -3512,7 +3512,7 @@ function PrimaryOfferPanel( { step, products, onSearchProducts, onUpdateStep, is
 					{ __( 'Offer product', 'librefunnels' ) }
 					{ offerDirty && <em className="lf-dirty-badge">{ __( 'Unsaved', 'librefunnels' ) }</em> }
 				</span>
-				<p>{ __( 'This step uses the universal accept-and-confirm flow, so it works with regular WooCommerce gateways.', 'librefunnels' ) }</p>
+				<p>{ __( 'LibreFunnels checks the payment adapter for this step. Unsupported gateways use the safer accept-and-confirm path through WooCommerce checkout.', 'librefunnels' ) }</p>
 			</div>
 
 			<OfferFields offer={ offer } products={ products } onSearchProducts={ onSearchProducts } onChange={ setOffer } />

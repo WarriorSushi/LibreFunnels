@@ -219,6 +219,22 @@ if ( ! function_exists( 'wc_get_product' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wc_get_order' ) ) {
+	/**
+	 * wc_get_order fallback for isolated unit tests.
+	 *
+	 * @param int $order_id Order ID.
+	 * @return mixed
+	 */
+	function wc_get_order( $order_id ) {
+		if ( ! isset( $GLOBALS['librefunnels_test_orders'] ) || ! is_array( $GLOBALS['librefunnels_test_orders'] ) ) {
+			return false;
+		}
+
+		return isset( $GLOBALS['librefunnels_test_orders'][ absint( $order_id ) ] ) ? $GLOBALS['librefunnels_test_orders'][ absint( $order_id ) ] : false;
+	}
+}
+
 $autoload = dirname( __DIR__ ) . '/vendor/autoload.php';
 
 if ( file_exists( $autoload ) ) {

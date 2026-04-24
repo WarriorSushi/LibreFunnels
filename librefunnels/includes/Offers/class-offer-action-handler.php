@@ -9,6 +9,7 @@ namespace LibreFunnels\Offers;
 
 use LibreFunnels\Rules\WooCommerce_Fact_Collector;
 use LibreFunnels\Routing\Funnel_Router;
+use LibreFunnels\Payments\Offer_Payment_Service;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -52,6 +53,13 @@ final class Offer_Action_Handler {
 	private $fact_collector;
 
 	/**
+	 * Payment service.
+	 *
+	 * @var Offer_Payment_Service
+	 */
+	private $payment_service;
+
+	/**
 	 * Creates the handler.
 	 *
 	 * @param Step_Offer_Repository|null      $repository     Optional repository.
@@ -59,13 +67,15 @@ final class Offer_Action_Handler {
 	 * @param Funnel_Router|null              $router         Optional router.
 	 * @param Offer_State|null                $offer_state    Optional offer state store.
 	 * @param WooCommerce_Fact_Collector|null $fact_collector Optional fact collector.
+	 * @param Offer_Payment_Service|null      $payment_service Optional payment service.
 	 */
-	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null, Offer_State $offer_state = null, WooCommerce_Fact_Collector $fact_collector = null ) {
-		$this->repository     = $repository ? $repository : new Step_Offer_Repository();
-		$this->eligibility    = $eligibility ? $eligibility : new Offer_Eligibility();
-		$this->router         = $router ? $router : new Funnel_Router();
-		$this->offer_state    = $offer_state ? $offer_state : new Offer_State();
-		$this->fact_collector = $fact_collector ? $fact_collector : new WooCommerce_Fact_Collector();
+	public function __construct( Step_Offer_Repository $repository = null, Offer_Eligibility $eligibility = null, Funnel_Router $router = null, Offer_State $offer_state = null, WooCommerce_Fact_Collector $fact_collector = null, Offer_Payment_Service $payment_service = null ) {
+		$this->repository      = $repository ? $repository : new Step_Offer_Repository();
+		$this->eligibility     = $eligibility ? $eligibility : new Offer_Eligibility();
+		$this->router          = $router ? $router : new Funnel_Router();
+		$this->offer_state     = $offer_state ? $offer_state : new Offer_State();
+		$this->fact_collector  = $fact_collector ? $fact_collector : new WooCommerce_Fact_Collector();
+		$this->payment_service = $payment_service ? $payment_service : new Offer_Payment_Service();
 	}
 
 	/**
@@ -116,15 +126,53 @@ final class Offer_Action_Handler {
 			return;
 		}
 
-		$offer = $this->repository->get_offer_for_step( $step_id );
+		$offer     = $this->repository->get_offer_for_step( $step_id );
+		$step_type = sanitize_key( get_post_meta( $step_id, LIBREFUNNELS_STEP_TYPE_META, true ) );
+		$order     = $this->payment_service->get_order_from_request_data( $data );
 
-		if ( 'accept' === $action && ! $this->add_offer_to_cart( $step_id, $offer ) ) {
+		if ( 'accept' === $action && ! $this->accept_offer( $step_id, $step_type, $offer, $order, $funnel_id ) ) {
 			return;
 		}
 
 		$this->offer_state->record_action( $step_id, isset( $offer['id'] ) ? $offer['id'] : '', $action );
 		do_action( 'librefunnels_offer_action_recorded', $funnel_id, $step_id, $action, $offer );
 		$this->redirect_to_route( $funnel_id, $step_id, $action );
+	}
+
+	/**
+	 * Accepts an offer using one-click payment when available, otherwise cart confirmation.
+	 *
+	 * @param int                 $step_id   Step ID.
+	 * @param string              $step_type Step type.
+	 * @param array<string,mixed> $offer     Offer data.
+	 * @param object|null         $order     WooCommerce order object.
+	 * @param int                 $funnel_id Funnel ID.
+	 * @return bool
+	 */
+	private function accept_offer( $step_id, $step_type, array $offer, $order, $funnel_id ) {
+		$strategy = $this->payment_service->get_strategy_for_step( $step_type, $order );
+
+		if ( ! empty( $strategy['oneClick'] ) && is_object( $order ) ) {
+			$result = $this->payment_service->charge_offer(
+				$order,
+				$offer,
+				array(
+					'funnel_id' => absint( $funnel_id ),
+					'step_id'   => absint( $step_id ),
+				)
+			);
+
+			if ( $result->is_success() ) {
+				return true;
+			}
+
+			if ( ! $result->requires_confirmation() ) {
+				$this->add_notice( $result->get_message() );
+				return false;
+			}
+		}
+
+		return $this->add_offer_to_cart( $step_id, $offer );
 	}
 
 	/**
