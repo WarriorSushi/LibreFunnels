@@ -84,6 +84,7 @@
 - Canvas creates and assigns a draft page without exposing raw page IDs, then confirms the draft status plus edit-design and preview links
 - Canvas keeps draft-page controls in the Page inspector tab, then switches to the Products inspector tab for checkout products and order bumps
 - Canvas builds a conditional route without editing JSON
+- Canvas verifies the conditional route builder's grouped, plain-language preview for the default always rule, missing product selection, and selected product states
 - Canvas selects products for checkout, order bump, offer, and product-based conditional rules
 - Admin workspace smoke verifies the sectioned funnel workspace rather than assuming analytics lives inside the canvas view
 - Admin submenu smoke verifies Dashboard, Templates, Analytics, Settings, and Setup render different section pages

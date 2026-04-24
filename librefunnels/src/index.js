@@ -94,6 +94,21 @@ const ruleLabels = {
 	customer_logged_in: __( 'Customer is logged in', 'librefunnels' ),
 };
 
+const ruleGroups = [
+	{
+		label: __( 'General', 'librefunnels' ),
+		rules: [ 'always', 'customer_logged_in' ],
+	},
+	{
+		label: __( 'Cart', 'librefunnels' ),
+		rules: [ 'cart_contains_product', 'cart_subtotal_gte', 'cart_subtotal_lte' ],
+	},
+	{
+		label: __( 'Order', 'librefunnels' ),
+		rules: [ 'order_contains_product', 'order_total_gte', 'order_total_lte' ],
+	},
+];
+
 function getPostTitle( post, fallback ) {
 	if ( post?.title?.raw ) {
 		return post.title.raw;
@@ -533,6 +548,51 @@ function createRuleFromType( type, previous = {} ) {
 
 function getProductById( products, productId ) {
 	return products.find( ( product ) => Number( product.id ) === Number( productId ) );
+}
+
+function getRulePreview( rule = {}, products = [] ) {
+	const type = rule.type || 'always';
+
+	if ( type === 'always' ) {
+		return __( 'This route is available to every shopper.', 'librefunnels' );
+	}
+
+	if ( type === 'customer_logged_in' ) {
+		return __( 'This route is used when the shopper is logged in.', 'librefunnels' );
+	}
+
+	if ( type === 'cart_contains_product' || type === 'order_contains_product' ) {
+		const product = getProductById( products, Number( rule.product_id || 0 ) );
+
+		if ( ! product ) {
+			return __( 'Choose a product to finish this condition.', 'librefunnels' );
+		}
+
+		return type === 'cart_contains_product'
+			? sprintf( __( 'Use this route when the cart contains %s.', 'librefunnels' ), product.name )
+			: sprintf( __( 'Use this route when the order contains %s.', 'librefunnels' ), product.name );
+	}
+
+	if ( type === 'cart_subtotal_gte' || type === 'cart_subtotal_lte' || type === 'order_total_gte' || type === 'order_total_lte' ) {
+		const amount = Number( rule.amount || 0 );
+		const amountLabel = amount > 0 ? formatPlainNumber( amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 } ) : __( 'the amount you enter', 'librefunnels' );
+
+		if ( type === 'cart_subtotal_gte' ) {
+			return sprintf( __( 'Use this route when the cart subtotal is at least %s.', 'librefunnels' ), amountLabel );
+		}
+
+		if ( type === 'cart_subtotal_lte' ) {
+			return sprintf( __( 'Use this route when the cart subtotal is at most %s.', 'librefunnels' ), amountLabel );
+		}
+
+		if ( type === 'order_total_gte' ) {
+			return sprintf( __( 'Use this route when the order total is at least %s.', 'librefunnels' ), amountLabel );
+		}
+
+		return sprintf( __( 'Use this route when the order total is at most %s.', 'librefunnels' ), amountLabel );
+	}
+
+	return __( 'LibreFunnels will evaluate this condition before choosing the next route.', 'librefunnels' );
 }
 
 function getPageStatusLabel( status ) {
@@ -3751,6 +3811,7 @@ function EdgeInspector( { edge, graph, steps, products, onSearchProducts, onSave
 
 function RuleBuilder( { rule, products, onSearchProducts, onChange } ) {
 	const type = rule?.type || 'always';
+	const preview = getRulePreview( rule, products );
 
 	return (
 		<div className="lf-panellet">
@@ -3762,13 +3823,22 @@ function RuleBuilder( { rule, products, onSearchProducts, onChange } ) {
 			<label className="lf-field">
 				<span>{ __( 'Rule', 'librefunnels' ) }</span>
 				<select value={ type } onChange={ ( event ) => onChange( createRuleFromType( event.target.value, rule ) ) }>
-					{ Object.entries( ruleLabels ).map( ( [ value, label ] ) => (
-						<option key={ value } value={ value }>
-							{ label }
-						</option>
+					{ ruleGroups.map( ( group ) => (
+						<optgroup key={ group.label } label={ group.label }>
+							{ group.rules.map( ( value ) => (
+								<option key={ value } value={ value }>
+									{ ruleLabels[ value ] || value }
+								</option>
+							) ) }
+						</optgroup>
 					) ) }
 				</select>
 			</label>
+
+			<div className="lf-rule-preview" aria-live="polite">
+				<span>{ __( 'Preview', 'librefunnels' ) }</span>
+				<strong>{ preview }</strong>
+			</div>
 
 			{ ( type === 'cart_contains_product' || type === 'order_contains_product' ) && (
 				<ProductPicker value={ Number( rule.product_id || 0 ) } products={ products } onSearch={ onSearchProducts } onChange={ ( productId ) => onChange( { ...rule, product_id: Number( productId ) } ) } />

@@ -1351,6 +1351,28 @@
 	);
 }
 
+.lf-rule-preview {
+	display: grid;
+	gap: 4px;
+	padding: 10px 12px;
+	border: 1px solid color-mix(in oklch, var(--lf-accent) 24%, var(--lf-border));
+	border-radius: 8px;
+	background: color-mix(in oklch, var(--lf-accent) 7%, var(--lf-surface));
+}
+
+.lf-rule-preview span {
+	color: var(--lf-muted);
+	font-size: 11px;
+	font-weight: 850;
+	text-transform: uppercase;
+}
+
+.lf-rule-preview strong {
+	color: var(--lf-ink);
+	font-size: 13px;
+	line-height: 1.35;
+}
+
 .lf-offer-fields,
 .lf-product-picker {
 	display: grid;

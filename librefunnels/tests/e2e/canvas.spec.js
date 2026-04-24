@@ -442,10 +442,13 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 
 		const conditionPanel = page.locator( '.lf-panellet' ).filter( { hasText: 'Condition' } );
 		await expect( conditionPanel.getByText( 'Condition', { exact: true } ) ).toBeVisible();
+		await expect( conditionPanel.locator( '.lf-rule-preview' ) ).toContainText( 'This route is available to every shopper.' );
 		await conditionPanel.getByLabel( 'Rule' ).selectOption( 'cart_contains_product' );
+		await expect( conditionPanel.locator( '.lf-rule-preview' ) ).toContainText( 'Choose a product to finish this condition.' );
 		await conditionPanel.getByLabel( 'Find product' ).fill( 'Digital' );
 		await expect( conditionPanel.locator( 'select' ).last() ).toContainText( 'Digital' );
 		await conditionPanel.locator( 'select' ).last().selectOption( { index: 1 } );
+		await expect( conditionPanel.locator( '.lf-rule-preview' ) ).toContainText( 'Use this route when the cart contains' );
 		await page.getByRole( 'button', { name: 'Save route' } ).click();
 		await expect( page.getByText( 'Route saved' ) ).toBeVisible();
 
