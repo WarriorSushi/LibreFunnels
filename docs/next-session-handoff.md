@@ -87,6 +87,7 @@ Implemented so far:
 - Post-purchase offer payment adapter foundation exists under `LibreFunnels\Payments`, with adapter contracts, capability flags, safe fallback adapter, mock/test adapter, payment results, adapter registry, and offer payment service.
 - Upsell, downsell, and cross-sell rendering now asks the payment service for the current strategy and explains one-click versus accept-and-confirm behavior on the public offer step.
 - Offer accept handling now attempts adapter-backed one-click charging only when a validated order/order-key context and capable adapter are present; unknown gateways continue through WooCommerce checkout confirmation without mutating the original order.
+- One-click adapter charges now create a separate WooCommerce child order through HPOS-safe order CRUD before the adapter runs, copy safe customer/currency/address context, add the discounted offer product, and store LibreFunnels offer/payment metadata on the child order.
 - Local analytics event table and recorder for offer impressions, accepts, rejects, and attributed order revenue.
 - WooCommerce checkout order revenue attribution that groups marked order lines by funnel, records `order_revenue` events, and marks orders through WooCommerce CRUD metadata for HPOS-safe idempotency.
 - Capability-guarded analytics summary REST endpoint for local dashboard reads.
@@ -118,7 +119,7 @@ Implemented so far:
 - Unit coverage for funnel importer draft-page side effects, graph/start-step remapping, invalid package failures, and existing-product-only template option overrides.
 - Unit coverage for analytics summary source-revenue, step-breakdown, and previous-period comparison shaping.
 - Unit coverage for WooCommerce order fact collection and order-aware rule evaluation.
-- Unit coverage for payment adapter resolution, mock/test gateway success and failure behavior, fallback confirmation behavior, and order-key validation.
+- Unit coverage for payment adapter resolution, mock/test gateway success and failure behavior, fallback confirmation behavior, order-key validation, and child-order creation that leaves the parent order untouched.
 
 ## User Intent
 Build a full, free, open-source WooCommerce funnel builder that can compete with and improve on CartFlows.
@@ -138,7 +139,7 @@ Build a full, free, open-source WooCommerce funnel builder that can compete with
 ## Next Implementation Steps
 1. Add REST/integration coverage for template create/import/export endpoints and capability/nonce behavior once a WP integration runtime is available.
 2. Continue analytics into dashboard snapshots, selectable date ranges, and step trend history after the current period-comparison, revenue-source, and step-signal panels.
-3. Expand the payment-adapter layer into real child-order creation for post-purchase offers, then add WooPayments/Stripe capability detection behind the existing adapter contract.
+3. Add child-order revenue attribution and adapter charge/failure analytics events, then begin WooPayments/Stripe capability detection behind the existing adapter contract.
 4. Add import/export controls to a hardened settings or tools surface with nonces/capabilities for non-REST admin entry points if we expose them outside the React app.
 5. Continue UI polish on the workspace list/sidebar and dashboard so large local datasets remain readable.
 

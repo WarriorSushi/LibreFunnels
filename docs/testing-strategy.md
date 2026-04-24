@@ -22,7 +22,7 @@
 - A/B assignment
 - Analytics attribution
 - Analytics summary source-revenue, step-breakdown, and previous-period comparison shaping
-- Payment adapter resolution, fallback confirmation, mock gateway charge success/failure, refund support, and order-key validation
+- Payment adapter resolution, fallback confirmation, mock gateway charge success/failure, refund support, order-key validation, and child-order creation
 - Import/export package normalization
 - Funnel importer page-creation side effects, graph remapping, and existing-product-only template option overrides
 - Checkout product assignment sanitization
@@ -56,6 +56,7 @@
 - Order bump order creation
 - Upsell/downsell order mutation
 - Post-purchase payment adapter child-order creation and safe failure recovery
+- Child-order revenue attribution for post-purchase offers
 - Coupons
 - Taxes/shipping
 - Product variations
