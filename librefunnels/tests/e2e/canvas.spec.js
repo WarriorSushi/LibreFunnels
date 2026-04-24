@@ -234,6 +234,7 @@ async function createPublishedFunnelPages( page, options = {} ) {
 		return {
 			funnelId,
 			checkoutTitle,
+			checkoutStepId: checkoutStep.id,
 			checkoutUrl: checkoutPage.url,
 			checkoutProductName: checkoutProduct.name,
 			checkoutProductPrice: Number( setupCheckoutProductPrice || checkoutProduct.price || 0 ),
@@ -534,7 +535,12 @@ test.describe( 'LibreFunnels canvas smoke', () => {
 
 		expect( summary.events.order_revenue.count ).toBeGreaterThan( 0 );
 		expect( Number( summary.revenue ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
+		expect( Number( summary.sourceRevenue.checkout_product ) ).toBeGreaterThanOrEqual( setup.checkoutProductPrice );
+		expect( summary.stepBreakdown.some( ( row ) => Number( row.stepId ) === Number( setup.checkoutStepId ) ) ).toBe( true );
 		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Local funnel signals' );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Revenue mix' );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( 'Step signals' );
+		await expect( page.locator( '.lf-analytics' ) ).toContainText( setup.checkoutTitle );
 	} );
 
 	test( 'renders an offer step and routes reject actions to the next public page', async ( { page } ) => {

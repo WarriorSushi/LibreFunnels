@@ -159,7 +159,7 @@ final class Event_Store {
 			),
 		);
 
-		foreach ( $rows as $row ) {
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 			$event_type = isset( $row['event_type'] ) ? sanitize_key( (string) $row['event_type'] ) : '';
 
 			if ( ! isset( $events[ $event_type ] ) ) {
@@ -177,19 +177,232 @@ final class Event_Store {
 
 		$accept_count     = $events['offer_accept']['count'];
 		$impression_count = $events['offer_impression']['count'];
+		$breakdowns       = $this->get_dashboard_breakdowns( $table_name, $where_sql, $params );
+
+		return array_merge(
+			array(
+				'period'          => array(
+					'days'  => $days,
+					'since' => $since,
+				),
+				'funnelId'        => $funnel_id,
+				'events'          => $events,
+				'revenue'         => $events['order_revenue']['value'],
+				'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+				'orders'          => $events['order_revenue']['count'],
+				'offerAcceptRate' => $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0,
+			),
+			$breakdowns
+		);
+	}
+
+	/**
+	 * Gets bounded detail rows and converts them into dashboard breakdowns.
+	 *
+	 * @param string       $table_name Events table name.
+	 * @param string       $where_sql  Prepared WHERE SQL fragment.
+	 * @param array<mixed> $params     Prepared query params.
+	 * @return array<string,mixed>
+	 */
+	private function get_dashboard_breakdowns( $table_name, $where_sql, array $params ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated from $wpdb->prefix and static suffix.
+		$detail_sql = "SELECT event_type, step_id, value, context FROM {$table_name} WHERE {$where_sql} ORDER BY created_at DESC LIMIT 500";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin analytics reads from LibreFunnels' local events table.
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is assembled from fixed SQL fragments and prepared placeholders.
+			$wpdb->prepare( $detail_sql, $params ),
+			ARRAY_A
+		);
+
+		return $this->build_dashboard_breakdowns( is_array( $rows ) ? $rows : array() );
+	}
+
+	/**
+	 * Builds local analytics breakdowns from raw event rows.
+	 *
+	 * @param array<int,array<string,mixed>> $rows Event rows.
+	 * @return array<string,mixed>
+	 */
+	private function build_dashboard_breakdowns( array $rows ) {
+		$steps          = array();
+		$source_revenue = array(
+			'checkout_product' => 0.0,
+			'order_bump'       => 0.0,
+			'offer'            => 0.0,
+		);
+
+		foreach ( $rows as $row ) {
+			$event_type = isset( $row['event_type'] ) ? sanitize_key( (string) $row['event_type'] ) : '';
+			$step_id    = isset( $row['step_id'] ) ? absint( $row['step_id'] ) : 0;
+			$value      = isset( $row['value'] ) ? (float) $row['value'] : 0.0;
+			$context    = $this->decode_event_context( isset( $row['context'] ) ? $row['context'] : '' );
+
+			if ( $step_id > 0 ) {
+				$this->ensure_step_breakdown( $steps, $step_id );
+				$this->add_step_event( $steps[ $step_id ], $event_type );
+			}
+
+			if ( 'order_revenue' === $event_type ) {
+				$this->add_revenue_lines_to_breakdown( $steps, $source_revenue, $context, $step_id, $value );
+			}
+		}
+
+		$step_breakdown = array_values( $steps );
+
+		usort(
+			$step_breakdown,
+			static function ( $first, $second ) {
+				if ( $first['revenue'] === $second['revenue'] ) {
+					return $second['activity'] <=> $first['activity'];
+				}
+
+				return $second['revenue'] <=> $first['revenue'];
+			}
+		);
 
 		return array(
-			'period'          => array(
-				'days'  => $days,
-				'since' => $since,
-			),
-			'funnelId'        => $funnel_id,
-			'events'          => $events,
-			'revenue'         => $events['order_revenue']['value'],
-			'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
-			'orders'          => $events['order_revenue']['count'],
-			'offerAcceptRate' => $impression_count > 0 ? round( ( $accept_count / $impression_count ) * 100, 2 ) : 0.0,
+			'sourceRevenue' => $source_revenue,
+			'stepBreakdown' => array_slice( $step_breakdown, 0, 20 ),
 		);
+	}
+
+	/**
+	 * Adds event-level counters to a step breakdown.
+	 *
+	 * @param array<string,mixed> $step       Step breakdown.
+	 * @param string              $event_type Event type.
+	 * @return void
+	 */
+	private function add_step_event( array &$step, $event_type ) {
+		++$step['activity'];
+
+		if ( 'offer_impression' === $event_type ) {
+			++$step['offerImpressions'];
+		} elseif ( 'offer_accept' === $event_type ) {
+			++$step['offerAccepts'];
+		} elseif ( 'offer_reject' === $event_type ) {
+			++$step['offerRejects'];
+		} elseif ( 'order_revenue' === $event_type ) {
+			++$step['orders'];
+		}
+
+		$this->refresh_step_rates( $step );
+	}
+
+	/**
+	 * Adds line-level revenue attribution to source and step breakdowns.
+	 *
+	 * @param array<int,array<string,mixed>> $steps          Step breakdowns.
+	 * @param array<string,float>            $source_revenue Source revenue totals.
+	 * @param array<string,mixed>            $context        Event context.
+	 * @param int                            $fallback_step  Fallback step ID.
+	 * @param float                          $fallback_value Fallback event value.
+	 * @return void
+	 */
+	private function add_revenue_lines_to_breakdown( array &$steps, array &$source_revenue, array $context, $fallback_step, $fallback_value ) {
+		$lines = isset( $context['lines'] ) && is_array( $context['lines'] ) ? $context['lines'] : array();
+
+		if ( empty( $lines ) ) {
+			if ( $fallback_step > 0 ) {
+				$this->ensure_step_breakdown( $steps, $fallback_step );
+				$steps[ $fallback_step ]['revenue']         += $fallback_value;
+				$steps[ $fallback_step ]['checkoutRevenue'] += $fallback_value;
+				$source_revenue['checkout_product']         += $fallback_value;
+			}
+
+			return;
+		}
+
+		foreach ( $lines as $line ) {
+			if ( is_object( $line ) ) {
+				$line = (array) $line;
+			}
+
+			if ( ! is_array( $line ) ) {
+				continue;
+			}
+
+			$source  = isset( $line['source'] ) ? sanitize_key( (string) $line['source'] ) : '';
+			$step_id = isset( $line['step_id'] ) ? absint( $line['step_id'] ) : $fallback_step;
+			$total   = isset( $line['total'] ) ? (float) $line['total'] : 0.0;
+
+			if ( ! isset( $source_revenue[ $source ] ) || $step_id < 1 ) {
+				continue;
+			}
+
+			$this->ensure_step_breakdown( $steps, $step_id );
+			$steps[ $step_id ]['revenue'] += $total;
+			$source_revenue[ $source ]    += $total;
+
+			if ( 'checkout_product' === $source ) {
+				$steps[ $step_id ]['checkoutRevenue'] += $total;
+			} elseif ( 'order_bump' === $source ) {
+				$steps[ $step_id ]['bumpRevenue'] += $total;
+			} elseif ( 'offer' === $source ) {
+				$steps[ $step_id ]['offerRevenue'] += $total;
+			}
+		}
+	}
+
+	/**
+	 * Ensures a step breakdown exists.
+	 *
+	 * @param array<int,array<string,mixed>> $steps   Step breakdowns.
+	 * @param int                            $step_id Step ID.
+	 * @return void
+	 */
+	private function ensure_step_breakdown( array &$steps, $step_id ) {
+		if ( isset( $steps[ $step_id ] ) ) {
+			return;
+		}
+
+		$steps[ $step_id ] = array(
+			'stepId'           => absint( $step_id ),
+			'revenue'          => 0.0,
+			'checkoutRevenue'  => 0.0,
+			'bumpRevenue'      => 0.0,
+			'offerRevenue'     => 0.0,
+			'orders'           => 0,
+			'offerImpressions' => 0,
+			'offerAccepts'     => 0,
+			'offerRejects'     => 0,
+			'offerAcceptRate'  => 0.0,
+			'activity'         => 0,
+		);
+	}
+
+	/**
+	 * Refreshes derived step rates.
+	 *
+	 * @param array<string,mixed> $step Step breakdown.
+	 * @return void
+	 */
+	private function refresh_step_rates( array &$step ) {
+		$step['offerAcceptRate'] = $step['offerImpressions'] > 0
+			? round( ( $step['offerAccepts'] / $step['offerImpressions'] ) * 100, 2 )
+			: 0.0;
+	}
+
+	/**
+	 * Decodes stored event context.
+	 *
+	 * @param mixed $context Raw context JSON.
+	 * @return array<string,mixed>
+	 */
+	private function decode_event_context( $context ) {
+		if ( is_array( $context ) ) {
+			return $context;
+		}
+
+		if ( ! is_string( $context ) || '' === $context ) {
+			return array();
+		}
+
+		$decoded = json_decode( $context, true );
+
+		return is_array( $decoded ) ? $decoded : array();
 	}
 
 	/**

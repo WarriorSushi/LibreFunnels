@@ -1437,12 +1437,13 @@ function SectionPage( {
 				/>
 			) }
 			{ section === 'analytics' && (
-				<AnalyticsSection
-					funnels={ funnels }
-					selectedFunnel={ selectedFunnel }
-					summary={ analyticsSummary }
-					isLoading={ isAnalyticsLoading }
-					error={ analyticsError }
+					<AnalyticsSection
+						funnels={ funnels }
+						selectedFunnel={ selectedFunnel }
+						funnelSteps={ funnelSteps }
+						summary={ analyticsSummary }
+						isLoading={ isAnalyticsLoading }
+						error={ analyticsError }
 					onSelectFunnel={ onSelectFunnel }
 				/>
 			) }
@@ -1750,7 +1751,7 @@ function GuidedStarterPanel( { products = [], onSearchProducts, onCreate, isSavi
 	);
 }
 
-function AnalyticsSection( { funnels, selectedFunnel, summary, isLoading, error, onSelectFunnel } ) {
+function AnalyticsSection( { funnels, selectedFunnel, funnelSteps, summary, isLoading, error, onSelectFunnel } ) {
 	return (
 		<div className="lf-section-stack">
 			<div className="lf-dashboard-hero">
@@ -1762,7 +1763,7 @@ function AnalyticsSection( { funnels, selectedFunnel, summary, isLoading, error,
 			</div>
 			<FunnelSelect funnels={ funnels } selectedFunnel={ selectedFunnel } onSelectFunnel={ onSelectFunnel } />
 			{ selectedFunnel ? (
-				<AnalyticsSummary selectedFunnel={ selectedFunnel } summary={ summary } isLoading={ isLoading } error={ error } />
+				<AnalyticsSummary selectedFunnel={ selectedFunnel } funnelSteps={ funnelSteps } summary={ summary } isLoading={ isLoading } error={ error } />
 			) : (
 				<div className="lf-empty-small">{ __( 'Create or select a funnel to see analytics.', 'librefunnels' ) }</div>
 			) }
@@ -2063,6 +2064,7 @@ function WorkspaceContent( {
 			<div className="lf-workspace-panel">
 				<AnalyticsSummary
 					selectedFunnel={ selectedFunnel }
+					funnelSteps={ funnelSteps }
 					summary={ analyticsSummary }
 					isLoading={ isAnalyticsLoading }
 					error={ analyticsError }
@@ -2496,7 +2498,21 @@ function Header( { selectedFunnel, warnings, setupGuide, isSaving, notice, onCre
 	);
 }
 
-function AnalyticsSummary( { selectedFunnel, summary, isLoading, error } ) {
+function AnalyticsSummary( { selectedFunnel, funnelSteps = [], summary, isLoading, error } ) {
+	const stepRows = useMemo( () => {
+		const rows = Array.isArray( summary?.stepBreakdown ) ? summary.stepBreakdown : [];
+
+		return rows.map( ( row ) => {
+			const step = getStepById( funnelSteps, row.stepId );
+
+			return {
+				...row,
+				title: step ? getPostTitle( step, __( 'Untitled step', 'librefunnels' ) ) : sprintf( __( 'Step #%d', 'librefunnels' ), Number( row.stepId || 0 ) ),
+				typeLabel: stepTypes[ step?.type ] || __( 'Step', 'librefunnels' ),
+			};
+		} );
+	}, [ summary, funnelSteps ] );
+
 	if ( ! selectedFunnel ) {
 		return null;
 	}
@@ -2510,6 +2526,28 @@ function AnalyticsSummary( { selectedFunnel, summary, isLoading, error } ) {
 	const orders = Number( summary?.orders || 0 );
 	const revenue = Number( summary?.revenue || 0 );
 	const hasData = revenue > 0 || orders > 0 || impressionCount > 0 || acceptCount > 0 || rejectCount > 0;
+	const sourceRevenue = summary?.sourceRevenue || {};
+	const sourceRows = [
+		{
+			id: 'checkout_product',
+			label: __( 'Checkout products', 'librefunnels' ),
+			value: Number( sourceRevenue.checkout_product || 0 ),
+			detail: __( 'Primary products sold through funnel checkout.', 'librefunnels' ),
+		},
+		{
+			id: 'order_bump',
+			label: __( 'Order bumps', 'librefunnels' ),
+			value: Number( sourceRevenue.order_bump || 0 ),
+			detail: __( 'Inline bump revenue attributed from order lines.', 'librefunnels' ),
+		},
+		{
+			id: 'offer',
+			label: __( 'Offers', 'librefunnels' ),
+			value: Number( sourceRevenue.offer || 0 ),
+			detail: __( 'Upsell, downsell, and pre-checkout offer lines.', 'librefunnels' ),
+		},
+	];
+	const maxSourceRevenue = Math.max( 1, ...sourceRows.map( ( row ) => row.value ) );
 	const offerDecisionText = sprintf(
 		__( '%1$d accept / %2$d reject', 'librefunnels' ),
 		acceptCount,
@@ -2554,6 +2592,83 @@ function AnalyticsSummary( { selectedFunnel, summary, isLoading, error } ) {
 					detail={ __( 'Accept and reject clicks from public offer steps.', 'librefunnels' ) }
 				/>
 			</div>
+
+			{ hasData && (
+				<div className="lf-analytics__details">
+					<section className="lf-analytics-panel">
+						<div className="lf-analytics-panel__head">
+							<h3>{ __( 'Revenue mix', 'librefunnels' ) }</h3>
+							<p>{ __( 'A quick read on where this funnel is making money.', 'librefunnels' ) }</p>
+						</div>
+						<div className="lf-source-list">
+							{ sourceRows.map( ( row ) => (
+								<div className="lf-source-row" key={ row.id }>
+									<div>
+										<strong>{ row.label }</strong>
+										<small>{ row.detail }</small>
+									</div>
+									<span className="lf-source-row__value">{ formatCurrency( row.value, currency ) }</span>
+									<span className="lf-source-row__bar" aria-hidden="true">
+										<span style={ { width: `${ Math.round( ( row.value / maxSourceRevenue ) * 100 ) }%` } } />
+									</span>
+								</div>
+							) ) }
+						</div>
+					</section>
+
+					<section className="lf-analytics-panel lf-analytics-panel--wide">
+						<div className="lf-analytics-panel__head">
+							<h3>{ __( 'Step signals', 'librefunnels' ) }</h3>
+							<p>{ __( 'Revenue and offer decisions grouped by the steps LibreFunnels can identify locally.', 'librefunnels' ) }</p>
+						</div>
+						{ stepRows.length > 0 ? (
+							<div className="lf-step-analytics-table-wrap">
+								<table className="lf-step-analytics-table">
+									<thead>
+										<tr>
+											<th scope="col">{ __( 'Step', 'librefunnels' ) }</th>
+											<th scope="col">{ __( 'Revenue', 'librefunnels' ) }</th>
+											<th scope="col">{ __( 'Offer rate', 'librefunnels' ) }</th>
+											<th scope="col">{ __( 'Decisions', 'librefunnels' ) }</th>
+										</tr>
+									</thead>
+									<tbody>
+										{ stepRows.map( ( row ) => (
+											<tr key={ row.stepId }>
+												<td>
+													<strong>{ row.title }</strong>
+													<small>{ row.typeLabel }</small>
+												</td>
+												<td>
+													<strong>{ formatCurrency( row.revenue, currency ) }</strong>
+													<small>
+														{ sprintf(
+															__( 'Checkout %1$s · bumps %2$s · offers %3$s', 'librefunnels' ),
+															formatCurrency( row.checkoutRevenue, currency ),
+															formatCurrency( row.bumpRevenue, currency ),
+															formatCurrency( row.offerRevenue, currency )
+														) }
+													</small>
+												</td>
+												<td>
+													<strong>{ formatPercent( row.offerAcceptRate || 0 ) }</strong>
+													<small>{ sprintf( __( '%d view(s)', 'librefunnels' ), Number( row.offerImpressions || 0 ) ) }</small>
+												</td>
+												<td>
+													<strong>{ sprintf( __( '%1$d / %2$d', 'librefunnels' ), Number( row.offerAccepts || 0 ), Number( row.offerRejects || 0 ) ) }</strong>
+													<small>{ __( 'accepts / rejects', 'librefunnels' ) }</small>
+												</td>
+											</tr>
+										) ) }
+									</tbody>
+								</table>
+							</div>
+						) : (
+							<p className="lf-empty-small">{ __( 'Step-level rows will appear as soon as attributed events include step IDs.', 'librefunnels' ) }</p>
+						) }
+					</section>
+				</div>
+			) }
 		</section>
 	);
 }

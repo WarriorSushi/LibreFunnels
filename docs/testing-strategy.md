@@ -21,6 +21,7 @@
 - Conditional graph route rule matching and fallback
 - A/B assignment
 - Analytics attribution
+- Analytics summary source-revenue and step-breakdown shaping
 - Import/export package normalization
 - Funnel importer page-creation side effects, graph remapping, and existing-product-only template option overrides
 - Checkout product assignment sanitization
@@ -66,6 +67,7 @@
 - Local analytics events table is installed on activation/schema-version changes
 - Offer impression and accept/reject hooks write local events
 - Analytics summary REST reads are capability-guarded and query the local events table
+- Analytics summary REST reads expose bounded source-revenue and step-breakdown data from stored local events
 
 ## E2E Tests
 - Funnel creation
@@ -84,7 +86,7 @@
 - Admin workspace smoke verifies the sectioned funnel workspace rather than assuming analytics lives inside the canvas view
 - Admin submenu smoke verifies Dashboard, Templates, Analytics, Settings, and Setup render different section pages
 - Canvas smoke switches between Overview, Canvas, and Analytics workspace tabs where those surfaces are intentionally separated
-- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a guided template starter with checkout product preselection and Steps-tab page-builder handoff, creates the guided starter path, checks setup progress, creates a funnel page, confirms draft publish guidance, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, saves an upsell offer through product search, checks imported broken-route recovery, renders a published checkout page, renders an offer page with reject routing to the next public step, and verifies offer accept adds the product to the WooCommerce cart before routing forward
+- Docker admin canvas smoke logs in, verifies the React canvas replaced the PHP fallback, creates a guided template starter with checkout product preselection and Steps-tab page-builder handoff, creates the guided starter path, checks setup progress, creates a funnel page, confirms draft publish guidance, saves multiple checkout products, saves an order bump, verifies drag persistence after reload, edits a route into a product condition, saves an upsell offer through product search, checks imported broken-route recovery, renders a published checkout page, verifies attributed revenue/source/step analytics after checkout, renders an offer page with reject routing to the next public step, and verifies offer accept adds the product to the WooCommerce cart before routing forward
 - Checkout flow
 - Multiple order bumps
 - Pre-checkout offer accept/reject flow
@@ -115,4 +117,4 @@ Run these before commits that touch PHP, build tooling, or the admin app:
 - `npm run build`
 - `npm run test:e2e:canvas` when Docker WordPress is running and the admin app changes
 
-The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner workspace path, guided template product preselection, Steps-tab page-builder handoff, setup progress guidance, separated analytics tab guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, route/rule editing, broken-route recovery, public checkout rendering, full WooCommerce checkout order creation with attributed revenue summary reads, public offer rendering, offer reject routing, and offer accept cart mutation. Expand it next toward REST/integration endpoint coverage, submenu coverage, and step-level analytics drilldowns.
+The first Playwright smoke confirms the React app mounts on the LibreFunnels admin page and replaces the PHP fallback. It now covers the core beginner workspace path, guided template product preselection, Steps-tab page-builder handoff, setup progress guidance, separated analytics tab guidance, commerce controls, draft page status, edit/preview page handoff, drag persistence, route/rule editing, broken-route recovery, public checkout rendering, full WooCommerce checkout order creation with attributed revenue/source/step summary reads, public offer rendering, offer reject routing, and offer accept cart mutation. Expand it next toward REST/integration endpoint coverage, submenu coverage, and analytics trend history.
